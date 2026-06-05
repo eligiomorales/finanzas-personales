@@ -24,7 +24,7 @@ VITE_SUPABASE_ANON_KEY=...   # Supabase → Settings → API Keys → Publishabl
 ## Flujo habitual
 
 ```
-Código → npm run dev → probar en localhost → npm test (opcional) → npm run deploy → verificar en prod
+Código → npm run dev → probar en localhost → npm run ci → PR → merge a main → CI + deploy Vercel
 ```
 
 `**.env.local` es solo para desarrollo local** (`npm run dev`). El deploy **no lo usa** y no debería modificarlo.
@@ -66,7 +66,11 @@ Abrí [http://localhost:5173](http://localhost:5173).
 
 ### 3. Deploy a producción
 
-**Comando habitual** (publicar cambios de código):
+**Habitual (con Git conectado en Vercel):** merge a `main` → CI verde → Vercel despliega solo.
+
+Configuración: [finanzas-personales → Settings → Git](https://vercel.com/eligiomorales-1082s-projects/finanzas-personales/settings/git) → repo `eligiomorales/finanzas-personales`, rama `main`, Production.
+
+**Manual** (fallback o emergencia):
 
 ```bash
 npm run deploy
@@ -111,7 +115,8 @@ Checklist completo de pareja + realtime: ver sección [Verificación en dos disp
 npm run dev          # local (usa .env.local)
 npm test             # tests (opcional)
 npm run build        # verificar que compila (opcional)
-npm run deploy       # publicar código a producción
+# merge a main       # Vercel despliega automáticamente (Git conectado)
+npm run deploy       # fallback manual a producción
 npm run deploy:env   # solo si cambiaste credenciales Supabase
 ```
 

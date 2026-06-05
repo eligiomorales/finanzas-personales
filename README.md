@@ -28,9 +28,11 @@ main (producción) ← PR ← feature/nombre-corto
 2. Desarrollar y validar: `npm run ci` (tests + build)
 3. Push y abrir Pull Request hacia `main`
 4. Merge cuando CI pase en GitHub
-5. Deploy: `npm run deploy` (o auto-deploy si conectás el repo en Vercel)
+5. **Deploy automático:** Vercel publica al mergear a `main` (repo conectado en [Settings → Git](https://vercel.com/eligiomorales-1082s-projects/finanzas-personales/settings/git))
 
 **CI en GitHub:** cada push y PR ejecuta `npm test` y `npm run build` (`.github/workflows/ci.yml`).
+
+**Deploy manual** (solo si hace falta): `npm run deploy` — usa variables ya guardadas en Vercel, no lee `.env.local`.
 
 **Secretos:** nunca commitear `.env.local`. Solo `.env.example` va al repo.
 
