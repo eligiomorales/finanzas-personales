@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/Card'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { cn } from '@/lib/utils'
 
-type NavIconName = 'home' | 'movements' | 'balance' | 'categories' | 'import' | 'settings'
+type NavIconName = 'home' | 'movements' | 'balance' | 'categories' | 'budget' | 'import' | 'settings'
 
 function NavIcon({ name, className }: { name: NavIconName; className?: string }) {
   const props = {
@@ -42,6 +42,12 @@ function NavIcon({ name, className }: { name: NavIconName; className?: string })
           <path d="M4 19V5M4 19h16M8 17V9M12 17V7M16 17v-4" />
         </svg>
       )
+    case 'budget':
+      return (
+        <svg {...props}>
+          <path d="M4 20V10M4 10h16M8 18v-4M12 18V8M16 18v-6" />
+        </svg>
+      )
     case 'import':
       return (
         <svg {...props}>
@@ -62,6 +68,7 @@ const navItems: { to: string; label: string; icon: NavIconName }[] = [
   { to: '/', label: 'Inicio', icon: 'home' },
   { to: '/movimientos', label: 'Movimientos', icon: 'movements' },
   { to: '/balance', label: 'Balance', icon: 'balance' },
+  { to: '/presupuesto', label: 'Presupuesto', icon: 'budget' },
   { to: '/categorias', label: 'Categorías', icon: 'categories' },
   { to: '/importar', label: 'Importar', icon: 'import' },
 ]
@@ -70,6 +77,7 @@ export function Layout() {
   const location = useLocation()
   const { isPersonal } = useExpenseViewMode()
   const isFormPage = location.pathname.includes('/nuevo') || location.pathname.includes('/editar')
+  const hideFab = isFormPage || location.pathname === '/presupuesto'
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col bg-slate-50 md:max-w-2xl lg:max-w-4xl">
@@ -128,7 +136,7 @@ export function Layout() {
         </nav>
       )}
 
-      {!isFormPage && (
+      {!hideFab && (
         <NavLink
           to="/movimientos/nuevo"
           className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] right-5 z-20 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-brand-600 text-2xl text-white shadow-lg transition-transform hover:scale-105 active:scale-95"

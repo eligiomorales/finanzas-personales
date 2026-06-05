@@ -14,12 +14,15 @@ import type {
   MovementRepository,
   Repositories,
   SettingsRepository,
+  UpsertCategoryBudgetInput,
+  BudgetRepository,
 } from '@/lib/repositories/types'
 import { MOVEMENTS_PAGE_SIZE } from '@/lib/movements-query'
 import { generateId } from '@/lib/utils'
 import type {
   AppSettings,
   Category,
+  CategoryBudget,
   CurrencyCode,
   ImportRecord,
   Movement,
@@ -89,6 +92,28 @@ function rowToSettings(row: {
     personBName: row.person_b_name,
     displayCurrency: row.display_currency,
     defaultExchangeRateUsd: Number(row.default_exchange_rate_usd),
+  }
+}
+
+function rowToBudget(row: {
+  id: string
+  category_id: string
+  year_month: string
+  amount: number
+  currency: CurrencyCode
+  scope: CategoryBudget['scope']
+  created_at: string
+  updated_at: string
+}): CategoryBudget {
+  return {
+    id: row.id,
+    categoryId: row.category_id,
+    yearMonth: row.year_month,
+    amount: Number(row.amount),
+    currency: row.currency,
+    scope: row.scope,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
@@ -447,11 +472,106 @@ export function createSupabaseRepositories(coupleId: string): Repositories {
     },
   }
 
+  const budgets: BudgetRepository = {
+    async listAll() {
+      const { data, error } = await supabase
+        .from('category_budgets')
+        .select('*')
+        .eq('couple_id', coupleId)
+
+      if (error) throw error
+      return (data ?? []).map(rowToBudget)
+    },
+
+    async listByMonth(yearMonth, scope = 'couple') {
+      const { data, error } = await supabase
+        .from('category_budgets')
+        .select('*')
+        .eq('couple_id', coupleId)
+        .eq('year_month', yearMonth)
+        .eq('scope', scope)
+
+      if (error) throw error
+      return (data ?? []).map(rowToBudget)
+    },
+
+    async upsert(input: UpsertCategoryBudgetInput) {
+      const scope = input.scope ?? 'couple'
+      const now = new Date().toISOString()
+
+      const { data: existing, error: findError } = await supabase
+        .from('category_budgets')
+        .select('*')
+        .eq('couple_id', coupleId)
+        .eq('category_id', input.categoryId)
+        .eq('year_month', input.yearMonth)
+        .eq('scope', scope)
+        .maybeSingle()
+
+      if (findError) throw findError
+
+      if (existing) {
+        const { data, error } = await supabase
+          .from('category_budgets')
+          .update({
+            amount: input.amount,
+            currency: input.currency,
+            updated_at: now,
+          })
+          .eq('couple_id', coupleId)
+          .eq('id', existing.id)
+          .select('*')
+          .single()
+
+        if (error) throw error
+        return rowToBudget(data)
+      }
+
+      const id = generateId()
+      const { data, error } = await supabase
+        .from('category_budgets')
+        .insert({
+          id,
+          couple_id: coupleId,
+          category_id: input.categoryId,
+          year_month: input.yearMonth,
+          amount: input.amount,
+          currency: input.currency,
+          scope,
+          created_at: now,
+          updated_at: now,
+        })
+        .select('*')
+        .single()
+
+      if (error) throw error
+      return rowToBudget(data)
+    },
+
+    async delete(id) {
+      const { error } = await supabase
+        .from('category_budgets')
+        .delete()
+        .eq('couple_id', coupleId)
+        .eq('id', id)
+
+      if (error) throw error
+    },
+
+    subscribe(callback) {
+      return subscribeToPostgresChanges(supabase, `category-budgets-${coupleId}`, {
+        table: 'category_budgets',
+        filter: `couple_id=eq.${coupleId}`,
+      }, callback)
+    },
+  }
+
   return {
     movements,
     categories,
     settings,
     imports,
+    budgets,
     async getStats() {
       const all = await movements.list()
       return {

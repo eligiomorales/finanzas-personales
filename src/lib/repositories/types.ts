@@ -2,6 +2,7 @@ import type {
   AccountType,
   AppSettings,
   Category,
+  CategoryBudget,
   CurrencyCode,
   ImportRecord,
   Movement,
@@ -67,6 +68,22 @@ export interface ImportRepository {
   subscribe(callback: () => void): () => void
 }
 
+export interface UpsertCategoryBudgetInput {
+  categoryId: string
+  yearMonth: string
+  amount: number
+  currency: CurrencyCode
+  scope?: CategoryBudget['scope']
+}
+
+export interface BudgetRepository {
+  listAll(): Promise<CategoryBudget[]>
+  listByMonth(yearMonth: string, scope?: CategoryBudget['scope']): Promise<CategoryBudget[]>
+  upsert(input: UpsertCategoryBudgetInput): Promise<CategoryBudget>
+  delete(id: string): Promise<void>
+  subscribe(callback: () => void): () => void
+}
+
 export interface DatabaseStats {
   total: number
   settlements: number
@@ -79,6 +96,7 @@ export interface Repositories {
   categories: CategoryRepository
   settings: SettingsRepository
   imports: ImportRepository
+  budgets: BudgetRepository
   getStats(): Promise<DatabaseStats>
 }
 

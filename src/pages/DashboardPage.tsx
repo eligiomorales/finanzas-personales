@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useMovements, useCategories, useSettings } from '@/hooks/useData'
+import { useMovements, useCategories, useSettings, useBudgets } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import {
   OnboardingBanner,
@@ -14,6 +14,7 @@ import {
   movementVisibleInPersonalView,
 } from '@/lib/balance'
 import { buildPeriodComparison } from '@/lib/dashboard-insights'
+import { buildBudgetProgress, getBudgetMonthKey } from '@/lib/budget'
 import { getCurrencyConfig } from '@/lib/currency'
 import { formatPeriodHeaderTitle } from '@/lib/period-presets'
 import { filterMovements, formatDate, previousPeriodForRange } from '@/lib/utils'
@@ -34,6 +35,8 @@ export function DashboardPage() {
   const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
   const myRole = persons.myRole ?? 'personA'
   const { period, setPeriod } = usePeriod()
+  const budgetMonth = useMemo(() => getBudgetMonthKey(period.from), [period.from])
+  const budgets = useBudgets(budgetMonth) ?? []
   const previousPeriod = useMemo(() => previousPeriodForRange(period), [period])
   const periodTitle = useMemo(() => formatPeriodHeaderTitle(period), [period])
 
@@ -74,6 +77,17 @@ export function DashboardPage() {
     () => buildPeriodComparison(summary, previousSummary),
     [summary, previousSummary],
   )
+
+  const budgetSummary = useMemo(() => {
+    if (isPersonal) return null
+    return buildBudgetProgress({
+      budgets,
+      movements,
+      categories,
+      currencyConfig,
+      yearMonth: budgetMonth,
+    })
+  }, [isPersonal, budgets, movements, categories, currencyConfig, budgetMonth])
 
   const coupleBalance = useMemo(
     () => calculateCoupleBalance(periodMovements, currencyConfig),
@@ -158,6 +172,8 @@ export function DashboardPage() {
               expensesByCategory={summary.expensesByCategory}
               totalExpenses={summary.totalExpenses}
               currencyConfig={currencyConfig}
+              budgetProgress={budgetSummary?.categories}
+              showBudgetProgress={!isPersonal}
             />
           )}
 

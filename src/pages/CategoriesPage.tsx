@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { useMovements, useCategories, useSettings } from '@/hooks/useData'
+import { Link } from 'react-router-dom'
+import { useMovements, useCategories, useSettings, useBudgets } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { usePeriod } from '@/contexts/PeriodContext'
@@ -8,6 +9,8 @@ import {
   buildCategoryExpenseComparison,
   buildPeriodComparison,
 } from '@/lib/dashboard-insights'
+import { buildBudgetProgress, getBudgetMonthKey } from '@/lib/budget'
+import { BudgetProgressBar, BudgetProgressMeta } from '@/components/BudgetProgressBar'
 import { formatInViewCurrency, getCurrencyConfig } from '@/lib/currency'
 import { formatPeriodHeaderTitle } from '@/lib/period-presets'
 import { formatDate, previousPeriodForRange, cn } from '@/lib/utils'
@@ -29,6 +32,8 @@ export function CategoriesPage() {
   const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
   const myRole = persons.myRole ?? 'personA'
   const { period, setPeriod } = usePeriod()
+  const budgetMonth = useMemo(() => getBudgetMonthKey(period.from), [period.from])
+  const budgets = useBudgets(budgetMonth) ?? []
 
   const previousPeriod = useMemo(() => previousPeriodForRange(period), [period])
 
@@ -77,6 +82,22 @@ export function CategoriesPage() {
     [summary, previousSummary],
   )
 
+  const budgetSummary = useMemo(() => {
+    if (isPersonal) return null
+    return buildBudgetProgress({
+      budgets,
+      movements,
+      categories,
+      currencyConfig,
+      yearMonth: budgetMonth,
+    })
+  }, [isPersonal, budgets, movements, categories, currencyConfig, budgetMonth])
+
+  const budgetByCategory = useMemo(
+    () => new Map(budgetSummary?.categories.map((c) => [c.categoryId, c]) ?? []),
+    [budgetSummary],
+  )
+
   const maxTotal = categoriesWithDelta[0]?.total ?? 1
 
   const periodTitle = useMemo(() => formatPeriodHeaderTitle(period), [period])
@@ -123,6 +144,23 @@ export function CategoriesPage() {
         delta={comparison.expenses ?? undefined}
       />
 
+      {!isPersonal && (budgetSummary?.totalBudgeted ?? 0) > 0 && (
+        <Card compact className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Presupuesto compartido ({budgetMonth})
+            </p>
+            <p className="text-sm text-slate-700">
+              {formatInViewCurrency(budgetSummary!.totalSpent, currencyConfig)} de{' '}
+              {formatInViewCurrency(budgetSummary!.totalBudgeted, currencyConfig)}
+            </p>
+          </div>
+          <Link to="/presupuesto" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+            Editar →
+          </Link>
+        </Card>
+      )}
+
       {categoriesWithDelta.length === 0 ? (
         <EmptyState
           title="Sin gastos categorizados"
@@ -133,6 +171,8 @@ export function CategoriesPage() {
           {categoriesWithDelta.map((cat) => {
             const pct = summary.totalExpenses > 0 ? (cat.total / summary.totalExpenses) * 100 : 0
             const barWidth = (cat.total / maxTotal) * 100
+            const budgetProgress = budgetByCategory.get(cat.categoryId)
+            const showBudget = !isPersonal && budgetProgress && budgetProgress.budgeted > 0
             return (
               <Card key={cat.categoryId}>
                 <div className="mb-2 flex items-center justify-between gap-3">
@@ -149,7 +189,7 @@ export function CategoriesPage() {
                     <p className="font-bold tabular-nums text-slate-900">
                       {formatInViewCurrency(cat.total, currencyConfig)}
                     </p>
-                    <p className="text-xs text-slate-500">{pct.toFixed(1)}%</p>
+                    <p className="text-xs text-slate-500">{pct.toFixed(1)}% del total</p>
                     {cat.delta && (
                       <p className={cn('text-xs font-medium', deltaColors[cat.delta.tone])}>
                         {cat.delta.text}
@@ -157,15 +197,34 @@ export function CategoriesPage() {
                     )}
                   </div>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${barWidth}%`,
-                      backgroundColor: cat.color ?? '#3b82f6',
-                    }}
-                  />
-                </div>
+                {showBudget && budgetProgress ? (
+                  <>
+                    <BudgetProgressBar
+                      percentUsed={budgetProgress.percentUsed}
+                      status={budgetProgress.status}
+                      color={cat.color}
+                    />
+                    <div className="mt-1">
+                      <BudgetProgressMeta
+                        spent={budgetProgress.spent}
+                        budgeted={budgetProgress.budgeted}
+                        percentUsed={budgetProgress.percentUsed}
+                        status={budgetProgress.status}
+                        currencyConfig={currencyConfig}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${barWidth}%`,
+                        backgroundColor: cat.color ?? '#3b82f6',
+                      }}
+                    />
+                  </div>
+                )}
               </Card>
             )
           })}

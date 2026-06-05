@@ -10,6 +10,7 @@ import { MovementsPage } from '@/pages/MovementsPage'
 import { MovementFormPage } from '@/pages/MovementFormPage'
 import { BalancePage } from '@/pages/BalancePage'
 import { CategoriesPage } from '@/pages/CategoriesPage'
+import { BudgetPage } from '@/pages/BudgetPage'
 import { ImportPage } from '@/pages/ImportPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { LoginPage } from '@/pages/LoginPage'
@@ -25,6 +26,7 @@ function AppRoutes() {
         <Route path="movimientos/editar/:id" element={<MovementFormPage />} />
         <Route path="balance" element={<BalancePage />} />
         <Route path="categorias" element={<CategoriesPage />} />
+        <Route path="presupuesto" element={<BudgetPage />} />
         <Route path="importar" element={<ImportPage />} />
         <Route path="configuracion" element={<SettingsPage />} />
       </Route>
