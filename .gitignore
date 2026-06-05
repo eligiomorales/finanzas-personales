@@ -1,9 +1,12 @@
 node_modules
 dist
-.env
-.env.local
-.env.*.local
 .vercel
 *.log
 .DS_Store
-.env*
+
+# Secretos locales (mantener .env.example en el repo)
+.env
+.env.local
+.env.*.local
+.env.*
+!.env.example

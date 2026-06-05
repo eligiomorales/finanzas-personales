@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "ci": "npm test && npm run build",
     "deploy": "bash scripts/deploy-production.sh",
     "deploy:env": "bash scripts/sync-vercel-env.sh"
   },

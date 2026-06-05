@@ -14,6 +14,36 @@ Aplicación web responsive para gestionar las finanzas de una pareja, con sincro
 
 Detalle: `siguiente-sesion-implementacion.md`. Flujo local → deploy: `flujo-desarrollo-deploy.md`.
 
+## Git y GitHub
+
+Repositorio privado recomendado (app personal con Supabase en producción).
+
+### Flujo de trabajo
+
+```
+main (producción) ← PR ← feature/nombre-corto
+```
+
+1. Crear rama: `git checkout -b feature/mi-cambio`
+2. Desarrollar y validar: `npm run ci` (tests + build)
+3. Push y abrir Pull Request hacia `main`
+4. Merge cuando CI pase en GitHub
+5. Deploy: `npm run deploy` (o auto-deploy si conectás el repo en Vercel)
+
+**CI en GitHub:** cada push y PR ejecuta `npm test` y `npm run build` (`.github/workflows/ci.yml`).
+
+**Secretos:** nunca commitear `.env.local`. Solo `.env.example` va al repo.
+
+### Subir el repo por primera vez
+
+```bash
+# Crear repo en GitHub (web o gh repo create finanzas-personales --private --source=. --push)
+git remote add origin git@github.com:TU_USUARIO/finanzas-personales.git
+git push -u origin main
+```
+
+Opcional en GitHub → Settings → Branches: proteger `main` (requerir PR + CI verde antes de merge).
+
 ## Stack
 
 - **React 19** + **TypeScript** + **Vite**
@@ -43,6 +73,7 @@ Sin `.env.local` la app arranca en **modo local** (IndexedDB + datos de ejemplo)
 | `npm run build` | Build de producción |
 | `npm run preview` | Preview del build |
 | `npm test` | Tests unitarios (balance, filtros, import, etc.) |
+| `npm run ci` | Tests + build (mismo chequeo que GitHub Actions) |
 | `npm run deploy` | Deploy a Vercel (production) con variables de `.env.local` |
 
 ## Funcionalidades
