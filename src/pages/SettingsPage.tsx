@@ -358,66 +358,32 @@ export function SettingsPage() {
       )}
 
       <Card>
-        <h3 className="mb-2 font-semibold">Cuenta y sincronización</h3>
-        {configured && user ? (
-          <div className="space-y-3 text-sm text-slate-700">
-            <p>
-              <span className="text-slate-500">Sesión:</span> {user.email}
-            </p>
-            {membership && (
-              <div className="space-y-2">
-                <p>
-                  <span className="text-slate-500">Código de invitación:</span>{' '}
-                  <code className="rounded bg-slate-100 px-2 py-0.5 font-mono text-base tracking-wider">
-                    {membership.inviteCode}
-                  </code>
-                </p>
-                <p className="text-slate-600">
-                  {formatInviteCodeStatus(membership.inviteCodeExpiresAt, membership.memberCount)}
-                </p>
-                {canManageInviteCode && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      disabled={inviteActionLoading}
-                      onClick={() => void handleRegenerateInviteCode()}
-                    >
-                      Regenerar código
-                    </Button>
-                    {inviteStatus !== 'expired' && (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        disabled={inviteActionLoading}
-                        onClick={() => void handleRevokeInviteCode()}
-                      >
-                        Revocar código
-                      </Button>
-                    )}
-                  </div>
-                )}
-                {inviteActionMessage && (
-                  <StatusMessage tone={inviteActionMessage.type}>{inviteActionMessage.text}</StatusMessage>
-                )}
-              </div>
-            )}
-            <p className="text-slate-600">
-              {mode === 'remote'
-                ? 'Los movimientos se guardan en Supabase y se comparten entre navegadores.'
-                : 'Modo local activo.'}
-            </p>
-            <Button type="button" variant="secondary" size="sm" onClick={() => signOut()}>
-              Cerrar sesión
-            </Button>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-600">
-            Modo local sin Supabase. Configurá VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY para sincronizar.
-          </p>
-        )}
+        <h3 className="mb-4 font-semibold">Tipo de cambio</h3>
+        <p className="mb-4 text-sm text-slate-600">
+          Una sola cotización para toda la app. Al cambiarla, se recalculan balances y totales.
+        </p>
+        <form
+          onSubmit={handleSaveCurrency}
+          className="grid grid-cols-[auto_minmax(9rem,1fr)] items-end gap-x-4 gap-y-2"
+        >
+          <Label className="mb-0">Moneda de visualización</Label>
+          <Label htmlFor="settings-exchange-rate" className="mb-0">
+            1 USD = X ARS
+          </Label>
+          <CurrencyToggle />
+          <Input
+            id="settings-exchange-rate"
+            type="number"
+            min="0"
+            step="0.01"
+            value={defaultExchangeRateUsd}
+            onChange={(e) => setDefaultExchangeRateUsd(e.target.value)}
+          />
+          <div aria-hidden="true" />
+          <Button type="submit" className="justify-self-start" aria-live="polite">
+            {currencySaved ? 'Guardado' : 'Guardar cotización'}
+          </Button>
+        </form>
       </Card>
 
       <Card>
@@ -448,140 +414,6 @@ export function SettingsPage() {
             </button>
           ))}
         </div>
-      </Card>
-
-      {mode === 'remote' && migrationPreview && (
-        <Card>
-          <h3 className="mb-2 font-semibold">Migrar datos locales a cuenta</h3>
-          <p className="mb-3 text-sm text-slate-600">
-            Subí los movimientos que tengas en IndexedDB de este navegador a la pareja compartida.
-          </p>
-          <div className="mb-4 grid gap-3 text-sm sm:grid-cols-2">
-            <div className="rounded-lg bg-slate-50 p-3">
-              <p className="font-medium text-slate-700">Local (IndexedDB)</p>
-              <p className="mt-1 text-slate-600">{migrationPreview.local.movements} movimientos</p>
-              <p className="text-xs text-slate-500">
-                {migrationPreview.local.incomes} ingresos · {migrationPreview.local.expenses} gastos ·{' '}
-                {migrationPreview.local.settlements} liquidaciones
-              </p>
-            </div>
-            <div className="rounded-lg bg-slate-50 p-3">
-              <p className="font-medium text-slate-700">Nube (pareja)</p>
-              <p className="mt-1 text-slate-600">{migrationPreview.remote.movements} movimientos</p>
-              <p className="text-xs text-slate-500">
-                {migrationPreview.remote.incomes} ingresos · {migrationPreview.remote.expenses} gastos ·{' '}
-                {migrationPreview.remote.settlements} liquidaciones
-              </p>
-            </div>
-          </div>
-          {migrationPreview.alreadyMigrated && (
-            <p className="mb-3 text-xs text-amber-700">
-              Ya migraste desde este navegador. Re-ejecutar solo agrega movimientos nuevos.
-            </p>
-          )}
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleMigrateToCloud}
-            disabled={migrating || migrationPreview.local.movements === 0}
-          >
-            {migrating ? 'Migrando…' : 'Migrar datos locales'}
-          </Button>
-          {migrationMessage && (
-            <StatusMessage tone="info" className="mt-3">
-              {migrationMessage}
-            </StatusMessage>
-          )}
-        </Card>
-      )}
-
-      <Card>
-        <h3 className="mb-4 font-semibold">Nombres en la pareja</h3>
-        {mode === 'remote' ? (
-          <>
-            <p className="mb-4 text-sm text-slate-600">
-              Tu identidad queda vinculada a tu cuenta. Solo podés editar tu propio nombre; el de tu
-              pareja se toma de su perfil.
-            </p>
-            <form onSubmit={handleSaveNames}>
-              <FormGroup>
-                <Label htmlFor="settings-my-name">Tu nombre</Label>
-                <Input
-                  id="settings-my-name"
-                  value={myDisplayName}
-                  onChange={(e) => setMyDisplayName(e.target.value)}
-                  autoComplete="name"
-                />
-              </FormGroup>
-              <FormGroup>
-                <Label htmlFor="settings-partner-name">Tu pareja</Label>
-                <Input
-                  id="settings-partner-name"
-                  value={persons.partnerName}
-                  readOnly
-                  className="bg-slate-50"
-                />
-              </FormGroup>
-              <Button type="submit" aria-live="polite" disabled={!myDisplayName.trim()}>
-                {saved ? 'Guardado' : 'Guardar tu nombre'}
-              </Button>
-            </form>
-          </>
-        ) : (
-          <form onSubmit={handleSaveNames}>
-            <p className="mb-4 text-sm text-slate-600">
-              En modo local sin cuenta, podés definir los nombres manualmente.
-            </p>
-            <FormGroup>
-              <Label htmlFor="settings-person-a">Persona A</Label>
-              <Input
-                id="settings-person-a"
-                value={personAName}
-                onChange={(e) => setPersonAName(e.target.value)}
-              />
-            </FormGroup>
-            <FormGroup>
-              <Label htmlFor="settings-person-b">Persona B</Label>
-              <Input
-                id="settings-person-b"
-                value={personBName}
-                onChange={(e) => setPersonBName(e.target.value)}
-              />
-            </FormGroup>
-            <Button type="submit" aria-live="polite">
-              {saved ? 'Guardado' : 'Guardar nombres'}
-            </Button>
-          </form>
-        )}
-      </Card>
-
-      <Card>
-        <h3 className="mb-4 font-semibold">Tipo de cambio</h3>
-        <p className="mb-4 text-sm text-slate-600">
-          Una sola cotización para toda la app. Al cambiarla, se recalculan balances y totales.
-        </p>
-        <form
-          onSubmit={handleSaveCurrency}
-          className="grid grid-cols-[auto_minmax(9rem,1fr)] items-end gap-x-4 gap-y-2"
-        >
-          <Label className="mb-0">Moneda de visualización</Label>
-          <Label htmlFor="settings-exchange-rate" className="mb-0">
-            1 USD = X ARS
-          </Label>
-          <CurrencyToggle />
-          <Input
-            id="settings-exchange-rate"
-            type="number"
-            min="0"
-            step="0.01"
-            value={defaultExchangeRateUsd}
-            onChange={(e) => setDefaultExchangeRateUsd(e.target.value)}
-          />
-          <div aria-hidden="true" />
-          <Button type="submit" className="justify-self-start" aria-live="polite">
-            {currencySaved ? 'Guardado' : 'Guardar cotización'}
-          </Button>
-        </form>
       </Card>
 
       <Card>
@@ -697,6 +529,174 @@ export function SettingsPage() {
             </div>
           ))}
         </div>
+      </Card>
+
+      <Card>
+        <h3 className="mb-2 font-semibold">Cuenta y sincronización</h3>
+        {configured && user ? (
+          <div className="space-y-3 text-sm text-slate-700">
+            <p>
+              <span className="text-slate-500">Sesión:</span> {user.email}
+            </p>
+            {membership && (
+              <div className="space-y-2">
+                <p>
+                  <span className="text-slate-500">Código de invitación:</span>{' '}
+                  <code className="rounded bg-slate-100 px-2 py-0.5 font-mono text-base tracking-wider">
+                    {membership.inviteCode}
+                  </code>
+                </p>
+                <p className="text-slate-600">
+                  {formatInviteCodeStatus(membership.inviteCodeExpiresAt, membership.memberCount)}
+                </p>
+                {canManageInviteCode && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      disabled={inviteActionLoading}
+                      onClick={() => void handleRegenerateInviteCode()}
+                    >
+                      Regenerar código
+                    </Button>
+                    {inviteStatus !== 'expired' && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={inviteActionLoading}
+                        onClick={() => void handleRevokeInviteCode()}
+                      >
+                        Revocar código
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {inviteActionMessage && (
+                  <StatusMessage tone={inviteActionMessage.type}>{inviteActionMessage.text}</StatusMessage>
+                )}
+              </div>
+            )}
+            <p className="text-slate-600">
+              {mode === 'remote'
+                ? 'Los movimientos se guardan en Supabase y se comparten entre navegadores.'
+                : 'Modo local activo.'}
+            </p>
+            <Button type="button" variant="secondary" size="sm" onClick={() => signOut()}>
+              Cerrar sesión
+            </Button>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-600">
+            Modo local sin Supabase. Configurá VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY para sincronizar.
+          </p>
+        )}
+      </Card>
+
+      {mode === 'remote' && migrationPreview && (
+        <Card>
+          <h3 className="mb-2 font-semibold">Migrar datos locales a cuenta</h3>
+          <p className="mb-3 text-sm text-slate-600">
+            Subí los movimientos que tengas en IndexedDB de este navegador a la pareja compartida.
+          </p>
+          <div className="mb-4 grid gap-3 text-sm sm:grid-cols-2">
+            <div className="rounded-lg bg-slate-50 p-3">
+              <p className="font-medium text-slate-700">Local (IndexedDB)</p>
+              <p className="mt-1 text-slate-600">{migrationPreview.local.movements} movimientos</p>
+              <p className="text-xs text-slate-500">
+                {migrationPreview.local.incomes} ingresos · {migrationPreview.local.expenses} gastos ·{' '}
+                {migrationPreview.local.settlements} liquidaciones
+              </p>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-3">
+              <p className="font-medium text-slate-700">Nube (pareja)</p>
+              <p className="mt-1 text-slate-600">{migrationPreview.remote.movements} movimientos</p>
+              <p className="text-xs text-slate-500">
+                {migrationPreview.remote.incomes} ingresos · {migrationPreview.remote.expenses} gastos ·{' '}
+                {migrationPreview.remote.settlements} liquidaciones
+              </p>
+            </div>
+          </div>
+          {migrationPreview.alreadyMigrated && (
+            <p className="mb-3 text-xs text-amber-700">
+              Ya migraste desde este navegador. Re-ejecutar solo agrega movimientos nuevos.
+            </p>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleMigrateToCloud}
+            disabled={migrating || migrationPreview.local.movements === 0}
+          >
+            {migrating ? 'Migrando…' : 'Migrar datos locales'}
+          </Button>
+          {migrationMessage && (
+            <StatusMessage tone="info" className="mt-3">
+              {migrationMessage}
+            </StatusMessage>
+          )}
+        </Card>
+      )}
+
+      <Card>
+        <h3 className="mb-4 font-semibold">Nombres en la pareja</h3>
+        {mode === 'remote' ? (
+          <>
+            <p className="mb-4 text-sm text-slate-600">
+              Tu identidad queda vinculada a tu cuenta. Solo podés editar tu propio nombre; el de tu
+              pareja se toma de su perfil.
+            </p>
+            <form onSubmit={handleSaveNames}>
+              <FormGroup>
+                <Label htmlFor="settings-my-name">Tu nombre</Label>
+                <Input
+                  id="settings-my-name"
+                  value={myDisplayName}
+                  onChange={(e) => setMyDisplayName(e.target.value)}
+                  autoComplete="name"
+                />
+              </FormGroup>
+              <FormGroup>
+                <Label htmlFor="settings-partner-name">Tu pareja</Label>
+                <Input
+                  id="settings-partner-name"
+                  value={persons.partnerName}
+                  readOnly
+                  className="bg-slate-50"
+                />
+              </FormGroup>
+              <Button type="submit" aria-live="polite" disabled={!myDisplayName.trim()}>
+                {saved ? 'Guardado' : 'Guardar tu nombre'}
+              </Button>
+            </form>
+          </>
+        ) : (
+          <form onSubmit={handleSaveNames}>
+            <p className="mb-4 text-sm text-slate-600">
+              En modo local sin cuenta, podés definir los nombres manualmente.
+            </p>
+            <FormGroup>
+              <Label htmlFor="settings-person-a">Persona A</Label>
+              <Input
+                id="settings-person-a"
+                value={personAName}
+                onChange={(e) => setPersonAName(e.target.value)}
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label htmlFor="settings-person-b">Persona B</Label>
+              <Input
+                id="settings-person-b"
+                value={personBName}
+                onChange={(e) => setPersonBName(e.target.value)}
+              />
+            </FormGroup>
+            <Button type="submit" aria-live="polite">
+              {saved ? 'Guardado' : 'Guardar nombres'}
+            </Button>
+          </form>
+        )}
       </Card>
 
       <Card>
