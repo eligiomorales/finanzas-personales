@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import {
@@ -11,7 +13,8 @@ import {
   parseDate,
 } from '@/lib/import'
 
-const GALICIA_EXCEL = '/Users/eligiomorales/Downloads/Extracto_00095412902.xlsx'
+const fixtureDir = join(dirname(fileURLToPath(import.meta.url)), 'fixtures')
+const GALICIA_EXCEL = join(fixtureDir, 'galicia-extracto.xlsx')
 
 function parseGaliciaExcel() {
   const buffer = readFileSync(GALICIA_EXCEL)
