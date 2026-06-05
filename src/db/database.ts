@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie'
 import type {
   AppSettings,
   Category,
+  CategoryBudget,
   ImportRecord,
   Movement,
   PendingImportMovement,
@@ -16,6 +17,7 @@ export class FinanzasDB extends Dexie {
   imports!: EntityTable<ImportRecord, 'id'>
   pendingImports!: EntityTable<PendingImportMovement, 'id'>
   settings!: EntityTable<AppSettings, 'id'>
+  categoryBudgets!: EntityTable<CategoryBudget, 'id'>
 
   constructor() {
     super('FinanzasParejaDB')
@@ -79,6 +81,15 @@ export class FinanzasDB extends Dexie {
           await tx.table('pendingImports').put(normalizePendingImport(raw as Record<string, unknown>))
         }
       })
+    this.version(4).stores({
+      persons: 'id',
+      categories: 'id',
+      movements: 'id, date, type, categoryId, paidBy, isShared, source, currency',
+      imports: 'id, importedAt, status',
+      pendingImports: 'id, importId, status, date',
+      settings: 'id',
+      categoryBudgets: 'id, categoryId, yearMonth, scope, [yearMonth+scope]',
+    })
   }
 }
 

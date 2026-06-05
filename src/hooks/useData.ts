@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db/database'
 import { useDataContext, useRepositories } from '@/contexts/DataContext'
 import type { ConfirmImportInput } from '@/lib/repositories/types'
+import type { UpsertCategoryBudgetInput } from '@/lib/repositories/types'
 import type { CurrencyCode, Movement, MovementFilters, MovementFormData } from '@/types'
 import { updateMyDisplayName } from '@/lib/couple/persons'
 import {
@@ -162,6 +163,32 @@ export function usePendingImports(importId?: string) {
   return mode === 'local' ? (local ?? []) : remote
 }
 
+export function useBudgets(yearMonth: string) {
+  const { mode, repos } = useDataContext()
+  const local = useLiveQuery(
+    () => db.categoryBudgets.where('yearMonth').equals(yearMonth).toArray(),
+    [yearMonth],
+  )
+  const [remote, setRemote] = useState<Awaited<ReturnType<typeof repos.budgets.listByMonth>>>([])
+
+  useEffect(() => {
+    if (mode !== 'remote') return
+    let cancelled = false
+
+    async function load() {
+      const result = await repos.budgets.listByMonth(yearMonth)
+      if (!cancelled) setRemote(result)
+    }
+
+    void load()
+    return repos.budgets.subscribe(() => {
+      void load()
+    })
+  }, [mode, repos, yearMonth])
+
+  return mode === 'local' ? (local ?? []) : remote
+}
+
 export function useDatabaseStats() {
   const { mode, repos } = useDataContext()
   const local = useLiveQuery(() => repos.getStats(), [repos])
@@ -266,5 +293,17 @@ export function useDataMutations() {
       [repos],
     ),
     deleteCategory: useCallback((id: string) => repos.categories.delete(id), [repos]),
+  }
+}
+
+export function useBudgetMutations() {
+  const repos = useRepositories()
+
+  return {
+    upsertBudget: useCallback(
+      (input: UpsertCategoryBudgetInput) => repos.budgets.upsert(input),
+      [repos],
+    ),
+    deleteBudget: useCallback((id: string) => repos.budgets.delete(id), [repos]),
   }
 }

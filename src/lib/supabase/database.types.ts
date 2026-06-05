@@ -223,6 +223,36 @@ export interface Database {
         }
         Relationships: EmptyRelationships
       }
+      category_budgets: {
+        Row: {
+          id: string
+          couple_id: string
+          category_id: string
+          year_month: string
+          amount: number
+          currency: 'ARS' | 'USD'
+          scope: 'couple'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          couple_id: string
+          category_id: string
+          year_month: string
+          amount: number
+          currency: 'ARS' | 'USD'
+          scope?: 'couple'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          currency?: 'ARS' | 'USD'
+          updated_at?: string
+        }
+        Relationships: EmptyRelationships
+      }
     }
     Views: Record<string, never>
     Functions: {

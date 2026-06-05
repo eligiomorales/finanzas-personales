@@ -107,6 +107,39 @@ export interface PeriodSummary {
   expensesByCategory: { categoryId: string; categoryName: string; color?: string; total: number }[]
 }
 
+export type BudgetScope = 'couple'
+
+export interface CategoryBudget {
+  id: string
+  categoryId: string
+  yearMonth: string
+  amount: number
+  currency: CurrencyCode
+  scope: BudgetScope
+  createdAt: string
+  updatedAt: string
+}
+
+export type BudgetProgressStatus = 'unbudgeted' | 'ok' | 'near' | 'over'
+
+export interface CategoryBudgetProgress {
+  categoryId: string
+  categoryName: string
+  color?: string
+  budgeted: number
+  spent: number
+  remaining: number
+  percentUsed: number
+  status: BudgetProgressStatus
+}
+
+export interface BudgetSummary {
+  totalBudgeted: number
+  totalSpent: number
+  totalRemaining: number
+  categories: CategoryBudgetProgress[]
+}
+
 export interface MovementFormData {
   type: MovementType
   amount: number

@@ -18,9 +18,11 @@ import type {
   MovementRepository,
   Repositories,
   SettingsRepository,
+  UpsertCategoryBudgetInput,
+  BudgetRepository,
 } from '@/lib/repositories/types'
 import { generateId } from '@/lib/utils'
-import type { CurrencyCode, Movement, MovementFilters, MovementFormData } from '@/types'
+import type { CategoryBudget, CurrencyCode, Movement, MovementFilters, MovementFormData } from '@/types'
 
 function noopSubscribe(_callback: () => void): () => void {
   return () => {}
@@ -150,6 +152,57 @@ class DexieImportRepository implements ImportRepository {
   subscribe = noopSubscribe
 }
 
+class DexieBudgetRepository implements BudgetRepository {
+  async listAll() {
+    return db.categoryBudgets.toArray()
+  }
+
+  async listByMonth(yearMonth: string, scope: CategoryBudget['scope'] = 'couple') {
+    return db.categoryBudgets.where('[yearMonth+scope]').equals([yearMonth, scope]).toArray()
+  }
+
+  async upsert(input: UpsertCategoryBudgetInput) {
+    const scope = input.scope ?? 'couple'
+    const existing = await db.categoryBudgets
+      .where('[yearMonth+scope]')
+      .equals([input.yearMonth, scope])
+      .filter((b) => b.categoryId === input.categoryId)
+      .first()
+
+    const now = new Date().toISOString()
+
+    if (existing) {
+      const updated: CategoryBudget = {
+        ...existing,
+        amount: input.amount,
+        currency: input.currency,
+        updatedAt: now,
+      }
+      await db.categoryBudgets.put(updated)
+      return updated
+    }
+
+    const budget: CategoryBudget = {
+      id: generateId(),
+      categoryId: input.categoryId,
+      yearMonth: input.yearMonth,
+      amount: input.amount,
+      currency: input.currency,
+      scope,
+      createdAt: now,
+      updatedAt: now,
+    }
+    await db.categoryBudgets.add(budget)
+    return budget
+  }
+
+  async delete(id: string) {
+    await db.categoryBudgets.delete(id)
+  }
+
+  subscribe = noopSubscribe
+}
+
 async function getDexieStats(): Promise<DatabaseStats> {
   const movements = await db.movements.toArray()
   return {
@@ -169,6 +222,7 @@ export function createDexieRepositories(): Repositories {
       categories: new DexieCategoryRepository(),
       settings: new DexieSettingsRepository(),
       imports: new DexieImportRepository(),
+      budgets: new DexieBudgetRepository(),
       getStats: getDexieStats,
     }
   }

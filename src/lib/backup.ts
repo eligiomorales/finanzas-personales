@@ -3,6 +3,7 @@ import type { Repositories } from '@/lib/repositories/types'
 import type {
   AppSettings,
   Category,
+  CategoryBudget,
   ImportRecord,
   Movement,
   PendingImportMovement,
@@ -11,7 +12,7 @@ import type {
 import { normalizeMovement, normalizePendingImport, normalizeSettings } from '@/lib/currency'
 
 export interface DatabaseBackup {
-  version: 1 | 2 | 3
+  version: 1 | 2 | 3 | 4
   exportedAt: string
   origin?: string
   persons: Person[]
@@ -20,6 +21,7 @@ export interface DatabaseBackup {
   imports: ImportRecord[]
   pendingImports: PendingImportMovement[]
   settings: AppSettings[]
+  categoryBudgets?: CategoryBudget[]
 }
 
 function personsFromSettings(settings: AppSettings | undefined): Person[] {
@@ -34,22 +36,25 @@ function buildBackupPayload(
   data: Omit<DatabaseBackup, 'version' | 'exportedAt' | 'origin'>,
 ): DatabaseBackup {
   return {
-    version: 3,
+    version: 4,
     exportedAt: new Date().toISOString(),
     origin: typeof window !== 'undefined' ? window.location.origin : undefined,
+    categoryBudgets: data.categoryBudgets ?? [],
     ...data,
   }
 }
 
 /** Exporta desde Supabase (u otro backend remoto) vía repositorios. */
 export async function exportDatabaseFromRepositories(repos: Repositories): Promise<DatabaseBackup> {
-  const [categories, movements, imports, pendingImports, settingsRow] = await Promise.all([
-    repos.categories.list(),
-    repos.movements.list(),
-    repos.imports.list(),
-    repos.imports.listPending(),
-    repos.settings.get(),
-  ])
+  const [categories, movements, imports, pendingImports, settingsRow, categoryBudgets] =
+    await Promise.all([
+      repos.categories.list(),
+      repos.movements.list(),
+      repos.imports.list(),
+      repos.imports.listPending(),
+      repos.settings.get(),
+      repos.budgets.listAll(),
+    ])
 
   return buildBackupPayload({
     persons: personsFromSettings(settingsRow),
@@ -58,18 +63,21 @@ export async function exportDatabaseFromRepositories(repos: Repositories): Promi
     imports,
     pendingImports,
     settings: settingsRow ? [settingsRow] : [],
+    categoryBudgets,
   })
 }
 
 /** Exporta desde IndexedDB (modo local sin Supabase). */
 export async function exportDatabase(): Promise<DatabaseBackup> {
-  const [persons, categories, movements, imports, pendingImports, settings] = await Promise.all([
+  const [persons, categories, movements, imports, pendingImports, settings, categoryBudgets] =
+    await Promise.all([
     db.persons.toArray(),
     db.categories.toArray(),
     db.movements.toArray(),
     db.imports.toArray(),
     db.pendingImports.toArray(),
     db.settings.toArray(),
+    db.categoryBudgets.toArray(),
   ])
 
   return buildBackupPayload({
@@ -79,6 +87,7 @@ export async function exportDatabase(): Promise<DatabaseBackup> {
     imports,
     pendingImports,
     settings,
+    categoryBudgets,
   })
 }
 
@@ -137,7 +146,8 @@ export function getBackupReminderStatus(
 function migrateBackup(data: DatabaseBackup): DatabaseBackup {
   return {
     ...data,
-    version: 3,
+    version: 4,
+    categoryBudgets: data.categoryBudgets ?? [],
     settings: data.settings.map((s) => normalizeSettings(s as unknown as Record<string, unknown>)),
     movements: data.movements.map((m) => normalizeMovement(m as unknown as Record<string, unknown>)),
     pendingImports: data.pendingImports.map((p) =>
@@ -147,15 +157,15 @@ function migrateBackup(data: DatabaseBackup): DatabaseBackup {
 }
 
 export async function importDatabase(data: DatabaseBackup): Promise<void> {
-  if (data.version !== 1 && data.version !== 2 && data.version !== 3) {
+  if (data.version !== 1 && data.version !== 2 && data.version !== 3 && data.version !== 4) {
     throw new Error('Versión de backup no compatible')
   }
 
-  const migrated = data.version === 3 ? data : migrateBackup(data)
+  const migrated = data.version === 4 ? { ...data, categoryBudgets: data.categoryBudgets ?? [] } : migrateBackup(data)
 
   await db.transaction(
     'rw',
-    [db.persons, db.categories, db.movements, db.imports, db.pendingImports, db.settings],
+    [db.persons, db.categories, db.movements, db.imports, db.pendingImports, db.settings, db.categoryBudgets],
     async () => {
       await Promise.all([
         db.persons.clear(),
@@ -164,6 +174,7 @@ export async function importDatabase(data: DatabaseBackup): Promise<void> {
         db.imports.clear(),
         db.pendingImports.clear(),
         db.settings.clear(),
+        db.categoryBudgets.clear(),
       ])
 
       await db.persons.bulkPut(migrated.persons)
@@ -172,6 +183,7 @@ export async function importDatabase(data: DatabaseBackup): Promise<void> {
       await db.imports.bulkPut(migrated.imports)
       await db.pendingImports.bulkPut(migrated.pendingImports)
       await db.settings.bulkPut(migrated.settings)
+      await db.categoryBudgets.bulkPut(migrated.categoryBudgets ?? [])
     },
   )
 }

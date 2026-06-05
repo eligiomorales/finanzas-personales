@@ -24,7 +24,7 @@ describe('previousPeriodForRange', () => {
 })
 
 describe('exportDatabaseFromRepositories', () => {
-  it('aggregates all repository data into a v3 backup', async () => {
+  it('aggregates all repository data into a v4 backup', async () => {
     const movement = {
       id: 'm1',
       type: 'expense' as const,
@@ -78,12 +78,28 @@ describe('exportDatabaseFromRepositories', () => {
         confirmImport: async () => 0,
         subscribe: () => () => {},
       },
+      budgets: {
+        listAll: async () => [],
+        listByMonth: async () => [],
+        upsert: async () => ({
+          id: 'b1',
+          categoryId: 'c1',
+          yearMonth: '2026-06',
+          amount: 1000,
+          currency: 'ARS',
+          scope: 'couple',
+          createdAt: '2026-06-01T00:00:00.000Z',
+          updatedAt: '2026-06-01T00:00:00.000Z',
+        }),
+        delete: async () => {},
+        subscribe: () => () => {},
+      },
       getStats: async () => ({ total: 1, settlements: 0, expenses: 1, incomes: 0 }),
     }
 
     const backup = await exportDatabaseFromRepositories(repos)
 
-    expect(backup.version).toBe(3)
+    expect(backup.version).toBe(4)
     expect(backup.movements).toHaveLength(1)
     expect(backup.categories).toHaveLength(1)
     expect(backup.persons).toEqual([
@@ -91,6 +107,7 @@ describe('exportDatabaseFromRepositories', () => {
       { id: 'personB', name: 'Luis' },
     ])
     expect(backup.settings).toHaveLength(1)
+    expect(backup.categoryBudgets).toEqual([])
   })
 })
 
