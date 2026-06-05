@@ -20,6 +20,7 @@ import { migrateLocalToRemote, previewLocalMigration, type MigrationPreview } fr
 import { formatDate } from '@/lib/utils'
 import { formatInviteCodeStatus, getInviteCodeStatus } from '@/lib/couple/invite-code'
 import type { DatabaseBackup } from '@/lib/backup'
+import { CurrencyToggle } from '@/components/CurrencyToggle'
 import { Card } from '@/components/ui/Card'
 import { Alert } from '@/components/ui/Alert'
 import { Button, Input, Select, Label, FormGroup, StatusMessage, LiveRegion } from '@/components/ui/Form'
@@ -558,21 +559,26 @@ export function SettingsPage() {
         <h3 className="mb-4 font-semibold">Tipo de cambio</h3>
         <p className="mb-4 text-sm text-slate-600">
           Una sola cotización para toda la app. Al cambiarla, se recalculan balances y totales.
-          Usá el toggle ARS/USD en el header para cambiar cómo se muestran los montos.
         </p>
-        <form onSubmit={handleSaveCurrency}>
-          <FormGroup>
-            <Label htmlFor="settings-exchange-rate">Cotización global (1 USD = X ARS)</Label>
-            <Input
-              id="settings-exchange-rate"
-              type="number"
-              min="0"
-              step="0.01"
-              value={defaultExchangeRateUsd}
-              onChange={(e) => setDefaultExchangeRateUsd(e.target.value)}
-            />
-          </FormGroup>
-          <Button type="submit" aria-live="polite">
+        <form
+          onSubmit={handleSaveCurrency}
+          className="grid grid-cols-[auto_minmax(9rem,1fr)] items-end gap-x-4 gap-y-2"
+        >
+          <Label className="mb-0">Moneda de visualización</Label>
+          <Label htmlFor="settings-exchange-rate" className="mb-0">
+            1 USD = X ARS
+          </Label>
+          <CurrencyToggle />
+          <Input
+            id="settings-exchange-rate"
+            type="number"
+            min="0"
+            step="0.01"
+            value={defaultExchangeRateUsd}
+            onChange={(e) => setDefaultExchangeRateUsd(e.target.value)}
+          />
+          <div aria-hidden="true" />
+          <Button type="submit" className="justify-self-start" aria-live="polite">
             {currencySaved ? 'Guardado' : 'Guardar cotización'}
           </Button>
         </form>
