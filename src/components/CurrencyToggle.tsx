@@ -15,7 +15,7 @@ export function CurrencyToggle() {
 
   return (
     <div
-      className="flex rounded-lg border border-slate-200 bg-slate-100 p-0.5"
+      className="flex rounded-lg border border-slate-300 bg-slate-100 p-0.5"
       role="group"
       aria-label="Moneda de visualización"
     >
@@ -25,10 +25,10 @@ export function CurrencyToggle() {
           type="button"
           onClick={() => handleSelect(currency)}
           className={cn(
-            'rounded-md px-2.5 py-1 text-xs font-semibold transition-colors',
+            'rounded-md px-3 py-[7px] text-sm font-medium transition-colors',
             active === currency
               ? 'bg-white text-brand-700 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700',
+              : 'text-slate-600 hover:text-slate-800',
           )}
           aria-pressed={active === currency}
         >

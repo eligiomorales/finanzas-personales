@@ -1,5 +1,4 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { CurrencyToggle } from '@/components/CurrencyToggle'
 import { Badge } from '@/components/ui/Card'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { cn } from '@/lib/utils'
@@ -65,7 +64,6 @@ const navItems: { to: string; label: string; icon: NavIconName }[] = [
   { to: '/balance', label: 'Balance', icon: 'balance' },
   { to: '/categorias', label: 'Categorías', icon: 'categories' },
   { to: '/importar', label: 'Importar', icon: 'import' },
-  { to: '/configuracion', label: 'Ajustes', icon: 'settings' },
 ]
 
 export function Layout() {
@@ -81,7 +79,22 @@ export function Layout() {
             Finanzas Pareja
             {isPersonal && <Badge variant="info">Personal</Badge>}
           </h1>
-          {!isFormPage && <CurrencyToggle />}
+          {!isFormPage && (
+            <NavLink
+              to="/configuracion"
+              className={({ isActive }) =>
+                cn(
+                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+                  isActive
+                    ? 'bg-brand-50 text-brand-600'
+                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700',
+                )
+              }
+              aria-label="Ajustes"
+            >
+              <NavIcon name="settings" />
+            </NavLink>
+          )}
         </div>
       </header>
 
