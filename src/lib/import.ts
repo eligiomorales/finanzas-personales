@@ -1,7 +1,12 @@
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
+import type { OcrProgress } from '@/lib/ocr/extract-text'
+import type { ImageProfile } from '@/lib/ocr/profile-labels'
 import { parsePdfFile, type PdfProfile } from '@/lib/pdf/parse-pdf'
 import type { AccountType, CurrencyCode } from '@/types'
+
+export type { ImageProfile } from '@/lib/ocr/profile-labels'
+export type { OcrProgress }
 
 export interface ParsedRow {
   date: string
@@ -27,9 +32,12 @@ export interface ParseResult {
   rawRows: Record<string, string>[]
   skipMapping?: boolean
   pdfProfile?: PdfProfile
+  imageProfile?: ImageProfile
   /** When true, each row already has its currency; hide global currency selector. */
   perRowCurrency?: boolean
 }
+
+const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp'])
 
 const DATE_PATTERNS: { re: RegExp; format: (m: RegExpMatchArray) => string }[] = [
   { re: /^(\d{4})-(\d{2})-(\d{2})$/, format: (m) => `${m[1]}-${m[2]}-${m[3]}` },
@@ -239,7 +247,10 @@ export function hasAmountMapping(mapping: Partial<ColumnMapping>): boolean {
   return Boolean(mapping.amount || mapping.debit || mapping.credit)
 }
 
-export async function parseFile(file: File): Promise<ParseResult> {
+export async function parseFile(
+  file: File,
+  options?: { onOcrProgress?: (progress: OcrProgress) => void },
+): Promise<ParseResult> {
   const ext = file.name.split('.').pop()?.toLowerCase()
 
   if (ext === 'csv') {
@@ -252,7 +263,13 @@ export async function parseFile(file: File): Promise<ParseResult> {
     const buffer = await file.arrayBuffer()
     return parsePdfFile(buffer)
   }
-  throw new Error('Formato no soportado. Usa CSV, Excel (.xlsx, .xls) o PDF (.pdf).')
+  if (ext && IMAGE_EXTENSIONS.has(ext)) {
+    const { parseImageFile } = await import('@/lib/ocr/parse-image')
+    return parseImageFile(file, options?.onOcrProgress)
+  }
+  throw new Error(
+    'Formato no soportado. Usa CSV, Excel (.xlsx, .xls), PDF (.pdf) o captura Wallbit (PNG/JPEG).',
+  )
 }
 
 async function parseCSV(file: File): Promise<ParseResult> {

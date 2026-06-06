@@ -5,7 +5,7 @@
 **Fecha:** Junio 2026  
 **Estructura solicitada:** 2 secciones principales, 3 segmentos funcionales: **Tracking**, **Budgeting** y **Planning**.
 
-Monarch se posiciona como una app integral para **trackear**, **presupuestar**, **colaborar** y **planificar** dinero en una sola experiencia. Su diferencial principal es la agregación automática de cuentas, presupuesto flexible/categorizado, objetivos y reportes amplios. Finanzas Pareja, en cambio, está optimizada para una necesidad más concreta: **gestionar gastos de pareja**, importar movimientos de forma controlada, calcular quién pagó vs quién debía asumir y registrar liquidaciones.
+Monarch se posiciona como una app integral para **trackear**, **presupuestar**, **colaborar** y **planificar** dinero en una sola experiencia. Su diferencial principal es la agregación automática de cuentas, presupuesto flexible/categorizado, objetivos y reportes amplios. Finanzas Pareja, en cambio, está optimizada para una necesidad más concreta: **gestionar gastos de pareja**, importar movimientos de forma controlada, calcular quién pagó vs quién debía asumir, registrar liquidaciones y —desde V1 de presupuestos (junio 2026)— **definir límites colaborativos por categoría** para gastos compartidos.
 
 ## Sección 1: Cobertura Funcional
 
@@ -95,10 +95,24 @@ Monarch se posiciona como una app integral para **trackear**, **presupuestar**, 
 #### Feature: presupuesto mensual por categoría
 
 - **Monarch:** presupuesto por categorías, grupos, montos esperados vs reales, progreso y alertas.
-- **Finanzas Pareja:** **no implementado**. Está explícitamente en README y docs como próxima iteración.
-- **Impacto/beneficio:** **muy alto**.
-- **Por qué:** es el gap más evidente contra Monarch y también la evolución natural del dashboard actual. Permite pasar de "registrar qué pasó" a "decidir cuánto queremos gastar".
-- **Siguiente paso recomendado:** presupuesto mensual por categoría para gastos compartidos primero, reutilizando categorías y período actual.
+- **Finanzas Pareja:** **implementado** (V1, junio 2026). Límite **fijo recurrente** por categoría de gasto (`yearMonth: recurring`); el gasto real se compara contra ese tope **por mes calendario** navegable. Solo cuentan movimientos `expense` con `isShared === true`. Persistencia Dexie + Supabase con RLS y realtime; página `/presupuesto`; progreso también en dashboard y análisis de categorías (vista pareja).
+- **Impacto si faltara:** no aplica para el núcleo V1.
+- **Observación:** V1 priorizó límites simples y colaborativos sobre flexibilidad avanzada. Montos distintos por mes calendario quedaron fuera de alcance.
+
+#### Feature: presupuesto colaborativo de pareja
+
+- **Monarch:** permite presupuestar con pareja/household sin costo adicional.
+- **Finanzas Pareja:** **implementado** (V1). Un presupuesto compartido por `couple_id` y categoría (`scope: couple`), editable por ambos miembros con sincronización en tiempo real.
+- **Impacto si faltara:** no aplica para V1.
+- **Observación:** el diferencial de pareja (quién pagó, quién asumió, liquidaciones) sigue siendo fuerte; la integración presupuesto ↔ liquidaciones queda para una iteración posterior.
+
+#### Feature: presupuesto personal por integrante
+
+- **Monarch:** presupuesto a nivel household con visibilidad por persona/cuenta.
+- **Finanzas Pareja:** **no implementado**. Explícitamente fuera de alcance V1. El modelo incluye `scope: 'couple'` preparado para ampliar a `'personal'` en V1.1 (`ownerRole`, cálculo por gasto asumido de cada persona).
+- **Impacto/beneficio:** **alto** para parejas con gastos mixtos personal/compartido.
+- **Por qué:** V1 validó el flujo colaborativo compartido primero. La extensión natural es un selector Pareja / Personal con presupuestos separados por integrante.
+- **Siguiente paso recomendado:** V1.1 con `scope: 'couple' | 'personal'` y UI de edición por persona.
 
 #### Feature: Flex Budgeting
 
@@ -124,16 +138,16 @@ Monarch se posiciona como una app integral para **trackear**, **presupuestar**, 
 #### Feature: alertas por sobre-gasto
 
 - **Monarch:** avisa cuando se superan límites o hay riesgos de excederse.
-- **Finanzas Pareja:** **no implementado**.
-- **Impacto/beneficio:** **alto**.
-- **Por qué:** convierte el presupuesto en acción. En una primera versión puede ser una alerta visual dentro del dashboard, sin push notifications.
+- **Finanzas Pareja:** **parcialmente implementado** (V1). Estados básicos embebidos en la UI: `ok` (menor al 80%), `near` (80–100%), `over` (más del 100%) en `/presupuesto`, dashboard y categorías. **No** hay alertas proactivas destacadas, resumen global de riesgo ni notificaciones.
+- **Impacto/beneficio:** **alto** para la capa avanzada (Prioridad 2).
+- **Por qué:** V1 entregó señales visuales mínimas dentro del flujo de presupuesto. La Prioridad 2 amplía visibilidad y accionabilidad sin depender de push/email.
 
-#### Feature: presupuesto colaborativo de pareja
+#### Feature: notificaciones push o email de presupuesto
 
-- **Monarch:** permite presupuestar con pareja/household sin costo adicional.
-- **Finanzas Pareja:** **no implementado como presupuesto**, aunque la base colaborativa ya existe con pareja, Supabase, roles e identidad.
-- **Impacto/beneficio:** **muy alto**.
-- **Por qué:** es donde Finanzas Pareja puede superar a Monarch para el nicho: no solo presupuesto compartido, sino presupuesto cruzado con quién paga, quién asume y cómo se liquidan diferencias.
+- **Monarch:** alertas y recordatorios fuera de la app.
+- **Finanzas Pareja:** **no implementado**. Explícitamente fuera de alcance V1 y de la Prioridad 2 planificada (solo alertas visuales in-app).
+- **Impacto/beneficio:** **medio**.
+- **Por qué:** útil para hábito y retención, pero agrega infraestructura (permisos, proveedores, preferencias) sin bloquear el valor core del presupuesto colaborativo.
 
 #### Feature: sugerencias de presupuesto por histórico
 
@@ -141,6 +155,37 @@ Monarch se posiciona como una app integral para **trackear**, **presupuestar**, 
 - **Finanzas Pareja:** **no implementado**.
 - **Impacto/beneficio:** **medio**.
 - **Por qué:** útil para onboarding de presupuesto, pero requiere primero tener presupuestos básicos. Se puede implementar con promedio de 3 meses por categoría.
+
+#### Feature: integración presupuesto con metas, liquidaciones y cash flow
+
+- **Monarch:** conecta presupuesto, metas, flujo de caja y deuda en una vista de planificación.
+- **Finanzas Pareja:** **no implementado**. Liquidaciones y balance entre personas existen como feature propio, pero el presupuesto V1 **no** se cruza con metas, liquidaciones ni proyección de cash flow.
+- **Impacto/beneficio:** **alto** a mediano plazo.
+- **Por qué:** explícitamente fuera de alcance V1 para mantener la entrega enfocada. El siguiente salto de valor sería mostrar, por ejemplo, si el exceso de presupuesto impacta la deuda neta o el avance hacia una meta compartida.
+
+### Presupuestos colaborativos — alcance V1 y backlog explícito
+
+**Entregado en V1 (junio 2026):**
+
+- Presupuesto colaborativo compartido por pareja (`scope: couple`).
+- Límite recurrente por categoría de gasto; avance consultable por mes calendario.
+- Cálculo solo con gastos compartidos (`isShared === true`).
+- CRUD en `/presupuesto`; progreso en dashboard y categorías.
+- Estados básicos `ok` / `near` / `over` dentro de la UI de presupuesto.
+- Soporte Dexie (modo local) y Supabase (RLS + realtime).
+
+**Explícitamente fuera de V1 / backlog:**
+
+- Presupuesto personal por integrante (candidato V1.1).
+- Flex budgeting.
+- Presupuestos por grupos de categorías.
+- Rollovers entre meses.
+- Montos de presupuesto distintos por mes calendario.
+- Sugerencias automáticas por histórico.
+- Notificaciones push o emails.
+- Alertas visuales avanzadas como feature independiente (Prioridad 2).
+- Integración con metas, liquidaciones o cash flow proyectado.
+- Modelo de cuentas bancarias o saldos por cuenta (Prioridad 8).
 
 ### Segmento 3: Planning
 
@@ -214,29 +259,29 @@ Monarch se posiciona como una app integral para **trackear**, **presupuestar**, 
 - **Monarch:** ofrece colaboración y presupuesto conjunto, pero su foco no es el cálculo fino de deuda interna por movimiento.
 - **Finanzas Pareja:** **implementado**. Reparto personal/compartido, porcentajes configurables, balance pagado/asumido, deuda neta y liquidaciones.
 - **Impacto si faltara:** no aplica.
-- **Observación:** es el principal diferencial competitivo. La prioridad debería ser conectar presupuestos/metas con esta lógica, no reemplazarla por un clon generalista de Monarch.
+- **Observación:** es el principal diferencial competitivo. Con presupuestos V1 ya entregados, el siguiente salto es conectar presupuesto y metas con esta lógica de compensación, no reemplazarla por un clon generalista de Monarch.
 
 ## Sección 2: Priorización Impacto-Beneficio
 
 ### Prioridad 1: presupuestos mensuales colaborativos
 
 - **Segmento:** Budgeting.
-- **Estado actual:** no implementado.
+- **Estado actual:** **implementado** (V1, junio 2026).
 - **Impacto:** **muy alto**.
 - **Beneficio esperado:** transforma la app de registro y compensación en una herramienta de control mensual.
-- **Esfuerzo estimado:** medio.
-- **Dependencias:** categorías, período, cálculo de gastos por categoría ya existen.
-- **Recomendación:** implementar primero presupuesto por categoría para gastos compartidos; luego agregar vista personal si hace falta.
+- **Esfuerzo estimado:** medio (completado).
+- **Entregado:** límite recurrente por categoría, scope `couple`, gastos compartidos, `/presupuesto`, dashboard, categorías, Dexie/Supabase/realtime, estados básicos de progreso.
+- **Backlog relacionado:** presupuesto personal (V1.1), montos por mes, integración con metas/liquidaciones.
 
 ### Prioridad 2: alertas visuales de presupuesto
 
 - **Segmento:** Budgeting.
-- **Estado actual:** no implementado.
+- **Estado actual:** **parcialmente implementado**. V1 incluyó estados `ok` / `near` / `over` en presupuesto, dashboard y categorías; falta la capa avanzada como feature independiente.
 - **Impacto:** **alto**.
-- **Beneficio esperado:** hace accionable el presupuesto sin depender de notificaciones push.
-- **Esfuerzo estimado:** bajo-medio después de presupuesto.
-- **Dependencias:** presupuesto mensual y cálculo real vs presupuestado.
-- **Recomendación:** mostrar estados "ok", "cerca del límite" y "excedido" en dashboard y categorías.
+- **Beneficio esperado:** hace más accionable el presupuesto sin depender de notificaciones push ni email.
+- **Esfuerzo estimado:** bajo-medio.
+- **Dependencias:** presupuesto y cálculo real vs presupuestado (ya disponibles).
+- **Recomendación:** resumen global de categorías en riesgo, badges/banners en dashboard, mayor prominencia de excesos; sin push/email (fuera de alcance explícito).
 
 ### Prioridad 3: metas compartidas con progreso
 
@@ -320,15 +365,16 @@ Monarch se posiciona como una app integral para **trackear**, **presupuestar**, 
 
 ## Resumen Ejecutivo
 
-Finanzas Pareja ya cubre bien la capa de **tracking operativo de pareja**: movimientos, importación revisable, filtros, categorías, balance, liquidaciones, identidad Yo/Mi pareja, auth, nube y realtime. Frente a Monarch, las brechas más importantes no están en registrar movimientos, sino en convertir esos datos en **control y planificación**.
+Finanzas Pareja cubre bien la capa de **tracking operativo de pareja**: movimientos, importación revisable, filtros, categorías, balance, liquidaciones, identidad Yo/Mi pareja, auth, nube y realtime. Con **presupuestos colaborativos V1** (junio 2026), la app ya convierte parte de ese tracking en **control mensual** para gastos compartidos. Frente a Monarch, las brechas más importantes pasan ahora a **planificación**, **alertas avanzadas** y **capas de budgeting más sofisticadas**.
 
-La ruta recomendada no es copiar Monarch entero. El mejor ROI está en llevar el diferencial de pareja hacia los segmentos donde hoy falta producto:
+La ruta recomendada no es copiar Monarch entero. El mejor ROI está en llevar el diferencial de pareja hacia lo que sigue pendiente:
 
-1. **Budgeting:** presupuestos mensuales colaborativos por categoría.
-2. **Budgeting:** alertas visuales de avance/exceso.
+1. **Budgeting:** alertas visuales avanzadas (Prioridad 2; V1 ya entregó estados básicos).
+2. **Budgeting:** presupuesto personal por integrante (V1.1).
 3. **Planning:** metas compartidas con progreso y aportes por persona.
 4. **Tracking/Planning:** recurrentes y suscripciones.
 5. **Tracking:** reglas persistentes de categorización y revisión de movimientos.
+6. **Budgeting/Planning:** integración presupuesto ↔ metas/liquidaciones/cash flow (post-V1).
 
 ## Referencias
 
@@ -339,4 +385,6 @@ La ruta recomendada no es copiar Monarch entero. El mejor ROI está en llevar el
 - `README.md`
 - `plan-implementacion-finanzas-pareja.md`
 - `siguiente-sesion-implementacion.md`
-- Código revisado: `src/types/index.ts`, `src/pages/DashboardPage.tsx`, `src/pages/MovementsPage.tsx`, `src/pages/ImportPage.tsx`, `src/pages/BalancePage.tsx`, `src/lib/import.ts`
+- Plan V1: `.cursor/plans/presupuestos_colaborativos_d6b9cd86.plan.md`
+- Migraciones: `supabase/migrations/006_category_budgets.sql`, `supabase/migrations/007_recurring_budgets.sql`
+- Código revisado: `src/types/index.ts`, `src/lib/budget.ts`, `src/pages/BudgetPage.tsx`, `src/pages/DashboardPage.tsx`, `src/pages/CategoriesPage.tsx`, `src/pages/MovementsPage.tsx`, `src/pages/ImportPage.tsx`, `src/pages/BalancePage.tsx`, `src/lib/import.ts`

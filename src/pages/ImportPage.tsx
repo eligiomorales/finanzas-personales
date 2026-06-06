@@ -18,6 +18,7 @@ import {
   type ColumnMapping,
   type ParsedRow,
 } from '@/lib/import'
+import { imageProfileLabel, type ImageProfile } from '@/lib/ocr/profile-labels'
 import { pdfProfileLabel, type PdfProfile } from '@/lib/pdf/parse-pdf'
 import { Card, Badge } from '@/components/ui/Card'
 import { Stepper } from '@/components/ui/Stepper'
@@ -60,7 +61,9 @@ export function ImportPage() {
   const [loading, setLoading] = useState(false)
   const [confirmedCount, setConfirmedCount] = useState(0)
   const [pdfProfile, setPdfProfile] = useState<PdfProfile | null>(null)
+  const [imageProfile, setImageProfile] = useState<ImageProfile | null>(null)
   const [perRowCurrency, setPerRowCurrency] = useState(false)
+  const [loadingDetail, setLoadingDetail] = useState<string | null>(null)
   const [reviewFilter, setReviewFilter] = useState<ImportReviewFilter>('pending')
   const [batchDefaultsOpen, setBatchDefaultsOpen] = useState(false)
 
@@ -108,13 +111,33 @@ export function ImportPage() {
     if (!file) return
     setError(null)
     setLoading(true)
+    setLoadingDetail(null)
     try {
-      const result = await parseFile(file)
+      const result = await parseFile(file, {
+        onOcrProgress: (progress) => {
+          if (progress.status === 'loading tesseract core' || progress.status === 'initializing tesseract') {
+            setLoadingDetail('Cargando motor OCR (solo la primera vez puede tardar)...')
+            return
+          }
+          if (progress.status === 'loading language traineddata') {
+            setLoadingDetail('Descargando datos de idioma para OCR...')
+            return
+          }
+          if (progress.status === 'recognizing text') {
+            setLoadingDetail(`Extrayendo texto de la captura (${Math.round(progress.progress * 100)}%)...`)
+          }
+        },
+      })
       setFileName(file.name)
       setHeaders(result.headers)
       setRawRows(result.rawRows)
       setPdfProfile(result.pdfProfile ?? null)
+      setImageProfile(result.imageProfile ?? null)
       setPerRowCurrency(Boolean(result.perRowCurrency))
+      if (result.imageProfile === 'wallbit-debit') {
+        setAccountType('debit')
+        setImportCurrency('USD')
+      }
 
       if (result.skipMapping && result.rows.length > 0) {
         const newImportId = generateId()
@@ -138,6 +161,7 @@ export function ImportPage() {
       setError(err instanceof Error ? err.message : 'Error al leer el archivo')
     } finally {
       setLoading(false)
+      setLoadingDetail(null)
     }
   }
 
@@ -244,7 +268,9 @@ export function ImportPage() {
     setBulkCategoryId('')
     setImportId(null)
     setPdfProfile(null)
+    setImageProfile(null)
     setPerRowCurrency(false)
+    setLoadingDetail(null)
     setImportCurrency('ARS')
     setError(null)
     setConfirmedCount(0)
@@ -294,7 +320,7 @@ export function ImportPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold">Importar resumen</h2>
-        <p className="text-sm text-slate-500">CSV, Excel o PDF de tarjeta de crédito o débito</p>
+        <p className="text-sm text-slate-500">CSV, Excel, PDF de tarjeta o captura de Wallbit</p>
       </div>
 
       <Stepper steps={[...IMPORT_STEPS]} currentStepId={step} completedStepIds={completedStepIds} />
@@ -339,24 +365,24 @@ export function ImportPage() {
             </p>
           </FormGroup>
           <FormGroup>
-            <Label htmlFor="import-file">Archivo (CSV, Excel o PDF)</Label>
+            <Label htmlFor="import-file">Archivo (CSV, Excel, PDF o captura)</Label>
             <Input
               id="import-file"
               type="file"
-              accept=".csv,.xlsx,.xls,.pdf"
+              accept=".csv,.xlsx,.xls,.pdf,.png,.jpg,.jpeg,.webp"
               onChange={handleFileSelect}
               disabled={loading}
               aria-describedby="import-file-hint"
             />
             <p id="import-file-hint" className="mt-1 text-xs text-slate-500">
-              Los movimientos se revisan antes de guardarse. No se envían datos a servicios externos.
+              Los movimientos se revisan antes de guardarse. Las capturas se procesan con OCR en tu navegador; no se envían a servicios externos.
             </p>
           </FormGroup>
           {error && <StatusMessage tone="error">{error}</StatusMessage>}
           {loading && (
             <>
-              <StatusMessage tone="info">Procesando archivo...</StatusMessage>
-              <LiveRegion>Procesando archivo</LiveRegion>
+              <StatusMessage tone="info">{loadingDetail ?? 'Procesando archivo...'}</StatusMessage>
+              <LiveRegion>{loadingDetail ?? 'Procesando archivo'}</LiveRegion>
             </>
           )}
           <div className="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
@@ -364,10 +390,11 @@ export function ImportPage() {
             <ul className="mt-1 list-inside list-disc">
               <li>CSV con encabezados (fecha, descripción, monto)</li>
               <li>Excel (.xlsx, .xls), incl. extractos Galicia caja de ahorro</li>
-              <li>PDF (.pdf): resúmenes Galicia Mastercard</li>
+              <li>PDF (.pdf): resúmenes Galicia Mastercard y Visa</li>
+              <li>Captura Wallbit (.png, .jpg): lista Transactions (OCR local, puede tardar 10–60 s)</li>
             </ul>
             <p className="mt-2 text-xs text-slate-500">
-              Los movimientos se revisan antes de guardarse. No se envían datos a servicios externos.
+              Las capturas largas (scroll) se aceptan en un solo archivo. Tamaño máximo: 20 MB.
             </p>
           </div>
         </Card>
@@ -435,6 +462,7 @@ export function ImportPage() {
               <Badge variant="info">{pendingCount} pendientes</Badge>
               {ignoredCount > 0 && <Badge>{ignoredCount} ignorados</Badge>}
               {pdfProfile && <Badge variant="info">{pdfProfileLabel(pdfProfile)}</Badge>}
+              {imageProfile && <Badge variant="info">{imageProfileLabel(imageProfile)}</Badge>}
               {perRowCurrency && <Badge variant="info">Moneda por movimiento</Badge>}
               {duplicateCount > 0 && (
                 <Badge variant="warning">{duplicateCount} posibles duplicados</Badge>
