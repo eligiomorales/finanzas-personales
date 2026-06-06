@@ -390,7 +390,7 @@ export function ImportPage() {
             <ul className="mt-1 list-inside list-disc">
               <li>CSV con encabezados (fecha, descripción, monto)</li>
               <li>Excel (.xlsx, .xls), incl. extractos Galicia caja de ahorro</li>
-              <li>PDF (.pdf): resúmenes Galicia Mastercard y Visa</li>
+              <li>PDF (.pdf): resúmenes Galicia Mastercard, Galicia Visa y Santander Visa</li>
               <li>Captura Wallbit (.png, .jpg): lista Transactions (OCR local, puede tardar 10–60 s)</li>
             </ul>
             <p className="mt-2 text-xs text-slate-500">

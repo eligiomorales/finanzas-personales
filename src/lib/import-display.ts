@@ -13,10 +13,17 @@ export type ImportReviewItem = PendingImportMovement & {
 const GENERIC_FIRST_LINES =
   /^(TRANSFERENCIA|COMPRA|PAGO|DEBITO|DÉBITO|CREDITO|CRÉDITO|CONSUMO|PAGO DEBITO|PAGO DÉBITO)/i
 
+/** Receipt numbers from PDF/OCR imports — not a readable merchant name. */
+function isComprobanteReference(value: string): boolean {
+  return /^\d{4,8}$/.test(value.trim())
+}
+
 /** Readable one-line title for an import row in the review list. */
 export function importItemTitle(description: string, merchant?: string): string {
   const trimmedMerchant = merchant?.trim()
-  if (trimmedMerchant) return trimmedMerchant
+  if (trimmedMerchant && !isComprobanteReference(trimmedMerchant)) {
+    return trimmedMerchant
+  }
 
   const lines = description
     .split('\n')

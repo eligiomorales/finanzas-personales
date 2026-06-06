@@ -86,7 +86,7 @@ Sin `.env.local` la app arranca en **modo local** (IndexedDB + datos de ejemplo)
 - Dashboard con resumen del mes
 - Análisis de gastos por categoría
 - Filtros en lista de movimientos
-- Importación CSV/Excel/PDF y capturas Wallbit (OCR en el navegador) con revisión previa y detección de duplicados
+- Importación CSV/Excel/PDF (Galicia Mastercard/Visa, Santander Visa) y capturas Wallbit (OCR en el navegador) con revisión previa y detección de duplicados
 - Configuración de categorías y moneda; **tu nombre** vinculado a tu cuenta (no editable por la pareja)
 - **Identidad por cuenta** — rol fijado al crear/unirse a la pareja; formularios con **Yo / Mi pareja**; pagador por defecto = usuario logueado
 - **Auth email + contraseña** (Supabase)
