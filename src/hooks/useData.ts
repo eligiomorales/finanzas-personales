@@ -10,6 +10,7 @@ import {
   MOVEMENTS_PAGE_SIZE,
   serializeMovementFilters,
 } from '@/lib/movements-query'
+import { RECURRING_BUDGET_MONTH } from '@/lib/budget'
 
 export function useSettings() {
   const { mode, repos } = useDataContext()
@@ -163,20 +164,20 @@ export function usePendingImports(importId?: string) {
   return mode === 'local' ? (local ?? []) : remote
 }
 
-export function useBudgets(yearMonth: string) {
+export function useBudgets() {
   const { mode, repos } = useDataContext()
   const local = useLiveQuery(
-    () => db.categoryBudgets.where('yearMonth').equals(yearMonth).toArray(),
-    [yearMonth],
+    () => db.categoryBudgets.where('yearMonth').equals(RECURRING_BUDGET_MONTH).toArray(),
+    [],
   )
-  const [remote, setRemote] = useState<Awaited<ReturnType<typeof repos.budgets.listByMonth>>>([])
+  const [remote, setRemote] = useState<Awaited<ReturnType<typeof repos.budgets.listRecurring>>>([])
 
   useEffect(() => {
     if (mode !== 'remote') return
     let cancelled = false
 
     async function load() {
-      const result = await repos.budgets.listByMonth(yearMonth)
+      const result = await repos.budgets.listRecurring()
       if (!cancelled) setRemote(result)
     }
 
@@ -184,7 +185,7 @@ export function useBudgets(yearMonth: string) {
     return repos.budgets.subscribe(() => {
       void load()
     })
-  }, [mode, repos, yearMonth])
+  }, [mode, repos])
 
   return mode === 'local' ? (local ?? []) : remote
 }

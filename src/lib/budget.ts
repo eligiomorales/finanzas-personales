@@ -12,6 +12,9 @@ import type {
 
 const NEAR_LIMIT_THRESHOLD = 0.8
 
+/** Fixed budget key: one limit per category, applies every month. */
+export const RECURRING_BUDGET_MONTH = 'recurring'
+
 export function getBudgetMonthKey(dateOrIso: string | Date): string {
   const date = typeof dateOrIso === 'string' ? parseISO(dateOrIso) : dateOrIso
   return format(date, 'yyyy-MM')
@@ -101,11 +104,7 @@ export function buildBudgetProgress({
   const expenseCategories = categories.filter((c) => c.type === 'expense')
   const budgetByCategory = new Map(budgets.map((b) => [b.categoryId, b]))
 
-  const categoryIds = new Set<string>([
-    ...expenseCategories.map((c) => c.id),
-    ...budgets.map((b) => b.categoryId),
-    ...spentByCategory.keys(),
-  ])
+  const categoryIds = new Set<string>(budgets.map((b) => b.categoryId))
 
   const categoriesProgress: CategoryBudgetProgress[] = []
 

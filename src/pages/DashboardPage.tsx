@@ -36,7 +36,7 @@ export function DashboardPage() {
   const myRole = persons.myRole ?? 'personA'
   const { period, setPeriod } = usePeriod()
   const budgetMonth = useMemo(() => getBudgetMonthKey(period.from), [period.from])
-  const budgets = useBudgets(budgetMonth) ?? []
+  const budgets = useBudgets() ?? []
   const previousPeriod = useMemo(() => previousPeriodForRange(period), [period])
   const periodTitle = useMemo(() => formatPeriodHeaderTitle(period), [period])
 

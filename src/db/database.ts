@@ -90,6 +90,31 @@ export class FinanzasDB extends Dexie {
       settings: 'id',
       categoryBudgets: 'id, categoryId, yearMonth, scope, [yearMonth+scope]',
     })
+    this.version(5)
+      .stores({
+        persons: 'id',
+        categories: 'id',
+        movements: 'id, date, type, categoryId, paidBy, isShared, source, currency',
+        imports: 'id, importedAt, status',
+        pendingImports: 'id, importId, status, date',
+        settings: 'id',
+        categoryBudgets: 'id, categoryId, yearMonth, scope, [yearMonth+scope]',
+      })
+      .upgrade(async (tx) => {
+        const all = await tx.table('categoryBudgets').toArray()
+        const bestByCategory = new Map<string, (typeof all)[0]>()
+        for (const row of all) {
+          const key = `${row.categoryId}:${row.scope ?? 'couple'}`
+          const current = bestByCategory.get(key)
+          if (!current || row.updatedAt > current.updatedAt) {
+            bestByCategory.set(key, row)
+          }
+        }
+        await tx.table('categoryBudgets').clear()
+        for (const row of bestByCategory.values()) {
+          await tx.table('categoryBudgets').put({ ...row, yearMonth: 'recurring' })
+        }
+      })
   }
 }
 
