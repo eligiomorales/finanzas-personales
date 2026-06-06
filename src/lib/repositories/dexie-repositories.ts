@@ -22,6 +22,7 @@ import type {
   BudgetRepository,
 } from '@/lib/repositories/types'
 import { generateId } from '@/lib/utils'
+import { RECURRING_BUDGET_MONTH } from '@/lib/budget'
 import type { CategoryBudget, CurrencyCode, Movement, MovementFilters, MovementFormData } from '@/types'
 
 function noopSubscribe(_callback: () => void): () => void {
@@ -157,15 +158,16 @@ class DexieBudgetRepository implements BudgetRepository {
     return db.categoryBudgets.toArray()
   }
 
-  async listByMonth(yearMonth: string, scope: CategoryBudget['scope'] = 'couple') {
-    return db.categoryBudgets.where('[yearMonth+scope]').equals([yearMonth, scope]).toArray()
+  async listRecurring(scope: CategoryBudget['scope'] = 'couple') {
+    return db.categoryBudgets.where('[yearMonth+scope]').equals([RECURRING_BUDGET_MONTH, scope]).toArray()
   }
 
   async upsert(input: UpsertCategoryBudgetInput) {
     const scope = input.scope ?? 'couple'
+    const yearMonth = input.yearMonth ?? RECURRING_BUDGET_MONTH
     const existing = await db.categoryBudgets
       .where('[yearMonth+scope]')
-      .equals([input.yearMonth, scope])
+      .equals([yearMonth, scope])
       .filter((b) => b.categoryId === input.categoryId)
       .first()
 
@@ -185,7 +187,7 @@ class DexieBudgetRepository implements BudgetRepository {
     const budget: CategoryBudget = {
       id: generateId(),
       categoryId: input.categoryId,
-      yearMonth: input.yearMonth,
+      yearMonth,
       amount: input.amount,
       currency: input.currency,
       scope,

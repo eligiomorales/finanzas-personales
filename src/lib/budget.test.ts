@@ -6,6 +6,7 @@ import {
   getBudgetMonthKey,
   getMonthDateRange,
   movementsInMonth,
+  RECURRING_BUDGET_MONTH,
   roundAmountForCurrency,
   shiftBudgetMonth,
 } from '@/lib/budget'
@@ -93,7 +94,7 @@ describe('getBudgetAmountInView', () => {
     const budget: CategoryBudget = {
       id: 'b1',
       categoryId: 'cat-food',
-      yearMonth: '2026-06',
+      yearMonth: RECURRING_BUDGET_MONTH,
       amount: 50000,
       currency: 'ARS',
       scope: 'couple',
@@ -115,7 +116,7 @@ describe('buildBudgetProgress', () => {
     {
       id: 'b1',
       categoryId: 'cat-food',
-      yearMonth: '2026-06',
+      yearMonth: RECURRING_BUDGET_MONTH,
       amount: 1000,
       currency: 'ARS',
       scope: 'couple',
@@ -125,7 +126,7 @@ describe('buildBudgetProgress', () => {
     {
       id: 'b2',
       categoryId: 'cat-transport',
-      yearMonth: '2026-06',
+      yearMonth: RECURRING_BUDGET_MONTH,
       amount: 500,
       currency: 'ARS',
       scope: 'couple',
@@ -226,7 +227,7 @@ describe('buildBudgetProgress', () => {
     expect(transport?.remaining).toBe(500)
   })
 
-  it('handles category with spend but no budget as unbudgeted', () => {
+  it('excludes categories with spend but no budget row', () => {
     const movements = [
       baseMovement({ id: '1', amount: 300, categoryId: 'cat-transport', isShared: true }),
     ]
@@ -239,10 +240,7 @@ describe('buildBudgetProgress', () => {
       yearMonth: '2026-06',
     })
 
-    const transport = summary.categories.find((c) => c.categoryId === 'cat-transport')
-    expect(transport?.budgeted).toBe(0)
-    expect(transport?.status).toBe('unbudgeted')
-    expect(transport?.spent).toBe(300)
+    expect(summary.categories.find((c) => c.categoryId === 'cat-transport')).toBeUndefined()
   })
 
   it('computes totals only for budgeted categories', () => {

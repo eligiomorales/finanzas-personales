@@ -19,6 +19,7 @@ import type {
 } from '@/lib/repositories/types'
 import { MOVEMENTS_PAGE_SIZE } from '@/lib/movements-query'
 import { generateId } from '@/lib/utils'
+import { RECURRING_BUDGET_MONTH } from '@/lib/budget'
 import type {
   AppSettings,
   Category,
@@ -483,12 +484,12 @@ export function createSupabaseRepositories(coupleId: string): Repositories {
       return (data ?? []).map(rowToBudget)
     },
 
-    async listByMonth(yearMonth, scope = 'couple') {
+    async listRecurring(scope = 'couple') {
       const { data, error } = await supabase
         .from('category_budgets')
         .select('*')
         .eq('couple_id', coupleId)
-        .eq('year_month', yearMonth)
+        .eq('year_month', RECURRING_BUDGET_MONTH)
         .eq('scope', scope)
 
       if (error) throw error
@@ -497,6 +498,7 @@ export function createSupabaseRepositories(coupleId: string): Repositories {
 
     async upsert(input: UpsertCategoryBudgetInput) {
       const scope = input.scope ?? 'couple'
+      const yearMonth = input.yearMonth ?? RECURRING_BUDGET_MONTH
       const now = new Date().toISOString()
 
       const { data: existing, error: findError } = await supabase
@@ -504,7 +506,7 @@ export function createSupabaseRepositories(coupleId: string): Repositories {
         .select('*')
         .eq('couple_id', coupleId)
         .eq('category_id', input.categoryId)
-        .eq('year_month', input.yearMonth)
+        .eq('year_month', yearMonth)
         .eq('scope', scope)
         .maybeSingle()
 
@@ -534,7 +536,7 @@ export function createSupabaseRepositories(coupleId: string): Repositories {
           id,
           couple_id: coupleId,
           category_id: input.categoryId,
-          year_month: input.yearMonth,
+          year_month: yearMonth,
           amount: input.amount,
           currency: input.currency,
           scope,

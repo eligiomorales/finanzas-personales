@@ -70,7 +70,7 @@ export interface ImportRepository {
 
 export interface UpsertCategoryBudgetInput {
   categoryId: string
-  yearMonth: string
+  yearMonth?: string
   amount: number
   currency: CurrencyCode
   scope?: CategoryBudget['scope']
@@ -78,7 +78,7 @@ export interface UpsertCategoryBudgetInput {
 
 export interface BudgetRepository {
   listAll(): Promise<CategoryBudget[]>
-  listByMonth(yearMonth: string, scope?: CategoryBudget['scope']): Promise<CategoryBudget[]>
+  listRecurring(scope?: CategoryBudget['scope']): Promise<CategoryBudget[]>
   upsert(input: UpsertCategoryBudgetInput): Promise<CategoryBudget>
   delete(id: string): Promise<void>
   subscribe(callback: () => void): () => void

@@ -33,7 +33,7 @@ export function CategoriesPage() {
   const myRole = persons.myRole ?? 'personA'
   const { period, setPeriod } = usePeriod()
   const budgetMonth = useMemo(() => getBudgetMonthKey(period.from), [period.from])
-  const budgets = useBudgets(budgetMonth) ?? []
+  const budgets = useBudgets() ?? []
 
   const previousPeriod = useMemo(() => previousPeriodForRange(period), [period])
 
@@ -148,7 +148,7 @@ export function CategoriesPage() {
         <Card compact className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Presupuesto compartido ({budgetMonth})
+              Presupuesto compartido
             </p>
             <p className="text-sm text-slate-700">
               {formatInViewCurrency(budgetSummary!.totalSpent, currencyConfig)} de{' '}

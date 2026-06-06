@@ -2,8 +2,8 @@ import { useMemo, useState, useCallback, useEffect } from 'react'
 import { useMovements, useCategories, useSettings, useBudgets, useBudgetMutations } from '@/hooks/useData'
 import { CurrencyAmountInput } from '@/components/CurrencyAmountInput'
 import { BudgetProgressBar } from '@/components/BudgetProgressBar'
-import { CurrencyToggle } from '@/components/CurrencyToggle'
 import { Card, EmptyState, StatCard } from '@/components/ui/Card'
+import { Button, Select, Label } from '@/components/ui/Form'
 import {
   buildBudgetProgress,
   budgetStatusLabel,
@@ -20,14 +20,17 @@ export function BudgetPage() {
   const categories = useCategories() ?? []
   const settings = useSettings()
   const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
-  const [yearMonth, setYearMonth] = useState(() => getBudgetMonthKey(new Date()))
-  const budgets = useBudgets(yearMonth) ?? []
+  const [viewMonth, setViewMonth] = useState(() => getBudgetMonthKey(new Date()))
+  const budgets = useBudgets() ?? []
   const { upsertBudget, deleteBudget } = useBudgetMutations()
   const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null)
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
+  const [draftCategoryId, setDraftCategoryId] = useState<string | null>(null)
+  const [pickerCategoryId, setPickerCategoryId] = useState('')
 
   useEffect(() => {
     setEditingCategoryId(null)
+    setDraftCategoryId(null)
   }, [currencyConfig.displayCurrency, currencyConfig.exchangeRateUsd])
 
   const expenseCategories = useMemo(
@@ -40,6 +43,17 @@ export function BudgetPage() {
     [budgets],
   )
 
+  const budgetedCategories = useMemo(() => {
+    const ids = new Set(budgets.map((b) => b.categoryId))
+    if (draftCategoryId) ids.add(draftCategoryId)
+    return expenseCategories.filter((c) => ids.has(c.id))
+  }, [budgets, draftCategoryId, expenseCategories])
+
+  const availableToAdd = useMemo(
+    () => expenseCategories.filter((c) => !budgetByCategory.has(c.id) && c.id !== draftCategoryId),
+    [expenseCategories, budgetByCategory, draftCategoryId],
+  )
+
   const summary = useMemo(
     () =>
       buildBudgetProgress({
@@ -47,9 +61,9 @@ export function BudgetPage() {
         movements,
         categories,
         currencyConfig,
-        yearMonth,
+        yearMonth: viewMonth,
       }),
-    [budgets, movements, categories, currencyConfig, yearMonth],
+    [budgets, movements, categories, currencyConfig, viewMonth],
   )
 
   const progressByCategory = useMemo(
@@ -57,7 +71,7 @@ export function BudgetPage() {
     [summary.categories],
   )
 
-  const monthLabel = useMemo(() => formatMonthLabel(`${yearMonth}-01`), [yearMonth])
+  const monthLabel = useMemo(() => formatMonthLabel(`${viewMonth}-01`), [viewMonth])
 
   const handleSaveBudget = useCallback(
     async (categoryId: string, amount: number) => {
@@ -67,35 +81,63 @@ export function BudgetPage() {
         if (amount <= 0) {
           if (existing) await deleteBudget(existing.id)
           setEditingCategoryId(null)
+          setDraftCategoryId(null)
           return
         }
         await upsertBudget({
           categoryId,
-          yearMonth,
           amount,
           currency: currencyConfig.displayCurrency,
           scope: 'couple',
         })
         setEditingCategoryId(null)
+        setDraftCategoryId(null)
       } finally {
         setSavingCategoryId(null)
       }
     },
-    [budgetByCategory, deleteBudget, upsertBudget, yearMonth, currencyConfig.displayCurrency],
+    [budgetByCategory, deleteBudget, upsertBudget, currencyConfig.displayCurrency],
   )
+
+  const handleRemoveCategory = useCallback(
+    async (categoryId: string) => {
+      const existing = budgetByCategory.get(categoryId)
+      if (!existing) {
+        setDraftCategoryId(null)
+        setEditingCategoryId(null)
+        return
+      }
+      setSavingCategoryId(categoryId)
+      try {
+        await deleteBudget(existing.id)
+        setEditingCategoryId(null)
+        setDraftCategoryId(null)
+      } finally {
+        setSavingCategoryId(null)
+      }
+    },
+    [budgetByCategory, deleteBudget],
+  )
+
+  function handleAddCategory() {
+    if (!pickerCategoryId) return
+    setDraftCategoryId(pickerCategoryId)
+    setEditingCategoryId(pickerCategoryId)
+    setPickerCategoryId('')
+  }
 
   return (
     <div className="space-y-4">
-      <div className="-mx-4 space-y-3 border-b border-slate-200 px-4 pb-3">
+      <div className="-mx-4 space-y-2 border-b border-slate-200 px-4 pb-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-bold text-slate-900">Presupuesto</h2>
-            <p className="text-xs text-slate-500">Gastos compartidos del mes</p>
+            <p className="text-xs text-slate-500">Límites fijos · gastos compartidos de {monthLabel}</p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
-              onClick={() => setYearMonth((m) => shiftBudgetMonth(m, -1))}
+              onClick={() => setViewMonth((m) => shiftBudgetMonth(m, -1))}
               className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
               aria-label="Mes anterior"
             >
@@ -106,19 +148,13 @@ export function BudgetPage() {
             </span>
             <button
               type="button"
-              onClick={() => setYearMonth((m) => shiftBudgetMonth(m, 1))}
+              onClick={() => setViewMonth((m) => shiftBudgetMonth(m, 1))}
               className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
               aria-label="Mes siguiente"
             >
               ›
             </button>
           </div>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-slate-500">
-            Todos los montos en {currencyConfig.displayCurrency}
-          </p>
-          <CurrencyToggle />
         </div>
       </div>
 
@@ -139,10 +175,39 @@ export function BudgetPage() {
         />
       </div>
 
+      {availableToAdd.length > 0 && (
+        <Card compact>
+          <Label htmlFor="add-budget-category">Agregar categoría al presupuesto</Label>
+          <div className="mt-2 flex gap-2">
+            <Select
+              id="add-budget-category"
+              className="min-w-0 flex-1"
+              value={pickerCategoryId}
+              onChange={(e) => setPickerCategoryId(e.target.value)}
+            >
+              <option value="">Elegir categoría…</option>
+              {availableToAdd.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </Select>
+            <Button type="button" variant="secondary" disabled={!pickerCategoryId} onClick={handleAddCategory}>
+              Agregar
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {expenseCategories.length === 0 ? (
         <EmptyState
           title="Sin categorías de gasto"
-          description="Creá categorías de gasto en Ajustes para definir presupuestos mensuales."
+          description="Creá categorías de gasto en Ajustes para definir presupuestos."
+        />
+      ) : budgetedCategories.length === 0 ? (
+        <EmptyState
+          title="Sin categorías presupuestadas"
+          description="Agregá las categorías en las que querés poner un límite fijo para la pareja."
         />
       ) : (
         <div className="space-y-3">
@@ -151,10 +216,11 @@ export function BudgetPage() {
             <span className="text-center">Gastado</span>
             <span className="text-right">Restante</span>
           </div>
-          {expenseCategories.map((category) => {
+          {budgetedCategories.map((category) => {
             const existing = budgetByCategory.get(category.id)
             const progress = progressByCategory.get(category.id)
             const displayLimit = existing ? getBudgetAmountInView(existing, currencyConfig) : 0
+            const isDraft = draftCategoryId === category.id && !existing
             return (
               <BudgetCategoryCard
                 key={category.id}
@@ -167,9 +233,14 @@ export function BudgetPage() {
                 currencyConfig={currencyConfig}
                 saving={savingCategoryId === category.id}
                 editing={editingCategoryId === category.id}
+                isDraft={isDraft}
                 onStartEdit={() => setEditingCategoryId(category.id)}
-                onCancelEdit={() => setEditingCategoryId(null)}
+                onCancelEdit={() => {
+                  setEditingCategoryId(null)
+                  if (isDraft) setDraftCategoryId(null)
+                }}
                 onSave={handleSaveBudget}
+                onRemove={() => void handleRemoveCategory(category.id)}
               />
             )
           })}
@@ -189,9 +260,11 @@ function BudgetCategoryCard({
   currencyConfig,
   saving,
   editing,
+  isDraft,
   onStartEdit,
   onCancelEdit,
   onSave,
+  onRemove,
 }: {
   categoryId: string
   categoryName: string
@@ -202,14 +275,20 @@ function BudgetCategoryCard({
   currencyConfig: ReturnType<typeof getCurrencyConfig>
   saving: boolean
   editing: boolean
+  isDraft: boolean
   onStartEdit: () => void
   onCancelEdit: () => void
   onSave: (categoryId: string, amount: number) => Promise<void>
+  onRemove: () => void
 }) {
   const [draftAmount, setDraftAmount] = useState(displayLimit)
   const hasLimit = displayLimit > 0
   const spent = progress?.spent ?? 0
   const remaining = hasLimit ? displayLimit - spent : 0
+
+  useEffect(() => {
+    if (editing) setDraftAmount(displayLimit)
+  }, [editing, displayLimit])
 
   const storedCurrencyHint =
     storedBudget &&
@@ -217,11 +296,6 @@ function BudgetCategoryCard({
     hasLimit
       ? `Guardado originalmente como ${formatCurrency(storedBudget.amount, storedBudget.currency)}`
       : null
-
-  function startEditing() {
-    setDraftAmount(displayLimit)
-    onStartEdit()
-  }
 
   return (
     <Card compact={!editing}>
@@ -255,7 +329,7 @@ function BudgetCategoryCard({
                 {hasLimit ? formatInViewCurrency(displayLimit, currencyConfig) : '—'}
               </p>
             </div>
-            <div className="text-center sm:text-center">
+            <div className="text-center">
               <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400 sm:hidden">
                 Gastado
               </p>
@@ -288,26 +362,36 @@ function BudgetCategoryCard({
             </div>
           )}
 
-          {!hasLimit && spent > 0 && (
-            <p className="mb-3 text-xs text-amber-700">
-              {formatInViewCurrency(spent, currencyConfig)} en gastos compartidos sin límite
-            </p>
+          {isDraft && (
+            <p className="mb-3 text-xs text-brand-700">Definí el límite fijo para esta categoría.</p>
           )}
 
-          <button
-            type="button"
-            onClick={startEditing}
-            className="w-full rounded-lg border border-slate-200 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
-          >
-            {hasLimit ? 'Editar límite' : 'Definir límite'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onStartEdit}
+              className="flex-1 rounded-lg border border-slate-200 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
+            >
+              {hasLimit ? 'Editar límite' : 'Definir límite'}
+            </button>
+            {!isDraft && (
+              <button
+                type="button"
+                onClick={onRemove}
+                disabled={saving}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
+              >
+                Quitar
+              </button>
+            )}
+          </div>
         </>
       )}
 
       {editing && (
         <div className="space-y-2 border-t border-slate-100 pt-3">
           <label className="block text-xs font-medium text-slate-500" htmlFor={`budget-${categoryId}`}>
-            Límite mensual ({currencyConfig.displayCurrency}) {saving ? '· guardando…' : ''}
+            Límite fijo {saving ? '· guardando…' : ''}
           </label>
           <CurrencyAmountInput
             id={`budget-${categoryId}`}
@@ -337,16 +421,6 @@ function BudgetCategoryCard({
               Cancelar
             </button>
           </div>
-          {hasLimit && (
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => void onSave(categoryId, 0)}
-              className="w-full text-sm text-red-600 hover:text-red-700"
-            >
-              Quitar límite
-            </button>
-          )}
         </div>
       )}
     </Card>

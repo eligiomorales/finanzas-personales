@@ -80,11 +80,11 @@ describe('exportDatabaseFromRepositories', () => {
       },
       budgets: {
         listAll: async () => [],
-        listByMonth: async () => [],
+        listRecurring: async () => [],
         upsert: async () => ({
           id: 'b1',
           categoryId: 'c1',
-          yearMonth: '2026-06',
+          yearMonth: 'recurring',
           amount: 1000,
           currency: 'ARS',
           scope: 'couple',

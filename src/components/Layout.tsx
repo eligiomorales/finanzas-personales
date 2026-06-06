@@ -85,7 +85,9 @@ export function Layout() {
         <div className="flex items-center justify-between gap-3">
           <h1 className="flex items-center gap-2 text-lg font-bold text-slate-900">
             Finanzas Pareja
-            {isPersonal && <Badge variant="info">Personal</Badge>}
+            {isPersonal && location.pathname !== '/presupuesto' && (
+              <Badge variant="info">Personal</Badge>
+            )}
           </h1>
           {!isFormPage && (
             <NavLink
