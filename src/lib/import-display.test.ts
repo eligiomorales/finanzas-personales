@@ -6,6 +6,12 @@ describe('importItemTitle', () => {
     expect(importItemTitle('COMPRA\nDISCO', 'Mercado Libre SRL')).toBe('Mercado Libre SRL')
   })
 
+  it('ignores numeric comprobante as merchant and uses the extract reference', () => {
+    expect(
+      importItemTitle('WWW.FRAVEGA.COM-SANT C.11/18\nComprobante: 006471', '006471'),
+    ).toBe('WWW.FRAVEGA.COM-SANT C.11/18')
+  })
+
   it('summarizes transfer lines', () => {
     expect(
       importItemTitle('TRANSFERENCIA A TERCEROS\nEmilia Noemi Tiberio\n27254641583'),

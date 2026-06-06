@@ -5,8 +5,9 @@ import {
   parseGaliciaMastercardText,
 } from '@/lib/pdf/galicia-mastercard'
 import { detectGaliciaVisaPdf, parseGaliciaVisaText } from '@/lib/pdf/galicia-visa'
+import { detectSantanderVisaPdf, parseSantanderVisaText } from '@/lib/pdf/santander-visa'
 
-export type PdfProfile = 'galicia-mastercard' | 'galicia-visa'
+export type PdfProfile = 'galicia-mastercard' | 'galicia-visa' | 'santander-visa'
 
 const PDF_HEADERS = ['Fecha', 'Referencia', 'Comprobante', 'Pesos', 'Dólares'] as const
 
@@ -50,8 +51,18 @@ export function parsePdfText(text: string): ParseResult {
     return rowsToParseResult(rows, 'galicia-visa')
   }
 
+  if (detectSantanderVisaPdf(text)) {
+    const rows = parseSantanderVisaText(text)
+    if (rows.length === 0) {
+      throw new Error(
+        'Se reconoció un resumen Santander Visa, pero no se encontraron consumos. Verificá que el PDF no esté escaneado como imagen.',
+      )
+    }
+    return rowsToParseResult(rows, 'santander-visa')
+  }
+
   throw new Error(
-    'Formato PDF no reconocido. Por ahora solo se soportan resúmenes Galicia Mastercard y Galicia Visa. Podés exportar a Excel/CSV desde el home banking.',
+    'Formato PDF no reconocido. Por ahora solo se soportan resúmenes Galicia Mastercard, Galicia Visa y Santander Visa. Podés exportar a Excel/CSV desde el home banking.',
   )
 }
 
@@ -66,5 +77,7 @@ export function pdfProfileLabel(profile: PdfProfile): string {
       return 'Galicia Mastercard'
     case 'galicia-visa':
       return 'Galicia Visa'
+    case 'santander-visa':
+      return 'Santander Visa'
   }
 }
