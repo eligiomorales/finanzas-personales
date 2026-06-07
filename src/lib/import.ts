@@ -193,16 +193,47 @@ export function parseDate(value: string): string | null {
   return null
 }
 
+function normalizeAmountString(raw: string): string {
+  const cleaned = raw.replace(/[^\d.,\-]/g, '')
+  const lastComma = cleaned.lastIndexOf(',')
+  const lastDot = cleaned.lastIndexOf('.')
+
+  if (lastComma !== -1 && lastDot !== -1) {
+    if (lastDot > lastComma) {
+      return cleaned.replace(/,/g, '')
+    }
+    return cleaned.replace(/\./g, '').replace(',', '.')
+  }
+
+  if (lastComma !== -1) {
+    const commaCount = (cleaned.match(/,/g) ?? []).length
+    if (commaCount > 1) {
+      return cleaned.replace(/,/g, '')
+    }
+    return cleaned.replace(',', '.')
+  }
+
+  if (lastDot !== -1) {
+    const dotCount = (cleaned.match(/\./g) ?? []).length
+    if (dotCount > 1) {
+      return cleaned.replace(/\./g, '')
+    }
+    const fractionalDigits = cleaned.length - lastDot - 1
+    if (fractionalDigits <= 2) {
+      return cleaned
+    }
+    return cleaned.replace(/\./g, '')
+  }
+
+  return cleaned
+}
+
 export function parseAmount(value: string | number): number | null {
   if (typeof value === 'number') return Math.abs(value)
   const trimmed = value.trim()
   if (!trimmed || trimmed === '0' || trimmed === '0,00' || trimmed === '0.00') return null
 
-  const cleaned = trimmed
-    .replace(/[^\d.,\-]/g, '')
-    .replace(/\./g, '')
-    .replace(',', '.')
-  const num = parseFloat(cleaned)
+  const num = parseFloat(normalizeAmountString(trimmed))
   return isNaN(num) ? null : Math.abs(num)
 }
 
