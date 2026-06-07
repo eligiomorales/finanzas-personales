@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useCategories, useImportMutations, useMovements, useSettings } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
-import { ImportCategoryPicker } from '@/components/ImportCategoryPicker'
+import { ImportBatchDefaultsCard } from '@/components/ImportBatchDefaultsCard'
 import { ImportReviewItemCard } from '@/components/ImportReviewItemCard'
 import { buildDefaultImportShare } from '@/lib/couple/person-labels'
 import { isDuplicateMovement } from '@/lib/balance'
 import { filterImportReviewItems, type ImportReviewFilter, type ImportReviewItem } from '@/lib/import-display'
 import { getFrequentCategoryIds } from '@/lib/movement-form-defaults'
-import { formatCurrency, generateId } from '@/lib/utils'
+import { cn, formatCurrency, generateId } from '@/lib/utils'
 import {
   parseFile,
   applyColumnMapping,
@@ -20,13 +20,10 @@ import {
 } from '@/lib/import'
 import { imageProfileLabel, type ImageProfile } from '@/lib/ocr/profile-labels'
 import { pdfProfileLabel, type PdfProfile } from '@/lib/pdf/parse-pdf'
-import { Card, Badge } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Card'
 import { Stepper } from '@/components/ui/Stepper'
-import {
-  ImportShareControls,
-  type ImportShareValues,
-} from '@/components/ImportShareControls'
-import { Button, Input, Select, Label, FormGroup, StatusMessage, LiveRegion } from '@/components/ui/Form'
+import type { ImportShareValues } from '@/components/ImportShareControls'
+import { Button, Select, StatusMessage, LiveRegion } from '@/components/ui/Form'
 import type { AccountType, CurrencyCode } from '@/types'
 
 type Step = 'upload' | 'mapping' | 'review' | 'done'
@@ -65,7 +62,7 @@ export function ImportPage() {
   const [perRowCurrency, setPerRowCurrency] = useState(false)
   const [loadingDetail, setLoadingDetail] = useState<string | null>(null)
   const [reviewFilter, setReviewFilter] = useState<ImportReviewFilter>('pending')
-  const [batchDefaultsOpen, setBatchDefaultsOpen] = useState(false)
+  const [dragging, setDragging] = useState(false)
 
   useEffect(() => {
     if (persons.loading || shareDefaultApplied.current) return
@@ -106,9 +103,7 @@ export function ImportPage() {
     })
   }
 
-  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+  async function processFile(file: File) {
     setError(null)
     setLoading(true)
     setLoadingDetail(null)
@@ -163,6 +158,21 @@ export function ImportPage() {
       setLoading(false)
       setLoadingDetail(null)
     }
+  }
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await processFile(file)
+    e.target.value = ''
+  }
+
+  async function handleFileDrop(e: React.DragEvent<HTMLLabelElement>) {
+    e.preventDefault()
+    setDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+    await processFile(file)
   }
 
   function handleApplyMapping() {
@@ -275,8 +285,20 @@ export function ImportPage() {
     setError(null)
     setConfirmedCount(0)
     setReviewFilter('pending')
-    setBatchDefaultsOpen(false)
+    setDragging(false)
   }
+
+  const mappingFields = [
+    { id: 'date' as const, label: 'Fecha', required: true },
+    { id: 'description' as const, label: 'Descripción', required: true },
+    { id: 'amount' as const, label: 'Monto en pesos (ARS)', required: false },
+    { id: 'amountUsd' as const, label: 'Monto en dólares (USD)', required: false },
+    { id: 'debit' as const, label: 'Débito', required: false },
+    { id: 'credit' as const, label: 'Crédito', required: false },
+    { id: 'merchant' as const, label: 'Comercio', required: false },
+  ]
+
+  const previewRows = rawRows.slice(0, 3)
 
   const pendingCount = pendingItems.filter((p) => p.status === 'pending').length
   const ignoredCount = pendingItems.filter((p) => p.status === 'ignored').length
@@ -317,217 +339,320 @@ export function ImportPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto min-w-0 max-w-2xl space-y-6">
       <div>
-        <h2 className="text-xl font-bold">Importar resumen</h2>
-        <p className="text-sm text-slate-500">CSV, Excel, PDF de tarjeta o captura de Wallbit</p>
+        <h2 className="text-xl font-bold text-slate-900">Importar resumen</h2>
+        <p className="mt-0.5 text-sm text-slate-500">CSV, Excel, PDF de tarjeta o captura de Wallbit</p>
       </div>
 
       <Stepper steps={[...IMPORT_STEPS]} currentStepId={step} completedStepIds={completedStepIds} />
 
+      {(step === 'upload' || step === 'mapping' || step === 'done') && (
+      <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       {step === 'upload' && (
-        <Card>
-          {showDefaultCurrency && (
-            <FormGroup>
-              <Label htmlFor="import-default-currency">Moneda por defecto</Label>
-              <Select
-                id="import-default-currency"
-                value={importCurrency}
-                onChange={(e) => setImportCurrency(e.target.value as CurrencyCode)}
-                aria-describedby="import-default-currency-hint"
-              >
-                <option value="ARS">Pesos (ARS)</option>
-                <option value="USD">Dólares (USD)</option>
-              </Select>
-              <p id="import-default-currency-hint" className="mt-1 text-xs text-slate-500">
-                Se usa cuando el archivo tiene una sola columna de monto. En PDF de tarjeta se detecta ARS/USD por movimiento.
-              </p>
-              {importCurrency === 'USD' && (
-                <p className="mt-1 text-xs text-slate-500">
-                  Conversión con cotización global: 1 USD = {defaultRate.toLocaleString('es-AR')} ARS
-                </p>
-              )}
-            </FormGroup>
-          )}
-          <FormGroup>
-            <Label htmlFor="import-account-type">Tipo de cuenta</Label>
-            <Select
-              id="import-account-type"
-              value={accountType}
-              onChange={(e) => setAccountType(e.target.value as AccountType)}
-              aria-describedby="import-account-type-hint"
-            >
-              <option value="credit">Tarjeta de crédito</option>
-              <option value="debit">Cuenta débito</option>
-            </Select>
-            <p id="import-account-type-hint" className="mt-1 text-xs text-slate-500">
-              Afecta cómo se interpretan débitos y créditos en extractos bancarios.
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800">Subí tu resumen</h3>
+            <p className="mt-0.5 text-xs text-slate-500">
+              CSV, Excel, PDF o captura. Vas a poder revisar todo antes de guardar.
             </p>
-          </FormGroup>
-          <FormGroup>
-            <Label htmlFor="import-file">Archivo (CSV, Excel, PDF o captura)</Label>
-            <Input
+          </div>
+
+          <label
+            htmlFor="import-file"
+            onDragOver={(e) => {
+              e.preventDefault()
+              if (!loading) setDragging(true)
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={handleFileDrop}
+            className={cn(
+              'flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed p-4 text-left transition-colors',
+              loading && 'pointer-events-none opacity-60',
+              dragging
+                ? 'border-brand-500 bg-brand-50'
+                : 'border-slate-300 bg-slate-50 hover:border-brand-400 hover:bg-brand-50/40',
+            )}
+          >
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
+              ⬆️
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-slate-800">
+                {loading ? (loadingDetail ?? 'Procesando archivo...') : 'Arrastrá un archivo o tocá para elegir'}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                CSV, XLSX, XLS, PDF, PNG, JPG o WEBP · máximo 20 MB
+              </p>
+            </div>
+            <span className="hidden shrink-0 rounded-full bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white sm:inline-flex">
+              Elegir
+            </span>
+            <input
               id="import-file"
               type="file"
+              className="sr-only"
               accept=".csv,.xlsx,.xls,.pdf,.png,.jpg,.jpeg,.webp"
               onChange={handleFileSelect}
               disabled={loading}
-              aria-describedby="import-file-hint"
             />
-            <p id="import-file-hint" className="mt-1 text-xs text-slate-500">
-              Los movimientos se revisan antes de guardarse. Las capturas se procesan con OCR en tu navegador; no se envían a servicios externos.
-            </p>
-          </FormGroup>
-          {error && <StatusMessage tone="error">{error}</StatusMessage>}
-          {loading && (
-            <>
-              <StatusMessage tone="info">{loadingDetail ?? 'Procesando archivo...'}</StatusMessage>
-              <LiveRegion>{loadingDetail ?? 'Procesando archivo'}</LiveRegion>
-            </>
-          )}
-          <div className="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-            <p className="font-medium">Formatos soportados</p>
-            <ul className="mt-1 list-inside list-disc">
-              <li>CSV con encabezados (fecha, descripción, monto)</li>
-              <li>Excel (.xlsx, .xls), incl. extractos Galicia caja de ahorro</li>
-              <li>PDF (.pdf): resúmenes Galicia Mastercard, Galicia Visa y Santander Visa</li>
-              <li>Captura Wallbit (.png, .jpg): lista Transactions (OCR local, puede tardar 10–60 s)</li>
-            </ul>
-            <p className="mt-2 text-xs text-slate-500">
-              Las capturas largas (scroll) se aceptan en un solo archivo. Tamaño máximo: 20 MB.
-            </p>
-          </div>
-        </Card>
-      )}
+          </label>
 
-      {step === 'mapping' && (
-        <Card>
-          <h3 className="mb-4 font-semibold">Mapear columnas — {fileName}</h3>
-          <p className="mb-4 text-sm text-slate-500">{rawRows.length} filas detectadas</p>
-          <div className="space-y-3">
-            {(['date', 'description', 'amount', 'amountUsd', 'debit', 'credit', 'merchant'] as const).map((field) => {
-              const fieldId = `import-mapping-${field}`
-              const fieldLabel =
-                field === 'date'
-                  ? 'Fecha'
-                  : field === 'description'
-                    ? 'Descripción'
-                    : field === 'amount'
-                      ? 'Monto en pesos (ARS)'
-                      : field === 'amountUsd'
-                        ? 'Monto en dólares (USD)'
-                        : field === 'debit'
-                          ? 'Débito (extractos bancarios)'
-                          : field === 'credit'
-                            ? 'Crédito (extractos bancarios)'
-                            : 'Comercio (opcional)'
-
-              return (
-              <FormGroup key={field} className="!mb-0">
-                <Label htmlFor={fieldId}>{fieldLabel}</Label>
-                <Select
-                  id={fieldId}
-                  value={mapping[field] ?? ''}
-                  onChange={(e) => setMapping({ ...mapping, [field]: e.target.value || undefined })}
-                >
-                  <option value="">— Seleccionar —</option>
-                  {headers.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </Select>
-              </FormGroup>
-              )
-            })}
-          </div>
-          {error && <StatusMessage tone="error" className="mt-3">{error}</StatusMessage>}
-          <div className="mt-4 flex gap-3">
-            <Button onClick={handleApplyMapping}>Previsualizar movimientos</Button>
-            <Button variant="secondary" onClick={reset}>
-              Cancelar
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {step === 'review' && (
-        <>
-          <Card>
-            <h3 className="font-semibold text-slate-800">Resumen del lote</h3>
-            <p className="mt-1 text-sm text-slate-600">
-              Archivo: <strong>{fileName}</strong> · {pendingItems.length} movimiento(s) detectados
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Badge variant="info">{pendingCount} pendientes</Badge>
-              {ignoredCount > 0 && <Badge>{ignoredCount} ignorados</Badge>}
-              {pdfProfile && <Badge variant="info">{pdfProfileLabel(pdfProfile)}</Badge>}
-              {imageProfile && <Badge variant="info">{imageProfileLabel(imageProfile)}</Badge>}
-              {perRowCurrency && <Badge variant="info">Moneda por movimiento</Badge>}
-              {duplicateCount > 0 && (
-                <Badge variant="warning">{duplicateCount} posibles duplicados</Badge>
-              )}
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Configuración</p>
+                <p className="text-xs text-slate-400">Defaults para interpretar el archivo</p>
+              </div>
+              <Badge variant="info">Editable después</Badge>
             </div>
-            <p className="mt-3 text-sm text-slate-500">
-              Revisá excepciones, aplicá defaults al lote y confirmá cuando esté listo.
-            </p>
 
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => setBatchDefaultsOpen((open) => !open)}
-                aria-expanded={batchDefaultsOpen}
-                aria-controls="import-batch-defaults"
-                className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-left transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
-              >
-                <div>
-                  <span className="block text-sm font-semibold text-slate-800">Defaults del lote</span>
-                  <span className="mt-0.5 block text-xs text-slate-500">
-                    Categoría y reparto masivo para movimientos pendientes
-                  </span>
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-medium text-slate-700">Tipo de cuenta</span>
+                <div className="inline-grid grid-cols-2 rounded-full border border-slate-200 bg-slate-50 p-0.5">
+                  {([
+                    { value: 'credit' as const, label: 'Crédito' },
+                    { value: 'debit' as const, label: 'Débito' },
+                  ]).map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setAccountType(opt.value)}
+                      className={cn(
+                        'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
+                        accountType === opt.value
+                          ? 'bg-white text-brand-700 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700',
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
-                <span className="text-slate-400" aria-hidden="true">
-                  {batchDefaultsOpen ? '▴' : '▾'}
-                </span>
-              </button>
+              </div>
 
-              {batchDefaultsOpen && (
-                <div id="import-batch-defaults" className="mt-2 space-y-4 rounded-lg border border-slate-200 p-3">
-                  <ImportCategoryPicker
-                    idPrefix="import-bulk-category"
-                    expenseCategories={expenseCategories}
-                    frequentCategoryIds={frequentCategoryIds}
-                    selectedCategoryId={bulkCategoryId || null}
-                    onChange={setBulkCategoryId}
-                    label="Categoría masiva"
-                  />
-
-                  <ImportShareControls
-                    {...bulkShare}
-                    persons={persons}
-                    onChange={setBulkShare}
-                    idPrefix="import-bulk-share"
-                  />
-
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="secondary" disabled={!bulkCategoryId} onClick={applyBulkCategoryToPending}>
-                      Aplicar categoría a pendientes
-                    </Button>
-                    <Button size="sm" variant="secondary" onClick={applyBulkShareToPending}>
-                      Aplicar reparto a pendientes
-                    </Button>
-                    {duplicateCount > 0 && (
-                      <Button size="sm" variant="ghost" onClick={ignoreAllDuplicates}>
-                        Ignorar duplicados
-                      </Button>
-                    )}
+              {showDefaultCurrency && (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span className="text-sm font-medium text-slate-700">Moneda por defecto</span>
+                    <p className="text-xs text-slate-400">Si el archivo no trae moneda por movimiento</p>
+                  </div>
+                  <div className="inline-grid grid-cols-2 rounded-full border border-slate-200 bg-slate-50 p-0.5">
+                    {(['ARS', 'USD'] as const).map((currency) => (
+                      <button
+                        key={currency}
+                        type="button"
+                        onClick={() => setImportCurrency(currency)}
+                        className={cn(
+                          'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
+                          importCurrency === currency
+                            ? 'bg-white text-brand-700 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700',
+                        )}
+                      >
+                        {currency}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
-          </Card>
 
-          <div className="flex flex-wrap gap-2">
+            {showDefaultCurrency && importCurrency === 'USD' && (
+              <p className="text-xs text-slate-400">
+                Conversión con cotización global: 1 USD = {defaultRate.toLocaleString('es-AR')} ARS
+              </p>
+            )}
+          </div>
+
+          {error && <StatusMessage tone="error">{error}</StatusMessage>}
+          {loading && <LiveRegion>{loadingDetail ?? 'Procesando archivo'}</LiveRegion>}
+
+          <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+            <span className="font-medium text-slate-600">Privacidad:</span> las capturas se procesan con OCR en tu navegador, sin enviarse a servicios externos.
+          </div>
+        </div>
+      )}
+
+      {step === 'mapping' && (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-lg">📄</div>
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-slate-800">{fileName}</p>
+              <p className="text-xs text-slate-500">
+                {rawRows.length} filas detectadas · Encabezados detectados automáticamente
+              </p>
+            </div>
+            <button type="button" onClick={reset} className="ml-auto shrink-0 text-xs text-slate-400 hover:text-slate-600">
+              Cambiar archivo
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-slate-700">Asignar columnas</h3>
+              <p className="text-xs text-slate-500">Vinculá cada campo con la columna correspondiente del archivo.</p>
+              <div className="space-y-3">
+                {mappingFields.map((field) => {
+                  const fieldId = `import-mapping-${field.id}`
+                  const mapped = mapping[field.id]
+                  return (
+                    <div key={field.id} className="space-y-1">
+                      <label htmlFor={fieldId} className="flex items-center gap-1 text-xs font-medium text-slate-700">
+                        <span>{field.label}</span>
+                        {field.required && <span className="text-red-500">*</span>}
+                        {mapped && <span className="text-brand-500">✓</span>}
+                      </label>
+                      <Select
+                        id={fieldId}
+                        value={mapped ?? ''}
+                        onChange={(e) => setMapping({ ...mapping, [field.id]: e.target.value || undefined })}
+                        className={cn(
+                          mapped ? 'border-brand-300 bg-brand-50 text-brand-800' : undefined,
+                        )}
+                      >
+                        <option value="">Sin asignar</option>
+                        {headers.map((h) => (
+                          <option key={h} value={h}>{h}</option>
+                        ))}
+                      </Select>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {previewRows.length > 0 && (
+              <div className="min-w-0 space-y-2">
+                <h3 className="text-sm font-semibold text-slate-700">Vista previa</h3>
+                <p className="text-xs text-slate-500">Primeras {previewRows.length} filas del archivo</p>
+                <div className="w-full min-w-0 overflow-x-auto rounded-xl border border-slate-200">
+                  <table className="w-full min-w-max text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50">
+                        {headers.map((h) => (
+                          <th key={h} className="whitespace-nowrap px-3 py-2 text-left font-semibold text-slate-600">
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewRows.map((row, i) => (
+                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
+                          {headers.map((h) => (
+                            <td key={h} className="whitespace-nowrap px-3 py-2 text-slate-700">
+                              {row[h] ?? ''}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {error && <StatusMessage tone="error">{error}</StatusMessage>}
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={handleApplyMapping}>Previsualizar movimientos →</Button>
+            <Button variant="secondary" onClick={reset}>Cancelar</Button>
+          </div>
+        </div>
+      )}
+
+      {step === 'done' && (
+        <div className="flex flex-col items-center py-8 text-center">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50 shadow-sm">
+            <svg className="h-10 w-10 text-emerald-500" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M7.5 12l3 3 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <h3 className="mt-5 text-xl font-bold text-slate-900">¡Importación completada!</h3>
+          <p className="mt-2 text-slate-500">
+            Se importaron <strong className="text-slate-800">{confirmedCount} movimiento(s)</strong> desde{' '}
+            <strong className="text-slate-800">{fileName}</strong>
+          </p>
+          <div className="mt-6 grid w-full max-w-xs grid-cols-3 gap-3">
+            {[
+              { label: 'Importados', value: confirmedCount, color: 'text-brand-700', bg: 'bg-brand-50' },
+              { label: 'Ignorados', value: ignoredCount, color: 'text-slate-600', bg: 'bg-slate-100' },
+              { label: 'Duplicados', value: duplicateCount, color: 'text-amber-600', bg: 'bg-amber-50' },
+            ].map((stat) => (
+              <div key={stat.label} className={cn('flex flex-col items-center rounded-xl py-3', stat.bg)}>
+                <span className={cn('text-xl font-bold tabular-nums', stat.color)}>{stat.value}</span>
+                <span className="text-xs text-slate-500">{stat.label}</span>
+              </div>
+            ))}
+          </div>
+          <Button className="mt-8" onClick={reset}>
+            Importar otro archivo
+          </Button>
+        </div>
+      )}
+      </div>
+      )}
+
+      {step === 'review' && (
+        <div className="space-y-4">
+          <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-base">
+                {imageProfile ? '🖼️' : pdfProfile ? '📑' : '📄'}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-800">{fileName}</p>
+                <p className="text-xs text-slate-500">
+                  {[
+                    pdfProfile && pdfProfileLabel(pdfProfile),
+                    imageProfile && imageProfileLabel(imageProfile),
+                    perRowCurrency && 'Moneda detectada por movimiento',
+                    !pdfProfile && !imageProfile && !perRowCurrency && `${pendingItems.length} movimiento(s) detectados`,
+                  ].filter(Boolean).join(' · ')}
+                </p>
+              </div>
+              <div className="ml-auto flex shrink-0 flex-wrap justify-end gap-1.5">
+                {pdfProfile && <Badge variant="info">PDF</Badge>}
+                {imageProfile && <Badge variant="info">OCR</Badge>}
+                {perRowCurrency && <Badge variant="info">Moneda por mov.</Badge>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 divide-x divide-slate-100 rounded-lg border border-slate-100 bg-slate-50">
+              {[
+                { label: 'Pendientes', value: pendingCount, color: 'text-brand-700' },
+                { label: 'Ignorados', value: ignoredCount, color: 'text-slate-500' },
+                { label: 'Duplicados', value: duplicateCount, color: 'text-amber-600' },
+                { label: 'Total ARS', value: formatCurrency(pendingTotalArs, 'ARS'), color: 'text-slate-800' },
+              ].map((stat) => (
+                <div key={stat.label} className="flex flex-col items-center py-3">
+                  <span className={cn('text-lg font-bold tabular-nums', stat.color)}>{stat.value}</span>
+                  <span className="text-xs text-slate-500">{stat.label}</span>
+                </div>
+              ))}
+            </div>
+
+            <ImportBatchDefaultsCard
+              expenseCategories={expenseCategories}
+              frequentCategoryIds={frequentCategoryIds}
+              bulkCategoryId={bulkCategoryId}
+              bulkShare={bulkShare}
+              persons={persons}
+              pendingCount={pendingCount}
+              duplicateCount={duplicateCount}
+              onCategoryChange={setBulkCategoryId}
+              onShareChange={setBulkShare}
+              onApplyCategory={applyBulkCategoryToPending}
+              onApplyShare={applyBulkShareToPending}
+              onIgnoreDuplicates={ignoreAllDuplicates}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-1.5">
             {(
               [
                 ['pending', `Pendientes (${pendingCount})`],
@@ -540,22 +665,23 @@ export function ImportPage() {
                 key={filter}
                 type="button"
                 onClick={() => setReviewFilter(filter)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100 ${
+                className={cn(
+                  'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
                   reviewFilter === filter
                     ? 'border-brand-500 bg-brand-50 text-brand-700'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
+                    : 'border-slate-200 text-slate-600 hover:bg-slate-50',
+                )}
               >
                 {label}
               </button>
             ))}
           </div>
 
-          <div className="space-y-2 pb-24">
+          <div className="space-y-2 pb-28">
             {visibleItems.length === 0 ? (
-              <Card className="!p-4 text-center text-sm text-slate-500">
+              <div className="rounded-xl border border-slate-200 bg-white p-4 text-center text-sm text-slate-500">
                 No hay movimientos en esta vista.
-              </Card>
+              </div>
             ) : (
               visibleItems.map((item) => (
                 <ImportReviewItemCard
@@ -575,8 +701,8 @@ export function ImportPage() {
             )}
           </div>
 
-          <div className="sticky bottom-0 -mx-4 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+            <div className="mx-auto flex max-w-2xl flex-col gap-2 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-slate-800">
                   {loading ? 'Importando...' : `Confirmar ${pendingCount} movimiento(s)`}
@@ -600,23 +726,10 @@ export function ImportPage() {
                 </Button>
               </div>
             </div>
-            {error && <StatusMessage tone="error" className="mt-2">{error}</StatusMessage>}
+            {error && <StatusMessage tone="error" className="mx-auto mt-2 max-w-2xl">{error}</StatusMessage>}
             {loading && <LiveRegion>Importando movimientos</LiveRegion>}
           </div>
-        </>
-      )}
-
-      {step === 'done' && (
-        <Card className="text-center">
-          <p className="text-4xl">✓</p>
-          <h3 className="mt-2 text-lg font-bold">Importación completada</h3>
-          <p className="mt-1 text-slate-600">
-            Se importaron {confirmedCount} movimiento(s) desde {fileName}
-          </p>
-          <Button className="mt-4" onClick={reset}>
-            Importar otro archivo
-          </Button>
-        </Card>
+        </div>
       )}
     </div>
   )
