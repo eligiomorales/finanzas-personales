@@ -1,0 +1,187 @@
+import { useMemo, useState } from 'react'
+import {
+  ImportShareControls,
+  SPLIT_PRESETS,
+  type ImportShareValues,
+} from '@/components/ImportShareControls'
+import {
+  buildImportCategoryButtons,
+  importRepartoSummary,
+  importShareLabelForRole,
+} from '@/lib/import-display'
+import type { CouplePersonsView } from '@/lib/couple/person-labels'
+import { payerDisplayLabel } from '@/lib/couple/person-labels'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/Form'
+import type { Category } from '@/types'
+
+const PRIMARY_CATEGORY_LIMIT = 4
+
+interface ImportBatchDefaultsCardProps {
+  expenseCategories: Category[]
+  frequentCategoryIds: string[]
+  bulkCategoryId: string
+  bulkShare: ImportShareValues
+  persons: CouplePersonsView
+  pendingCount: number
+  duplicateCount: number
+  onCategoryChange: (categoryId: string) => void
+  onShareChange: (share: ImportShareValues) => void
+  onApplyCategory: () => void
+  onApplyShare: () => void
+  onIgnoreDuplicates: () => void
+}
+
+export function ImportBatchDefaultsCard({
+  expenseCategories,
+  frequentCategoryIds,
+  bulkCategoryId,
+  bulkShare,
+  persons,
+  pendingCount,
+  duplicateCount,
+  onCategoryChange,
+  onShareChange,
+  onApplyCategory,
+  onApplyShare,
+  onIgnoreDuplicates,
+}: ImportBatchDefaultsCardProps) {
+  const [editOpen, setEditOpen] = useState(false)
+  const [showAllCategories, setShowAllCategories] = useState(false)
+
+  const selectedCategory = expenseCategories.find((c) => c.id === bulkCategoryId)
+  const repartoSummary = importRepartoSummary(bulkShare, (role) => importShareLabelForRole(role, persons))
+  const repartoChip = bulkShare.isShared
+    ? SPLIT_PRESETS.find((preset) => preset.value === bulkShare.splitPreset)?.label ??
+      `${bulkShare.sharePersonA} / ${bulkShare.sharePersonB}`
+    : payerDisplayLabel(bulkShare.paidBy, persons)
+
+  const primaryCategories = useMemo(
+    () =>
+      buildImportCategoryButtons(
+        expenseCategories,
+        frequentCategoryIds,
+        bulkCategoryId || null,
+        null,
+        PRIMARY_CATEGORY_LIMIT,
+      ),
+    [expenseCategories, frequentCategoryIds, bulkCategoryId],
+  )
+
+  const categoryOptions = useMemo(() => {
+    if (!showAllCategories) return primaryCategories
+    const seen = new Set(primaryCategories.map((c) => c.id))
+    const extra = expenseCategories.filter((c) => !seen.has(c.id))
+    return [...primaryCategories, ...extra]
+  }, [expenseCategories, primaryCategories, showAllCategories])
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-3">
+      <div className="flex items-start gap-3">
+        <div
+          className="mt-1 h-4 w-4 shrink-0 rounded-full border border-brand-500 bg-brand-500"
+          aria-hidden="true"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-slate-900">Defaults del lote</p>
+          <p className="text-xs text-slate-500">
+            Aplicar a {pendingCount} pendiente{pendingCount === 1 ? '' : 's'}
+          </p>
+        </div>
+      </div>
+
+      <div className="ml-7 mt-2 space-y-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            className={cn(
+              'rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
+              selectedCategory
+                ? 'border-brand-500 bg-brand-50 text-brand-700'
+                : 'border-slate-200 text-slate-500',
+            )}
+          >
+            {selectedCategory?.name ?? 'Sin categoría'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            className="rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600"
+          >
+            {repartoChip}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditOpen((open) => !open)}
+            className="rounded-full px-2.5 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50"
+          >
+            {editOpen ? 'Cerrar ajustes' : 'Ajustar'}
+          </button>
+        </div>
+
+        {editOpen && (
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-2.5">
+            <div className="space-y-1.5">
+              <span className="text-xs font-semibold text-slate-600">Categoría masiva</span>
+              <div className="flex flex-wrap gap-1.5">
+                {categoryOptions.map((option) => {
+                  const isSelected = bulkCategoryId === option.id
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => onCategoryChange(option.id)}
+                      className={cn(
+                        'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                        isSelected
+                          ? 'border-brand-500 bg-brand-50 text-brand-700'
+                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
+                      )}
+                    >
+                      {option.name}
+                    </button>
+                  )
+                })}
+                <button
+                  type="button"
+                  onClick={() => setShowAllCategories((open) => !open)}
+                  className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  {showAllCategories ? 'Ver menos' : 'Más'}
+                </button>
+              </div>
+            </div>
+
+            <ImportShareControls
+              compact
+              idPrefix="import-bulk-share"
+              paidBy={bulkShare.paidBy}
+              isShared={bulkShare.isShared}
+              sharePersonA={bulkShare.sharePersonA}
+              sharePersonB={bulkShare.sharePersonB}
+              splitPreset={bulkShare.splitPreset}
+              persons={persons}
+              summaryText={repartoSummary}
+              onChange={onShareChange}
+            />
+
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="secondary" disabled={!bulkCategoryId} onClick={onApplyCategory}>
+                Aplicar categoría a pendientes
+              </Button>
+              <Button size="sm" variant="secondary" onClick={onApplyShare}>
+                Aplicar reparto a pendientes
+              </Button>
+              {duplicateCount > 0 && (
+                <Button size="sm" variant="ghost" onClick={onIgnoreDuplicates}>
+                  Ignorar {duplicateCount} duplicados
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
