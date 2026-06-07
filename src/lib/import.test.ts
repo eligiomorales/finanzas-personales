@@ -47,6 +47,13 @@ describe('parseAmount', () => {
     expect(parseAmount('0,00')).toBeNull()
     expect(parseAmount('3.249.689,00')).toBe(3249689)
   })
+
+  it('parses US-style decimal amounts from CSV exports', () => {
+    expect(parseAmount('-55049.66')).toBe(55049.66)
+    expect(parseAmount('55049.66')).toBe(55049.66)
+    expect(parseAmount('55,049.66')).toBe(55049.66)
+    expect(parseAmount('9.99')).toBe(9.99)
+  })
 })
 
 describe('normalizeDescription', () => {
