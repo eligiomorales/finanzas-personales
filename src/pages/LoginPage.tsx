@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button, Input, Label, FormGroup, StatusMessage } from '@/components/ui/Form'
 import { Card } from '@/components/ui/Card'
+import { PageShell } from '@/components/ui/PageShell'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
 export function LoginPage() {
   const { signIn, signUp } = useAuth()
@@ -37,14 +39,30 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-slate-50 px-4">
+    <PageShell>
       <Card className="w-full max-w-md space-y-6 p-6">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Finanzas Pareja</h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white">
+            FP
+          </div>
+          <h1 className="text-xl font-bold tracking-tight text-stone-900">Finanzas Pareja</h1>
+          <p className="mt-1 text-sm text-stone-600">
             {mode === 'login' ? 'Iniciá sesión para sincronizar datos' : 'Creá tu cuenta para empezar'}
           </p>
         </div>
+
+        <SegmentedControl
+          aria-label="Modo de autenticación"
+          options={[
+            { value: 'login' as const, label: 'Iniciar sesión' },
+            { value: 'signup' as const, label: 'Registrarse' },
+          ]}
+          value={mode}
+          onChange={(v) => {
+            setMode(v)
+            setMessage(null)
+          }}
+        />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <FormGroup>
@@ -78,18 +96,7 @@ export function LoginPage() {
             {loading ? 'Procesando…' : mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
           </Button>
         </form>
-
-        <button
-          type="button"
-          className="w-full text-sm text-brand-600 hover:underline"
-          onClick={() => {
-            setMode(mode === 'login' ? 'signup' : 'login')
-            setMessage(null)
-          }}
-        >
-          {mode === 'login' ? '¿No tenés cuenta? Registrate' : '¿Ya tenés cuenta? Iniciá sesión'}
-        </button>
       </Card>
-    </div>
+    </PageShell>
   )
 }

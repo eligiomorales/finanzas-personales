@@ -30,17 +30,12 @@ import {
   describedBy,
 } from '@/components/ui/Form'
 import { CurrencyAmountInput } from '@/components/CurrencyAmountInput'
-import { cn } from '@/lib/utils'
+import { ChoiceChip } from '@/components/ui/ChoiceChip'
 import { Card } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { SPLIT_PRESETS } from '@/components/ImportShareControls'
+import { cn } from '@/lib/utils'
 import type { CurrencyCode, MovementFormData, MovementType, Payer } from '@/types'
-
-const SPLIT_PRESETS = [
-  { value: '50-50', label: '50 / 50' },
-  { value: '60-40', label: '60 / 40' },
-  { value: '100-0', label: '100 / 0' },
-  { value: '0-100', label: '0 / 100' },
-  { value: 'custom', label: 'Personalizado' },
-]
 
 export function MovementFormPage() {
   const { id } = useParams()
@@ -268,17 +263,19 @@ export function MovementFormPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="rounded-lg text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
-          aria-label="Volver"
-        >
-          ← Volver
-        </button>
-        <h2 className="text-xl font-bold">{isEditing ? 'Editar movimiento' : 'Nuevo movimiento'}</h2>
-      </div>
+      <PageHeader
+        title={isEditing ? 'Editar movimiento' : 'Nuevo movimiento'}
+        leading={
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="mt-0.5 rounded-lg text-stone-500 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
+            aria-label="Volver"
+          >
+            ←
+          </button>
+        }
+      />
 
       <Card>
         <form onSubmit={handleSubmit} noValidate aria-describedby={formSummary ? 'movement-form-summary' : undefined}>
@@ -286,26 +283,20 @@ export function MovementFormPage() {
           {formSummary && <FieldError id="movement-form-summary">{formSummary}</FieldError>}
 
           <FormGroup>
-            <span id="movement-type-label" className="mb-1 block text-sm font-medium text-slate-700">
+            <span id="movement-type-label" className="mb-1 block text-sm font-medium text-stone-700">
               Tipo
             </span>
             <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="movement-type-label">
               {(['expense', 'income', 'settlement'] as MovementType[]).map((t) => (
-                <button
+                <ChoiceChip
                   key={t}
-                  type="button"
                   role="radio"
-                  aria-checked={form.type === t}
+                  selected={form.type === t}
+                  className="w-full"
                   onClick={() => handleTypeChange(t)}
-                  className={cn(
-                    'rounded-lg border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                    form.type === t
-                      ? 'border-brand-500 bg-brand-50 text-brand-700'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50',
-                  )}
                 >
                   {t === 'expense' ? 'Gasto' : t === 'income' ? 'Ingreso' : 'Liquidación'}
-                </button>
+                </ChoiceChip>
               ))}
             </div>
           </FormGroup>
@@ -361,27 +352,21 @@ export function MovementFormPage() {
 
           {form.type !== 'settlement' && (
             <FormGroup>
-              <span id="category-label" className="mb-1 block text-sm font-medium text-slate-700">
+              <span id="category-label" className="mb-1 block text-sm font-medium text-stone-700">
                 Categoría
               </span>
               {form.type === 'income' ? (
                 <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="category-label">
                   {filteredCategories.map((category) => (
-                    <button
+                    <ChoiceChip
                       key={category.id}
-                      type="button"
                       role="radio"
-                      aria-checked={form.categoryId === category.id}
+                      selected={form.categoryId === category.id}
+                      className="w-full"
                       onClick={() => setForm({ ...form, categoryId: category.id })}
-                      className={cn(
-                        'rounded-lg border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                        form.categoryId === category.id
-                          ? 'border-brand-500 bg-brand-50 text-brand-700'
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50',
-                      )}
                     >
                       {category.name}
-                    </button>
+                    </ChoiceChip>
                   ))}
                 </div>
               ) : (
@@ -389,35 +374,27 @@ export function MovementFormPage() {
                   {chipCategories.length > 0 && (
                     <div className="mb-2 flex flex-wrap gap-2" role="group" aria-labelledby="category-label">
                       {chipCategories.map((category) => (
-                        <button
+                        <ChoiceChip
                           key={category.id}
-                          type="button"
+                          shape="pill"
+                          size="sm"
+                          selected={form.categoryId === category.id}
                           onClick={() => {
                             setForm({ ...form, categoryId: category.id })
                             setShowAllCategories(false)
                           }}
-                          className={cn(
-                            'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                            form.categoryId === category.id
-                              ? 'border-brand-500 bg-brand-50 text-brand-700'
-                              : 'border-slate-200 text-slate-600 hover:bg-slate-50',
-                          )}
                         >
                           {category.name}
-                        </button>
+                        </ChoiceChip>
                       ))}
-                      <button
-                        type="button"
+                      <ChoiceChip
+                        shape="pill"
+                        size="sm"
+                        selected={showAllCategories}
                         onClick={() => setShowAllCategories(true)}
-                        className={cn(
-                          'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                          showAllCategories
-                            ? 'border-brand-500 bg-brand-50 text-brand-700'
-                            : 'border-slate-200 text-slate-600 hover:bg-slate-50',
-                        )}
                       >
                         Ver todas
-                      </button>
+                      </ChoiceChip>
                     </div>
                   )}
                   {showCategorySelect && (
@@ -449,7 +426,7 @@ export function MovementFormPage() {
 
           {form.type === 'income' && (
             <FormGroup>
-              <span id="recipient-label" className="mb-1 block text-sm font-medium text-slate-700">
+              <span id="recipient-label" className="mb-1 block text-sm font-medium text-stone-700">
                 {payerFieldLabel('income')}
               </span>
               <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="recipient-label">
@@ -459,21 +436,15 @@ export function MovementFormPage() {
                     { value: 'personB' as const, label: formLabel('personB') },
                   ] as const
                 ).map(({ value, label }) => (
-                  <button
+                  <ChoiceChip
                     key={value}
-                    type="button"
                     role="radio"
-                    aria-checked={form.paidBy === value}
+                    selected={form.paidBy === value}
+                    className="w-full"
                     onClick={() => handlePaidByChange(value)}
-                    className={cn(
-                      'rounded-lg border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                      form.paidBy === value
-                        ? 'border-brand-500 bg-brand-50 text-brand-700'
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-50',
-                    )}
                   >
                     {label}
-                  </button>
+                  </ChoiceChip>
                 ))}
               </div>
               <FieldHint>No afecta el balance de la pareja; solo registra quién cobró.</FieldHint>
@@ -487,21 +458,21 @@ export function MovementFormPage() {
               onClick={() => setRepartoOpen((open) => !open)}
               aria-expanded={repartoOpen}
               aria-controls="reparto-section"
-              className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-left transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
+              className="flex w-full items-center justify-between gap-3 rounded-lg border border-stone-200 bg-surface-50 px-3 py-3 text-left transition-colors hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
             >
               <div>
-                <span className="block text-sm font-semibold text-slate-800">Reparto</span>
-                <span className="mt-0.5 block text-xs text-slate-500">{summaryText}</span>
+                <span className="block text-sm font-semibold text-stone-800">Reparto</span>
+                <span className="mt-0.5 block text-xs text-stone-500">{summaryText}</span>
               </div>
-              <span className="text-slate-400" aria-hidden="true">
+              <span className="text-stone-400" aria-hidden="true">
                 {repartoOpen ? '▴' : '▾'}
               </span>
             </button>
 
             {repartoOpen && (
-              <div id="reparto-section" className="mt-3 space-y-4 rounded-lg border border-slate-200 p-3">
+              <div id="reparto-section" className="mt-3 space-y-4 rounded-lg border border-stone-200 p-3">
                 <FormGroup className="!mb-0">
-                  <span id="paid-by-label" className="mb-1 block text-sm font-medium text-slate-700">
+                  <span id="paid-by-label" className="mb-1 block text-sm font-medium text-stone-700">
                     {payerFieldLabel(form.type)}
                   </span>
                   <div className="flex flex-wrap items-center gap-2">
@@ -516,27 +487,21 @@ export function MovementFormPage() {
                           { value: 'personB' as const, label: formLabel('personB') },
                         ] as const
                       ).map(({ value, label }) => (
-                        <button
+                        <ChoiceChip
                           key={value}
-                          type="button"
                           role="radio"
-                          aria-checked={form.paidBy === value}
+                          selected={form.paidBy === value}
+                          className="w-full"
                           onClick={() => handlePaidByChange(value)}
-                          className={cn(
-                            'rounded-lg border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                            form.paidBy === value
-                              ? 'border-brand-500 bg-brand-50 text-brand-700'
-                              : 'border-slate-200 text-slate-600 hover:bg-slate-50',
-                          )}
                         >
                           {label}
-                        </button>
+                        </ChoiceChip>
                       ))}
                     </div>
 
                     {form.type !== 'settlement' && (
-                      <div className="flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
-                        <Label htmlFor="is-shared" className="!mb-0 text-xs font-medium text-slate-600">
+                      <div className="flex shrink-0 items-center gap-2 rounded-lg border border-stone-200 bg-surface-50 px-2.5 py-1.5">
+                        <Label htmlFor="is-shared" className="!mb-0 text-xs font-medium text-stone-600">
                           Compartido
                         </Label>
                         <button
@@ -548,7 +513,7 @@ export function MovementFormPage() {
                           onClick={() => handleSharedChange(!form.isShared)}
                           className={cn(
                             'relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                            form.isShared ? 'bg-brand-600' : 'bg-slate-300',
+                            form.isShared ? 'bg-brand-600' : 'bg-stone-300',
                           )}
                         >
                           <span
@@ -572,19 +537,30 @@ export function MovementFormPage() {
                     {form.isShared && (
                       <>
                         <FormGroup className="!mb-0">
-                          <Label htmlFor="split-preset">{splitDistributionLabel(form.type)}</Label>
-                          <Select
-                            id="split-preset"
-                            value={splitPreset}
-                            onChange={(e) => handleSplitPreset(e.target.value)}
-                            aria-describedby={describedBy(errors.share && 'share-error', previewText && 'reparto-preview')}
+                          <span
+                            id="split-preset-label"
+                            className="mb-1 block text-sm font-medium text-stone-700"
                           >
-                            {SPLIT_PRESETS.map((p) => (
-                              <option key={p.value} value={p.value}>
-                                {p.label}
-                              </option>
+                            {splitDistributionLabel(form.type)}
+                          </span>
+                          <div
+                            className="flex flex-wrap gap-1.5"
+                            role="radiogroup"
+                            aria-labelledby="split-preset-label"
+                          >
+                            {SPLIT_PRESETS.map((preset) => (
+                              <ChoiceChip
+                                key={preset.value}
+                                role="radio"
+                                size="sm"
+                                shape="pill"
+                                selected={splitPreset === preset.value}
+                                onClick={() => handleSplitPreset(preset.value)}
+                              >
+                                {preset.label}
+                              </ChoiceChip>
                             ))}
-                          </Select>
+                          </div>
                         </FormGroup>
 
                         {splitPreset === 'custom' && (
@@ -628,7 +604,7 @@ export function MovementFormPage() {
                 )}
 
                 {previewText && (
-                  <p id="reparto-preview" className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                  <p id="reparto-preview" className="rounded-lg bg-surface-50 px-3 py-2 text-xs text-stone-600">
                     {previewText}
                   </p>
                 )}

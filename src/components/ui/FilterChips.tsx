@@ -58,7 +58,7 @@ export function FilterChips({
         <button
           type="button"
           className={cn(
-            'font-medium text-slate-600 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300',
+            'font-medium text-stone-600 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300',
             compact ? 'text-xs' : 'text-sm',
           )}
           onClick={onClearAll}

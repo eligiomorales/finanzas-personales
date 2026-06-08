@@ -11,6 +11,7 @@ import { formatInViewCurrency, getCurrencyConfig, SUPPORTED_CURRENCIES } from '@
 import { currentMonthRange, filterMovements, todayISO } from '@/lib/utils'
 import type { CurrencyCode, Movement } from '@/types'
 import { StatCard, Card } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { Dialog } from '@/components/ui/Dialog'
 import {
   BalanceScopeSelector,
@@ -123,10 +124,7 @@ export function BalancePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold">Balance entre personas</h2>
-        <p className="mt-1 text-sm text-slate-500">{scopeLabel}</p>
-      </div>
+      <PageHeader title="Balance entre personas" subtitle={scopeLabel} />
 
       <BalanceScopeSelector
         scope={scope}
@@ -136,7 +134,7 @@ export function BalancePage() {
       />
 
       {scope !== 'all' && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-stone-500">
           Este balance puede diferir del histórico si hay movimientos en otros meses.
         </p>
       )}
@@ -190,28 +188,28 @@ export function BalancePage() {
             const data = role === 'personA' ? balance.personA : balance.personB
             const diff = data.difference
             return (
-              <div key={role} className="rounded-lg bg-slate-50 p-3">
-                <p className="font-medium text-slate-800">
+              <div key={role} className="rounded-lg bg-surface-50 p-3">
+                <p className="font-medium text-stone-800">
                   {displayLabelForRole(role, persons, { preferYo: true })}
                 </p>
                 <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
                   <div>
-                    <p className="text-slate-500">Pagó</p>
+                    <p className="text-stone-500">Pagó</p>
                     <p className="font-semibold tabular-nums">
                       {formatInViewCurrency(data.paid, currencyConfig)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Debía asumir</p>
+                    <p className="text-stone-500">Debía asumir</p>
                     <p className="font-semibold tabular-nums">
                       {formatInViewCurrency(data.assumed, currencyConfig)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Diferencia</p>
+                    <p className="text-stone-500">Diferencia</p>
                     <p
                       className={`font-semibold tabular-nums ${
-                        diff > 0 ? 'text-emerald-700' : diff < 0 ? 'text-red-700' : 'text-slate-600'
+                        diff > 0 ? 'text-emerald-700' : diff < 0 ? 'text-red-700' : 'text-stone-600'
                       }`}
                     >
                       {diff >= 0 ? '+' : ''}
@@ -219,7 +217,7 @@ export function BalancePage() {
                     </p>
                   </div>
                 </div>
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-2 text-xs text-stone-500">
                   {diff > 0
                     ? 'Pagó de más (le deben compensar)'
                     : diff < 0
@@ -234,18 +232,18 @@ export function BalancePage() {
 
       <Card className="!p-0 overflow-hidden">
         <details className="group">
-          <summary className="cursor-pointer list-none px-4 py-3 font-semibold text-slate-700 marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-300 [&::-webkit-details-marker]:hidden">
+          <summary className="cursor-pointer list-none px-4 py-3 font-semibold text-stone-700 marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-300 [&::-webkit-details-marker]:hidden">
             <span className="flex items-center justify-between gap-2">
               ¿Cómo se calcula?
               <span
-                className="text-sm font-normal text-slate-500 transition-transform group-open:rotate-180"
+                className="text-sm font-normal text-stone-500 transition-transform group-open:rotate-180"
                 aria-hidden="true"
               >
                 ▼
               </span>
             </span>
           </summary>
-          <ul className="space-y-1 border-t border-slate-100 px-4 py-3 text-sm text-slate-600">
+          <ul className="space-y-1 border-t border-stone-100 px-4 py-3 text-sm text-stone-600">
             {calculationHelp.map((line) => (
               <li key={line}>· {line}</li>
             ))}

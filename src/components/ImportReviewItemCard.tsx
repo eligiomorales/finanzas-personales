@@ -6,6 +6,7 @@ import {
   type ImportShareValues,
 } from '@/components/ImportShareControls'
 import { Badge } from '@/components/ui/Card'
+import { ChoiceChip } from '@/components/ui/ChoiceChip'
 import {
   buildImportCategoryButtons,
   importItemTitle,
@@ -108,7 +109,7 @@ export function ImportReviewItemCard({
         'rounded-xl border bg-white transition-colors',
         item.status === 'ignored' && 'opacity-60',
         item.possibleDuplicate && item.status === 'pending' && 'border-amber-300 bg-amber-50/20',
-        !item.possibleDuplicate && 'border-slate-200',
+        !item.possibleDuplicate && 'border-stone-200',
       )}
     >
       <div className="p-3">
@@ -119,7 +120,7 @@ export function ImportReviewItemCard({
             className={cn(
               'mt-1 h-4 w-4 shrink-0 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
               item.status === 'ignored'
-                ? 'border-slate-300 bg-slate-100'
+                ? 'border-stone-300 bg-surface-100'
                 : item.possibleDuplicate
                   ? 'border-amber-400 bg-amber-400'
                   : 'border-brand-500 bg-brand-500',
@@ -135,12 +136,12 @@ export function ImportReviewItemCard({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs text-slate-500">{formatShortDate(item.date)}</span>
+                  <span className="text-xs text-stone-500">{formatShortDate(item.date)}</span>
                   {item.currency === 'USD' && !perRowCurrency && <Badge variant="warning">USD</Badge>}
                   {item.possibleDuplicate && isPending && <Badge variant="warning">Duplicado</Badge>}
                   {item.status === 'ignored' && <Badge>Ignorado</Badge>}
                 </div>
-                <p className="mt-1 truncate text-sm font-semibold text-slate-900">{title}</p>
+                <p className="mt-1 truncate text-sm font-semibold text-stone-900">{title}</p>
               </div>
               <p
                 className={cn(
@@ -157,15 +158,16 @@ export function ImportReviewItemCard({
         {isPending && (
           <div className="ml-7 mt-2 space-y-2">
             <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
+              <ChoiceChip
+                shape="pill"
+                size="sm"
+                selected
                 onClick={() => setEditOpen(true)}
-                className="rounded-full border border-brand-500 bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700"
               >
                 {category?.name ?? 'Sin categoría'}
-              </button>
+              </ChoiceChip>
               {perRowCurrency && (
-                <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-0.5">
+                <div className="inline-flex rounded-full border border-stone-200 bg-surface-50 p-0.5">
                   {(['ARS', 'USD'] as const).map((currency) => (
                     <button
                       key={currency}
@@ -175,7 +177,7 @@ export function ImportReviewItemCard({
                         'rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors',
                         item.currency === currency
                           ? 'bg-white text-brand-700 shadow-sm'
-                          : 'text-slate-500',
+                          : 'text-stone-500',
                       )}
                     >
                       {currency}
@@ -183,13 +185,9 @@ export function ImportReviewItemCard({
                   ))}
                 </div>
               )}
-              <button
-                type="button"
-                onClick={() => setEditOpen(true)}
-                className="rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600"
-              >
+              <ChoiceChip shape="pill" size="sm" onClick={() => setEditOpen(true)}>
                 {repartoChip}
-              </button>
+              </ChoiceChip>
               <button
                 type="button"
                 onClick={() => setEditOpen((open) => !open)}
@@ -200,12 +198,12 @@ export function ImportReviewItemCard({
             </div>
 
             {editOpen && (
-              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-2.5">
+              <div className="space-y-3 rounded-xl border border-stone-200 bg-surface-50/70 p-2.5">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-slate-600">Categoría</span>
+                    <span className="text-xs font-semibold text-stone-600">Categoría</span>
                     {suggestedCategory && item.selectedCategoryId !== item.suggestedCategoryId && (
-                      <span className="text-[11px] text-slate-400">Sugerida: {suggestedCategory.name}</span>
+                      <span className="text-[11px] text-stone-400">Sugerida: {suggestedCategory.name}</span>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -214,36 +212,32 @@ export function ImportReviewItemCard({
                       const isSuggested =
                         item.suggestedCategoryId === option.id && !isSelected
                       return (
-                        <button
+                        <ChoiceChip
                           key={option.id}
-                          type="button"
+                          shape="pill"
+                          size="sm"
+                          selected={isSelected}
                           onClick={() => onCategoryChange(option.id)}
-                          className={cn(
-                            'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
-                            isSelected
-                              ? 'border-brand-500 bg-brand-50 text-brand-700'
-                              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
-                          )}
                         >
                           {option.name}
                           {isSuggested ? ' · sugerida' : ''}
-                        </button>
+                        </ChoiceChip>
                       )
                     })}
-                    <button
-                      type="button"
+                    <ChoiceChip
+                      shape="pill"
+                      size="sm"
                       onClick={() => setShowAllCategories((open) => !open)}
-                      className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
                     >
                       {showAllCategories ? 'Ver menos' : 'Más'}
-                    </button>
+                    </ChoiceChip>
                   </div>
                 </div>
 
                 {perRowCurrency && (
                   <div className="space-y-1.5">
-                    <span className="text-xs font-semibold text-slate-600">Moneda</span>
-                    <div className="inline-grid grid-cols-2 rounded-full border border-slate-200 bg-white p-0.5">
+                    <span className="text-xs font-semibold text-stone-600">Moneda</span>
+                    <div className="inline-grid grid-cols-2 rounded-full border border-stone-200 bg-white p-0.5">
                       {(['ARS', 'USD'] as const).map((currency) => (
                         <button
                           key={currency}
@@ -253,7 +247,7 @@ export function ImportReviewItemCard({
                             'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
                             item.currency === currency
                               ? 'bg-brand-50 text-brand-700'
-                              : 'text-slate-500 hover:text-slate-700',
+                              : 'text-stone-500 hover:text-stone-700',
                           )}
                         >
                           {currency}
@@ -280,18 +274,18 @@ export function ImportReviewItemCard({
                 <button
                   type="button"
                   onClick={() => setExtractOpen((open) => !open)}
-                  className="flex w-full items-center justify-between rounded-lg bg-white px-2.5 py-2 text-left text-xs font-medium text-slate-600"
+                  className="flex w-full items-center justify-between rounded-lg bg-white px-2.5 py-2 text-left text-xs font-medium text-stone-600"
                 >
                   <span>Detalle del extracto</span>
-                  <span className="text-slate-400">
+                  <span className="text-stone-400">
                     {extractLines} línea{extractLines === 1 ? '' : 's'} {extractOpen ? '▴' : '▾'}
                   </span>
                 </button>
                 {extractOpen && (
-                  <div className="rounded-lg border border-slate-200 bg-white px-2.5 py-2">
+                  <div className="rounded-lg border border-stone-200 bg-white px-2.5 py-2">
                     <p
                       className={cn(
-                        'whitespace-pre-wrap break-words text-xs leading-snug text-slate-600',
+                        'whitespace-pre-wrap break-words text-xs leading-snug text-stone-600',
                         !extractFull && extractLines > EXTRACT_PREVIEW_LINES && 'line-clamp-3',
                       )}
                     >

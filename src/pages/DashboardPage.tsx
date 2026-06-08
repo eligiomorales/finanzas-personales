@@ -18,12 +18,13 @@ import { buildBudgetProgress, getBudgetMonthKey } from '@/lib/budget'
 import { getCurrencyConfig } from '@/lib/currency'
 import { formatPeriodHeaderTitle } from '@/lib/period-presets'
 import { filterMovements, formatDate, previousPeriodForRange } from '@/lib/utils'
+import { Card, EmptyState } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { PeriodFilter } from '@/components/PeriodFilter'
 import { DashboardSummaryBento } from '@/components/DashboardSummaryBento'
 import { DashboardCompensationRow } from '@/components/DashboardCompensationRow'
 import { DashboardCategoryBreakdown } from '@/components/DashboardCategoryBreakdown'
 import { DashboardMovementList } from '@/components/DashboardMovementList'
-import { Card, EmptyState } from '@/components/ui/Card'
 
 export function DashboardPage() {
   const movements = useMovements() ?? []
@@ -126,12 +127,10 @@ export function DashboardPage() {
         />
       )}
 
-      <div className="-mx-4 space-y-2 border-b border-slate-200 px-4 pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-bold text-slate-900">{periodTitle}</h2>
-            <p className="text-xs text-slate-500">{periodSubtitle}</p>
-          </div>
+      <PageHeader
+        title={periodTitle}
+        subtitle={periodSubtitle}
+        trailing={
           <PeriodFilter
             period={period}
             onChange={setPeriod}
@@ -139,14 +138,15 @@ export function DashboardPage() {
             variant="dates"
             datesLabelOnly
           />
-        </div>
+        }
+      >
         <PeriodFilter
           period={period}
           onChange={setPeriod}
           idPrefix="dashboard-period"
           variant="presets"
         />
-      </div>
+      </PageHeader>
 
       {hasMovements ? (
         <>

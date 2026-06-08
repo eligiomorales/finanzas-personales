@@ -5,6 +5,7 @@ import { ExpenseViewProvider } from '@/contexts/ExpenseViewContext'
 import { PeriodProvider } from '@/contexts/PeriodContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Layout } from '@/components/Layout'
+import { LoadingState } from '@/components/ui/PageShell'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { MovementsPage } from '@/pages/MovementsPage'
 import { MovementFormPage } from '@/pages/MovementFormPage'
@@ -48,11 +49,7 @@ function AuthenticatedApp() {
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-slate-50">
-        <p className="text-slate-500">Cargando sesión…</p>
-      </div>
-    )
+    return <LoadingState message="Cargando sesión…" />
   }
 
   if (!session) {

@@ -50,7 +50,7 @@ export function FacetMenuPortal({
       id={menuId}
       role="listbox"
       style={style}
-      className="max-h-60 touch-pan-y overflow-y-auto overscroll-contain rounded-lg border border-slate-200 bg-white py-1 [-webkit-overflow-scrolling:touch]"
+      className="max-h-60 touch-pan-y overflow-y-auto overscroll-contain rounded-lg border border-stone-200 bg-white py-1 [-webkit-overflow-scrolling:touch]"
     >
       {children}
     </ul>,
@@ -133,12 +133,12 @@ export function FilterFacet({
           'inline-flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300',
           active
             ? 'border-brand-600 bg-brand-50 text-brand-800'
-            : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
+            : 'border-stone-300 bg-white text-stone-700 hover:bg-surface-50',
         )}
         onClick={() => (open ? onClose() : onOpen())}
       >
         <span className="max-w-[7.5rem] truncate">{activeLabel ?? label}</span>
-        <span className="text-slate-400" aria-hidden>
+        <span className="text-stone-400" aria-hidden>
           {open ? '▴' : '▾'}
         </span>
       </button>
@@ -171,8 +171,8 @@ export function FacetOptionItem({
         role="option"
         aria-selected={selected}
         className={cn(
-          'w-full px-3 py-2 text-left text-sm focus-visible:bg-slate-50 focus-visible:outline-none',
-          selected ? 'bg-brand-50 font-medium text-brand-800' : 'text-slate-700 hover:bg-slate-50',
+          'w-full px-3 py-2 text-left text-sm focus-visible:bg-surface-50 focus-visible:outline-none',
+          selected ? 'bg-brand-50 font-medium text-brand-800' : 'text-stone-700 hover:bg-surface-50',
         )}
         onClick={onSelect}
       >

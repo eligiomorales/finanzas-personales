@@ -63,15 +63,15 @@ export function Dialog({
         aria-labelledby={resolvedTitleId}
         aria-describedby={description ? resolvedDescriptionId : undefined}
         className={cn(
-          'relative w-full max-w-md rounded-xl border border-slate-200 bg-white p-4 shadow-lg',
+          'relative w-full max-w-md rounded-2xl border border-stone-200/80 bg-white p-5 shadow-xl shadow-stone-300/20',
           className,
         )}
       >
-        <h3 id={resolvedTitleId} className="text-lg font-bold text-slate-900">
+        <h3 id={resolvedTitleId} className="text-lg font-bold tracking-tight text-stone-900">
           {title}
         </h3>
         {description && (
-          <p id={resolvedDescriptionId} className="mt-2 text-sm text-slate-600">
+          <p id={resolvedDescriptionId} className="mt-2 text-sm text-stone-600">
             {description}
           </p>
         )}

@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { DataProvider } from '@/contexts/DataContext'
 import { seedDatabase } from '@/db/seed'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
+import { LoadingState } from '@/components/ui/PageShell'
 import './index.css'
 
 function Bootstrap() {
@@ -19,11 +20,7 @@ function Bootstrap() {
   }, [])
 
   if (!ready) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-slate-50">
-        <p className="text-slate-500">Cargando...</p>
-      </div>
-    )
+    return <LoadingState message="Cargando…" />
   }
 
   if (isSupabaseConfigured()) {

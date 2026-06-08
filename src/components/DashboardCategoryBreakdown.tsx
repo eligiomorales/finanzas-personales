@@ -1,7 +1,10 @@
-import { Link } from 'react-router-dom'
 import { BudgetProgressBar, BudgetProgressMeta } from '@/components/BudgetProgressBar'
+import { SectionHeader } from '@/components/ui/SectionHeader'
+import { Card } from '@/components/ui/Card'
 import { formatInViewCurrency, type CurrencyConfig } from '@/lib/currency'
 import type { CategoryBudgetProgress, PeriodSummary } from '@/types'
+import { textMuted } from '@/components/ui/styles'
+import { cn } from '@/lib/utils'
 
 interface DashboardCategoryBreakdownProps {
   expensesByCategory: PeriodSummary['expensesByCategory']
@@ -25,18 +28,14 @@ export function DashboardCategoryBreakdown({
 
   return (
     <section>
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          {showBudgetProgress && hasAnyBudget ? 'Presupuesto por categoría' : 'Gastos'}
-        </p>
-        <Link
-          to={showBudgetProgress && hasAnyBudget ? '/presupuesto' : '/categorias'}
-          className="shrink-0 text-xs font-medium text-brand-600 hover:text-brand-700"
-        >
-          {showBudgetProgress && hasAnyBudget ? 'Ver presupuesto →' : 'Ver análisis →'}
-        </Link>
-      </div>
-      <div className="space-y-3">
+      <SectionHeader
+        label={showBudgetProgress && hasAnyBudget ? 'Presupuesto por categoría' : 'Gastos'}
+        action={{
+          label: showBudgetProgress && hasAnyBudget ? 'Ver presupuesto →' : 'Ver análisis →',
+          to: showBudgetProgress && hasAnyBudget ? '/presupuesto' : '/categorias',
+        }}
+      />
+      <Card compact className="space-y-4">
         {expensesByCategory.map((cat, index) => {
           const progress = progressByCategory.get(cat.categoryId)
           const useBudgetBar = showBudgetProgress && progress && progress.budgeted > 0
@@ -47,15 +46,12 @@ export function DashboardCategoryBreakdown({
               : 0
 
           return (
-            <div
-              key={cat.categoryId}
-              className={index >= 3 ? 'hidden md:block' : undefined}
-            >
+            <div key={cat.categoryId} className={index >= 3 ? 'hidden md:block' : undefined}>
               <div className="flex items-baseline justify-between gap-3">
-                <span className="min-w-0 truncate text-sm font-medium text-slate-800">
+                <span className="min-w-0 truncate text-sm font-medium text-stone-800">
                   {cat.categoryName}
                 </span>
-                <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-800">
+                <span className="shrink-0 text-sm font-semibold tabular-nums text-stone-800">
                   {formatInViewCurrency(
                     useBudgetBar && progress ? progress.spent : cat.total,
                     currencyConfig,
@@ -83,7 +79,7 @@ export function DashboardCategoryBreakdown({
                 </>
               ) : (
                 <div className="mt-1.5 flex items-center gap-2">
-                  <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-100">
                     <div
                       className="h-full rounded-full bg-brand-500"
                       style={{
@@ -92,13 +88,13 @@ export function DashboardCategoryBreakdown({
                       }}
                     />
                   </div>
-                  <span className="w-8 shrink-0 text-right text-xs text-slate-500">{pct}%</span>
+                  <span className={cn('w-8 shrink-0 text-right text-xs', textMuted)}>{pct}%</span>
                 </div>
               )}
             </div>
           )
         })}
-      </div>
+      </Card>
     </section>
   )
 }

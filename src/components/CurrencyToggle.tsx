@@ -1,6 +1,6 @@
 import { useSettings, useDataMutations } from '@/hooks/useData'
 import { SUPPORTED_CURRENCIES } from '@/lib/currency'
-import { cn } from '@/lib/utils'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import type { CurrencyCode } from '@/types'
 
 export function CurrencyToggle() {
@@ -14,27 +14,12 @@ export function CurrencyToggle() {
   }
 
   return (
-    <div
-      className="flex rounded-lg border border-slate-300 bg-slate-100 p-0.5"
-      role="group"
+    <SegmentedControl
       aria-label="Moneda de visualización"
-    >
-      {SUPPORTED_CURRENCIES.map((currency) => (
-        <button
-          key={currency}
-          type="button"
-          onClick={() => handleSelect(currency)}
-          className={cn(
-            'rounded-md px-3 py-[7px] text-sm font-medium transition-colors',
-            active === currency
-              ? 'bg-white text-brand-700 shadow-sm'
-              : 'text-slate-600 hover:text-slate-800',
-          )}
-          aria-pressed={active === currency}
-        >
-          {currency}
-        </button>
-      ))}
-    </div>
+      options={SUPPORTED_CURRENCIES.map((c) => ({ value: c, label: c }))}
+      value={active}
+      onChange={handleSelect}
+      fullWidth={false}
+    />
   )
 }

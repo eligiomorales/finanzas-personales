@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button, Input, Label, FormGroup, StatusMessage } from '@/components/ui/Form'
 import { Card } from '@/components/ui/Card'
+import { LoadingState, PageShell } from '@/components/ui/PageShell'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
 export function CoupleSetupPage() {
   const { setupCouple, signOut, user, refreshMembership, membership } = useAuth()
@@ -16,11 +18,7 @@ export function CoupleSetupPage() {
   }, [refreshMembership])
 
   if (checkingExisting || membership) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-slate-50">
-        <p className="text-slate-500">{checkingExisting ? 'Verificando tu pareja…' : 'Entrando…'}</p>
-      </div>
-    )
+    return <LoadingState message={checkingExisting ? 'Verificando tu pareja…' : 'Entrando…'} />
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -40,35 +38,24 @@ export function CoupleSetupPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-slate-50 px-4">
+    <PageShell>
       <Card className="w-full max-w-md space-y-6 p-6">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Configurar pareja</h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <h1 className="text-xl font-bold tracking-tight text-stone-900">Configurar pareja</h1>
+          <p className="mt-1 text-sm text-stone-600">
             Hola{user?.email ? `, ${user.email}` : ''}. Creá una pareja nueva o unite con un código de invitación.
           </p>
         </div>
 
-        <div className="flex rounded-lg border border-slate-200 bg-slate-100 p-0.5">
-          <button
-            type="button"
-            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium ${
-              mode === 'create' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500'
-            }`}
-            onClick={() => setMode('create')}
-          >
-            Crear pareja
-          </button>
-          <button
-            type="button"
-            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium ${
-              mode === 'join' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500'
-            }`}
-            onClick={() => setMode('join')}
-          >
-            Unirme
-          </button>
-        </div>
+        <SegmentedControl
+          aria-label="Modo de configuración de pareja"
+          options={[
+            { value: 'create' as const, label: 'Crear pareja' },
+            { value: 'join' as const, label: 'Unirme' },
+          ]}
+          value={mode}
+          onChange={setMode}
+        />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'join' && (
@@ -86,7 +73,7 @@ export function CoupleSetupPage() {
           )}
 
           {mode === 'create' && (
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-stone-600">
               Vas a crear una pareja nueva. Después podés compartir el código de invitación con tu pareja desde
               Configuración.
             </p>
@@ -99,10 +86,10 @@ export function CoupleSetupPage() {
           </Button>
         </form>
 
-        <button type="button" className="w-full text-sm text-slate-500 hover:text-slate-700" onClick={() => signOut()}>
+        <button type="button" className="w-full text-sm text-stone-500 hover:text-stone-700" onClick={() => signOut()}>
           Cerrar sesión
         </button>
       </Card>
-    </div>
+    </PageShell>
   )
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { buildImportCategoryButtons } from '@/lib/import-display'
-import { cn } from '@/lib/utils'
+import { ChoiceChip } from '@/components/ui/ChoiceChip'
 import { FormGroup, Select } from '@/components/ui/Form'
 import type { Category } from '@/types'
 
@@ -33,10 +33,11 @@ export function ImportCategoryPicker({
   )
 
   const selectedInButtons = buttonCategories.some((category) => category.id === selectedCategoryId)
+  const labelId = `${idPrefix}-label`
 
   return (
     <FormGroup className="!mb-0">
-      <span id={`${idPrefix}-label`} className="mb-1 block text-xs font-medium text-slate-600">
+      <span id={labelId} className="mb-1 block text-xs font-medium text-stone-600">
         {label}
       </span>
 
@@ -44,7 +45,7 @@ export function ImportCategoryPicker({
         <div
           className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 md:grid-cols-4"
           role="radiogroup"
-          aria-labelledby={`${idPrefix}-label`}
+          aria-labelledby={labelId}
         >
           {buttonCategories.map((category) => {
             const isSelected = selectedCategoryId === category.id
@@ -52,44 +53,38 @@ export function ImportCategoryPicker({
               suggestedCategoryId === category.id && selectedCategoryId !== category.id
 
             return (
-              <button
+              <ChoiceChip
                 key={category.id}
-                type="button"
                 role="radio"
-                aria-checked={isSelected}
+                size="sm"
+                align="start"
+                selected={isSelected}
+                className="w-full"
                 onClick={() => {
                   onChange(category.id)
                   setShowAllCategories(false)
                 }}
-                className={cn(
-                  'rounded-lg border px-2.5 py-2 text-left text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                  isSelected
-                    ? 'border-brand-500 bg-brand-50 text-brand-700'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50',
-                )}
               >
                 <span className="block truncate">{category.name}</span>
                 {isSuggested && (
-                  <span className="mt-0.5 block text-[10px] font-normal text-slate-400">Sugerida</span>
+                  <span className="mt-0.5 block text-[10px] font-normal text-stone-400">Sugerida</span>
                 )}
-              </button>
+              </ChoiceChip>
             )
           })}
 
-          <button
-            type="button"
-            onClick={() => setShowAllCategories((open) => !open)}
+          <ChoiceChip
+            role="radio"
+            size="sm"
+            align="start"
+            selected={showAllCategories}
+            className="w-full"
             aria-expanded={showAllCategories}
             aria-controls={`${idPrefix}-all-categories`}
-            className={cn(
-              'rounded-lg border px-2.5 py-2 text-left text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-              showAllCategories
-                ? 'border-brand-500 bg-brand-50 text-brand-700'
-                : 'border-slate-200 text-slate-600 hover:bg-slate-50',
-            )}
+            onClick={() => setShowAllCategories((open) => !open)}
           >
             Ver todas
-          </button>
+          </ChoiceChip>
         </div>
       )}
 

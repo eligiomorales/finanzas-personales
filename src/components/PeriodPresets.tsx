@@ -26,7 +26,7 @@ export function PeriodPresets({ period, onChange, className, compact }: PeriodPr
               compact ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-sm',
               selected
                 ? 'border-brand-600 bg-brand-600 text-white'
-                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
+                : 'border-stone-300 bg-white text-stone-700 hover:bg-surface-50',
             )}
             onClick={() => onChange(preset.range())}
           >
