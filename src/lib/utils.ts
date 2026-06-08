@@ -9,16 +9,29 @@ import {
   subMonths,
 } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { getAmountsVisible, maskFormattedAmount } from '@/lib/amounts-visibility'
 import type { Movement, MovementFilters } from '@/types'
 import { movementMatchesFilters } from '@/lib/movements-query'
 
-export function formatCurrency(amount: number, currency = 'ARS'): string {
-  return new Intl.NumberFormat('es-AR', {
+export type FormatCurrencyOptions = {
+  /** When true, always show the amount (e.g. live preview while editing a form). */
+  visible?: boolean
+}
+
+export function formatCurrency(
+  amount: number,
+  currency = 'ARS',
+  options?: FormatCurrencyOptions,
+): string {
+  const formatted = new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(amount)
+  const show = options?.visible ?? getAmountsVisible()
+  if (!show) return maskFormattedAmount(formatted)
+  return formatted
 }
 
 export function formatDate(dateStr: string): string {
