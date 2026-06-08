@@ -7,6 +7,7 @@ import {
 } from '@/components/ImportShareControls'
 import { Badge } from '@/components/ui/Card'
 import { ChoiceChip } from '@/components/ui/ChoiceChip'
+import { Button } from '@/components/ui/Form'
 import {
   buildImportCategoryButtons,
   importItemTitle,
@@ -113,50 +114,33 @@ export function ImportReviewItemCard({
       )}
     >
       <div className="p-3">
-        <div className="flex items-start gap-3">
-          <button
-            type="button"
-            onClick={handleStatusToggle}
-            className={cn(
-              'mt-1 h-4 w-4 shrink-0 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-              item.status === 'ignored'
-                ? 'border-stone-300 bg-surface-100'
-                : item.possibleDuplicate
-                  ? 'border-amber-400 bg-amber-400'
-                  : 'border-brand-500 bg-brand-500',
-            )}
-            aria-label={isPending ? 'Ignorar movimiento' : 'Restaurar movimiento'}
-          />
-
-          <button
-            type="button"
-            onClick={() => setEditOpen((open) => !open)}
-            className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs text-stone-500">{formatShortDate(item.date)}</span>
-                  {item.currency === 'USD' && !perRowCurrency && <Badge variant="warning">USD</Badge>}
-                  {item.possibleDuplicate && isPending && <Badge variant="warning">Duplicado</Badge>}
-                  {item.status === 'ignored' && <Badge>Ignorado</Badge>}
-                </div>
-                <p className="mt-1 truncate text-sm font-semibold text-stone-900">{title}</p>
-              </div>
-              <p
-                className={cn(
-                  'shrink-0 text-right text-sm font-bold tabular-nums sm:text-base',
-                  movementAmountColor('expense'),
-                )}
-              >
-                -{formatMovementAmount(item)}
-              </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-stone-500">{formatShortDate(item.date)}</span>
+              {item.currency === 'USD' && !perRowCurrency && <Badge variant="warning">USD</Badge>}
+              {item.possibleDuplicate && isPending && <Badge variant="warning">Duplicado</Badge>}
+              {item.status === 'ignored' && <Badge>Ignorado</Badge>}
             </div>
-          </button>
+            <p className="mt-1 break-words text-sm font-semibold text-stone-900">{title}</p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p
+              className={cn(
+                'text-sm font-bold tabular-nums sm:text-base',
+                movementAmountColor('expense'),
+              )}
+            >
+              -{formatMovementAmount(item)}
+            </p>
+            <Button size="sm" variant="ghost" className="mt-1 h-auto px-1 py-0" onClick={handleStatusToggle}>
+              {isPending ? 'Ignorar' : 'Restaurar'}
+            </Button>
+          </div>
         </div>
 
         {isPending && (
-          <div className="ml-7 mt-2 space-y-2">
+          <div className="mt-2 space-y-2">
             <div className="flex flex-wrap items-center gap-1.5">
               <ChoiceChip
                 shape="pill"
