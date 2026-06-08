@@ -241,7 +241,7 @@ export function MovementFormPage() {
 
   function repartoPreviewText(): string | null {
     if (form.amount <= 0) return null
-    const amountLabel = formatCurrency(form.amount, form.currency)
+    const amountLabel = formatCurrency(form.amount, form.currency, { visible: true })
     const payer = form.paidBy === 'both' ? 'Ambos' : formLabel(form.paidBy)
 
     if (form.type === 'income') {
@@ -260,10 +260,10 @@ export function MovementFormPage() {
     const assumeB = (form.amount * form.sharePersonB) / 100
 
     if (Math.abs(form.sharePersonA - form.sharePersonB) < 0.01) {
-      return `${payer} pagó ${amountLabel} · cada uno asume ${formatCurrency(assumeA, form.currency)}`
+      return `${payer} pagó ${amountLabel} · cada uno asume ${formatCurrency(assumeA, form.currency, { visible: true })}`
     }
 
-    return `${payer} pagó ${amountLabel} · ${personAName} ${formatCurrency(assumeA, form.currency)} · ${personBName} ${formatCurrency(assumeB, form.currency)}`
+    return `${payer} pagó ${amountLabel} · ${personAName} ${formatCurrency(assumeA, form.currency, { visible: true })} · ${personBName} ${formatCurrency(assumeB, form.currency, { visible: true })}`
   }
 
   const previewText = repartoPreviewText()

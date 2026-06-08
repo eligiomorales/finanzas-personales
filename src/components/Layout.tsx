@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Badge } from '@/components/ui/Card'
+import { useAmountsVisibility, useAmountsVisible } from '@/contexts/AmountsVisibilityContext'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { cn } from '@/lib/utils'
 import { focusRing } from '@/components/ui/styles'
@@ -65,6 +66,34 @@ function NavIcon({ name, className }: { name: NavIconName; className?: string })
   }
 }
 
+function EyeIcon({ visible, className }: { visible: boolean; className?: string }) {
+  const props = {
+    className: cn('h-5 w-5', className),
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.75,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+  }
+
+  if (visible) {
+    return (
+      <svg {...props}>
+        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+        <circle cx={12} cy={12} r={3} />
+      </svg>
+    )
+  }
+
+  return (
+    <svg {...props}>
+      <path d="M10.7 10.7a3 3 0 0 0 4.2 4.2M9.9 5.5A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a18.5 18.5 0 0 1-4.1 5.2M6.1 6.1C3.5 7.8 2 12 2 12a18.5 18.5 0 0 0 5.2 5.2M3 3l18 18" />
+    </svg>
+  )
+}
+
 const navItems: { to: string; label: string; icon: NavIconName }[] = [
   { to: '/', label: 'Inicio', icon: 'home' },
   { to: '/movimientos', label: 'Movimientos', icon: 'movements' },
@@ -74,9 +103,16 @@ const navItems: { to: string; label: string; icon: NavIconName }[] = [
   { to: '/importar', label: 'Importar', icon: 'import' },
 ]
 
+function RoutedContent() {
+  const amountsVisible = useAmountsVisible()
+
+  return <Outlet key={amountsVisible ? 'amounts-visible' : 'amounts-hidden'} />
+}
+
 export function Layout() {
   const location = useLocation()
   const { isPersonal } = useExpenseViewMode()
+  const { visible: amountsVisible, toggle: toggleAmountsVisibility } = useAmountsVisibility()
   const isFormPage = location.pathname.includes('/nuevo') || location.pathname.includes('/editar')
   const hideFab = isFormPage || location.pathname === '/presupuesto'
 
@@ -94,27 +130,44 @@ export function Layout() {
             )}
           </h1>
           {!isFormPage && (
-            <NavLink
-              to="/configuracion"
-              className={({ isActive }) =>
-                cn(
-                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+            <div className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={toggleAmountsVisibility}
+                className={cn(
+                  'flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
                   focusRing,
-                  isActive
-                    ? 'bg-brand-50 text-brand-600'
-                    : 'text-stone-500 hover:bg-surface-100 hover:text-stone-700',
-                )
-              }
-              aria-label="Ajustes"
-            >
-              <NavIcon name="settings" />
-            </NavLink>
+                  amountsVisible
+                    ? 'text-stone-500 hover:bg-surface-100 hover:text-stone-700'
+                    : 'bg-brand-50 text-brand-600',
+                )}
+                aria-label={amountsVisible ? 'Ocultar montos' : 'Mostrar montos'}
+                aria-pressed={!amountsVisible}
+              >
+                <EyeIcon visible={amountsVisible} />
+              </button>
+              <NavLink
+                to="/configuracion"
+                className={({ isActive }) =>
+                  cn(
+                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+                    focusRing,
+                    isActive
+                      ? 'bg-brand-50 text-brand-600'
+                      : 'text-stone-500 hover:bg-surface-100 hover:text-stone-700',
+                  )
+                }
+                aria-label="Ajustes"
+              >
+                <NavIcon name="settings" />
+              </NavLink>
+            </div>
           )}
         </div>
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 py-4 pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))]">
-        <Outlet />
+        <RoutedContent />
       </main>
 
       {!isFormPage && (

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { DataProvider } from '@/contexts/DataContext'
+import { AmountsVisibilityProvider } from '@/contexts/AmountsVisibilityContext'
 import { ExpenseViewProvider } from '@/contexts/ExpenseViewContext'
 import { PeriodProvider } from '@/contexts/PeriodContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -40,11 +41,13 @@ function AuthenticatedApp() {
 
   if (!configured) {
     return (
-      <ExpenseViewProvider>
-        <PeriodProvider>
-          <AppRoutes />
-        </PeriodProvider>
-      </ExpenseViewProvider>
+      <AmountsVisibilityProvider>
+        <ExpenseViewProvider>
+          <PeriodProvider>
+            <AppRoutes />
+          </PeriodProvider>
+        </ExpenseViewProvider>
+      </AmountsVisibilityProvider>
     )
   }
 
@@ -61,13 +64,15 @@ function AuthenticatedApp() {
   }
 
   return (
-    <ExpenseViewProvider>
-      <PeriodProvider>
-        <DataProvider>
-          <AppRoutes />
-        </DataProvider>
-      </PeriodProvider>
-    </ExpenseViewProvider>
+    <AmountsVisibilityProvider>
+      <ExpenseViewProvider>
+        <PeriodProvider>
+          <DataProvider>
+            <AppRoutes />
+          </DataProvider>
+        </PeriodProvider>
+      </ExpenseViewProvider>
+    </AmountsVisibilityProvider>
   )
 }
 
