@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Badge } from '@/components/ui/Card'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { cn } from '@/lib/utils'
+import { focusRing } from '@/components/ui/styles'
 
 type NavIconName = 'home' | 'movements' | 'balance' | 'categories' | 'budget' | 'import' | 'settings'
 
@@ -80,10 +81,13 @@ export function Layout() {
   const hideFab = isFormPage || location.pathname === '/presupuesto'
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-lg flex-col bg-slate-50 md:max-w-2xl lg:max-w-4xl">
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur">
+    <div className="mx-auto flex min-h-dvh max-w-lg flex-col bg-surface-50 md:max-w-2xl lg:max-w-4xl">
+      <header className="sticky top-0 z-10 border-b border-stone-200/80 bg-white/85 px-4 py-3 backdrop-blur-md">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+          <h1 className="flex items-center gap-2 text-lg font-bold tracking-tight text-stone-900">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
+              FP
+            </span>
             Finanzas Pareja
             {isPersonal && location.pathname !== '/presupuesto' && (
               <Badge variant="info">Personal</Badge>
@@ -95,9 +99,10 @@ export function Layout() {
               className={({ isActive }) =>
                 cn(
                   'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+                  focusRing,
                   isActive
                     ? 'bg-brand-50 text-brand-600'
-                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700',
+                    : 'text-stone-500 hover:bg-surface-100 hover:text-stone-700',
                 )
               }
               aria-label="Ajustes"
@@ -115,9 +120,9 @@ export function Layout() {
       {!isFormPage && (
         <nav
           aria-label="Navegación principal"
-          className="fixed inset-x-0 bottom-0 z-10 border-t border-slate-200 bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom,0px)]"
+          className="fixed inset-x-0 bottom-0 z-10 border-t border-stone-200/80 bg-white/95 backdrop-blur-md pb-[env(safe-area-inset-bottom,0px)]"
         >
-          <div className="mx-auto flex max-w-lg justify-around px-2 py-2 md:max-w-2xl md:justify-center md:gap-1 md:px-4 lg:max-w-4xl">
+          <div className="mx-auto flex max-w-lg justify-around px-1 py-1.5 md:max-w-2xl md:justify-center md:gap-0.5 md:px-4 lg:max-w-4xl">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -126,7 +131,10 @@ export function Layout() {
                 className={({ isActive }) =>
                   cn(
                     'flex min-w-0 flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-[10px] font-medium transition-colors md:flex-row md:gap-2 md:px-3 md:text-sm',
-                    isActive ? 'text-brand-600' : 'text-slate-500 hover:text-slate-700',
+                    focusRing,
+                    isActive
+                      ? 'bg-brand-50 text-brand-700'
+                      : 'text-stone-500 hover:text-stone-700',
                   )
                 }
               >
@@ -141,7 +149,13 @@ export function Layout() {
       {!hideFab && (
         <NavLink
           to="/movimientos/nuevo"
-          className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] right-5 z-20 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-brand-600 text-2xl text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
+          className={cn(
+            'fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] right-5 z-20',
+            'flex h-[52px] w-[52px] items-center justify-center rounded-full',
+            'bg-brand-600 text-2xl text-white shadow-lg shadow-brand-600/25',
+            'transition-transform hover:scale-105 active:scale-95',
+            focusRing,
+          )}
           aria-label="Nuevo movimiento"
         >
           +

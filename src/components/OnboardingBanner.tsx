@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useMovements } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useAuth } from '@/contexts/AuthContext'
@@ -7,6 +6,7 @@ import { useDataContext } from '@/contexts/DataContext'
 import { hasDefaultDisplayName } from '@/lib/couple/person-labels'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Form'
+import { ButtonLink, TextLink } from '@/components/ui/TextLink'
 
 const DISMISSED_KEY = 'finanzas-onboarding-dismissed'
 
@@ -64,7 +64,7 @@ export function OnboardingBanner({ movementCount, needsNames, onDismiss }: Onboa
   ]
 
   return (
-    <Card className="border-brand-200 bg-brand-50/50">
+    <Card className="border-brand-200/80 bg-gradient-to-br from-brand-50/80 to-white">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold text-brand-900">Primeros pasos</h3>
@@ -95,15 +95,12 @@ export function OnboardingBanner({ movementCount, needsNames, onDismiss }: Onboa
               {step.done ? '✓' : index + 1}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-slate-800">{step.title}</p>
-              <p className="text-xs text-slate-600">{step.description}</p>
+              <p className="text-sm font-medium text-stone-800">{step.title}</p>
+              <p className="text-xs text-stone-600">{step.description}</p>
               {step.action && !step.done && (
-                <Link
-                  to={step.action.to}
-                  className="mt-1 inline-block text-xs font-medium text-brand-600 hover:text-brand-700"
-                >
+                <TextLink to={step.action.to} className="mt-1 inline-block text-xs">
                   {step.action.label} →
-                </Link>
+                </TextLink>
               )}
             </div>
           </li>
@@ -111,12 +108,9 @@ export function OnboardingBanner({ movementCount, needsNames, onDismiss }: Onboa
       </ol>
       <div className="mt-4 flex flex-wrap gap-2">
         {movementCount === 0 && (
-          <Link
-            to="/importar"
-            className="inline-flex items-center rounded-lg border border-brand-300 bg-white px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
-          >
+          <ButtonLink to="/importar" variant="secondary" size="sm">
             Importar resumen
-          </Link>
+          </ButtonLink>
         )}
         <Button type="button" variant="ghost" size="sm" onClick={onDismiss}>
           Entendido, ocultar

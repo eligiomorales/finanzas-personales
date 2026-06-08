@@ -25,11 +25,11 @@ export function CurrencyAmountInput({
     <div
       className={cn(
         'flex min-w-0 overflow-hidden rounded-lg border bg-white transition-colors focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100',
-        invalid ? 'border-red-400' : 'border-slate-300',
+        invalid ? 'border-red-400' : 'border-stone-300',
       )}
     >
       <span
-        className="flex shrink-0 items-center border-r border-slate-300 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-600"
+        className="flex shrink-0 items-center border-r border-stone-300 bg-surface-50 px-3 py-3 text-sm font-semibold text-stone-600"
         aria-hidden="true"
       >
         {currencyInputPrefix(currency)}

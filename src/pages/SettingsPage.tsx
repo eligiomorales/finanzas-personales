@@ -4,7 +4,6 @@ import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useAuth } from '@/contexts/AuthContext'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { expenseViewModeLabel, type ExpenseViewMode } from '@/lib/expense-view-mode'
-import { cn } from '@/lib/utils'
 import { useDataContext } from '@/contexts/DataContext'
 import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import { resetDatabase } from '@/db/seed'
@@ -20,6 +19,8 @@ import { migrateLocalToRemote, previewLocalMigration, type MigrationPreview } fr
 import { formatDate } from '@/lib/utils'
 import { formatInviteCodeStatus, getInviteCodeStatus } from '@/lib/couple/invite-code'
 import type { DatabaseBackup } from '@/lib/backup'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { CurrencyToggle } from '@/components/CurrencyToggle'
 import { Card } from '@/components/ui/Card'
 import { Alert } from '@/components/ui/Alert'
@@ -330,7 +331,7 @@ export function SettingsPage() {
       {dialog}
       <LiveRegion>{backupMessage ?? categoryMessage?.text ?? ''}</LiveRegion>
 
-      <h2 className="text-xl font-bold">Configuración</h2>
+      <PageHeader title="Configuración" subtitle="Cuenta, moneda, categorías y respaldos" />
 
       {backupReminder.neverExported && (
         <Alert tone="warning" title="Todavía no exportaste un backup">
@@ -359,7 +360,7 @@ export function SettingsPage() {
 
       <Card>
         <h3 className="mb-4 font-semibold">Tipo de cambio</h3>
-        <p className="mb-4 text-sm text-slate-600">
+        <p className="mb-4 text-sm text-stone-600">
           Una sola cotización para toda la app. Al cambiarla, se recalculan balances y totales.
         </p>
         <form
@@ -388,41 +389,27 @@ export function SettingsPage() {
 
       <Card>
         <h3 className="mb-4 font-semibold">Visualización</h3>
-        <p className="mb-3 text-sm text-slate-600">
+        <p className="mb-3 text-sm text-stone-600">
           Personal: tus gastos + tu parte de los compartidos. Compartido: totales de la pareja.
         </p>
-        <div
-          role="radiogroup"
+        <SegmentedControl
           aria-label="Modo de vista de gastos"
-          className="flex gap-1 rounded-lg bg-slate-100 p-1"
-        >
-          {(['couple', 'personal'] as ExpenseViewMode[]).map((option) => (
-            <button
-              key={option}
-              type="button"
-              role="radio"
-              aria-checked={expenseViewMode === option}
-              onClick={() => setExpenseViewMode(option)}
-              className={cn(
-                'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                expenseViewMode === option
-                  ? 'bg-white text-brand-700 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-800',
-              )}
-            >
-              {expenseViewModeLabel(option)}
-            </button>
-          ))}
-        </div>
+          options={(['couple', 'personal'] as ExpenseViewMode[]).map((option) => ({
+            value: option,
+            label: expenseViewModeLabel(option),
+          }))}
+          value={expenseViewMode}
+          onChange={setExpenseViewMode}
+        />
       </Card>
 
       <Card>
         <h3 className="mb-4 font-semibold">Categorías</h3>
-        <p className="mb-4 text-sm text-slate-600">
+        <p className="mb-4 text-sm text-stone-600">
           Agregá, editá o renombrá categorías. La gestión está acá en Ajustes; en Categorías ves el análisis de gastos.
         </p>
 
-        <form onSubmit={handleAddCategory} className="mb-4 rounded-lg border border-slate-200 bg-white p-3">
+        <form onSubmit={handleAddCategory} className="mb-4 rounded-lg border border-stone-200 bg-white p-3">
           <Label htmlFor="settings-new-category-name">Agregar categoría</Label>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row">
             <Input
@@ -458,7 +445,7 @@ export function SettingsPage() {
 
         <div className="space-y-2">
           {categories.map((cat) => (
-            <div key={cat.id} className="rounded-lg bg-slate-50 px-3 py-2">
+            <div key={cat.id} className="rounded-lg bg-surface-50 px-3 py-2">
               {editingId === cat.id ? (
                 <form onSubmit={handleSaveCategory} className="space-y-2">
                   <div className="flex flex-wrap gap-2">
@@ -505,7 +492,7 @@ export function SettingsPage() {
                       <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: cat.color }} />
                     )}
                     <span className="truncate text-sm font-medium">{cat.name}</span>
-                    <span className="shrink-0 text-xs text-slate-500">
+                    <span className="shrink-0 text-xs text-stone-500">
                       {cat.type === 'income' ? 'Ingreso' : 'Gasto'}
                     </span>
                   </div>
@@ -534,19 +521,19 @@ export function SettingsPage() {
       <Card>
         <h3 className="mb-2 font-semibold">Cuenta y sincronización</h3>
         {configured && user ? (
-          <div className="space-y-3 text-sm text-slate-700">
+          <div className="space-y-3 text-sm text-stone-700">
             <p>
-              <span className="text-slate-500">Sesión:</span> {user.email}
+              <span className="text-stone-500">Sesión:</span> {user.email}
             </p>
             {membership && (
               <div className="space-y-2">
                 <p>
-                  <span className="text-slate-500">Código de invitación:</span>{' '}
-                  <code className="rounded bg-slate-100 px-2 py-0.5 font-mono text-base tracking-wider">
+                  <span className="text-stone-500">Código de invitación:</span>{' '}
+                  <code className="rounded bg-surface-100 px-2 py-0.5 font-mono text-base tracking-wider">
                     {membership.inviteCode}
                   </code>
                 </p>
-                <p className="text-slate-600">
+                <p className="text-stone-600">
                   {formatInviteCodeStatus(membership.inviteCodeExpiresAt, membership.memberCount)}
                 </p>
                 {canManageInviteCode && (
@@ -578,7 +565,7 @@ export function SettingsPage() {
                 )}
               </div>
             )}
-            <p className="text-slate-600">
+            <p className="text-stone-600">
               {mode === 'remote'
                 ? 'Los movimientos se guardan en Supabase y se comparten entre navegadores.'
                 : 'Modo local activo.'}
@@ -588,7 +575,7 @@ export function SettingsPage() {
             </Button>
           </div>
         ) : (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-stone-600">
             Modo local sin Supabase. Configurá VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY para sincronizar.
           </p>
         )}
@@ -597,22 +584,22 @@ export function SettingsPage() {
       {mode === 'remote' && migrationPreview && (
         <Card>
           <h3 className="mb-2 font-semibold">Migrar datos locales a cuenta</h3>
-          <p className="mb-3 text-sm text-slate-600">
+          <p className="mb-3 text-sm text-stone-600">
             Subí los movimientos que tengas en IndexedDB de este navegador a la pareja compartida.
           </p>
           <div className="mb-4 grid gap-3 text-sm sm:grid-cols-2">
-            <div className="rounded-lg bg-slate-50 p-3">
-              <p className="font-medium text-slate-700">Local (IndexedDB)</p>
-              <p className="mt-1 text-slate-600">{migrationPreview.local.movements} movimientos</p>
-              <p className="text-xs text-slate-500">
+            <div className="rounded-lg bg-surface-50 p-3">
+              <p className="font-medium text-stone-700">Local (IndexedDB)</p>
+              <p className="mt-1 text-stone-600">{migrationPreview.local.movements} movimientos</p>
+              <p className="text-xs text-stone-500">
                 {migrationPreview.local.incomes} ingresos · {migrationPreview.local.expenses} gastos ·{' '}
                 {migrationPreview.local.settlements} liquidaciones
               </p>
             </div>
-            <div className="rounded-lg bg-slate-50 p-3">
-              <p className="font-medium text-slate-700">Nube (pareja)</p>
-              <p className="mt-1 text-slate-600">{migrationPreview.remote.movements} movimientos</p>
-              <p className="text-xs text-slate-500">
+            <div className="rounded-lg bg-surface-50 p-3">
+              <p className="font-medium text-stone-700">Nube (pareja)</p>
+              <p className="mt-1 text-stone-600">{migrationPreview.remote.movements} movimientos</p>
+              <p className="text-xs text-stone-500">
                 {migrationPreview.remote.incomes} ingresos · {migrationPreview.remote.expenses} gastos ·{' '}
                 {migrationPreview.remote.settlements} liquidaciones
               </p>
@@ -643,7 +630,7 @@ export function SettingsPage() {
         <h3 className="mb-4 font-semibold">Nombres en la pareja</h3>
         {mode === 'remote' ? (
           <>
-            <p className="mb-4 text-sm text-slate-600">
+            <p className="mb-4 text-sm text-stone-600">
               Tu identidad queda vinculada a tu cuenta. Solo podés editar tu propio nombre; el de tu
               pareja se toma de su perfil.
             </p>
@@ -663,7 +650,7 @@ export function SettingsPage() {
                   id="settings-partner-name"
                   value={persons.partnerName}
                   readOnly
-                  className="bg-slate-50"
+                  className="bg-surface-50"
                 />
               </FormGroup>
               <Button type="submit" aria-live="polite" disabled={!myDisplayName.trim()}>
@@ -673,7 +660,7 @@ export function SettingsPage() {
           </>
         ) : (
           <form onSubmit={handleSaveNames}>
-            <p className="mb-4 text-sm text-slate-600">
+            <p className="mb-4 text-sm text-stone-600">
               En modo local sin cuenta, podés definir los nombres manualmente.
             </p>
             <FormGroup>
@@ -703,24 +690,24 @@ export function SettingsPage() {
         <h3 className="mb-2 font-semibold">
           {mode === 'remote' ? 'Backup de la pareja' : 'Datos locales de este navegador'}
         </h3>
-        <p className="mb-3 text-sm text-slate-600">
+        <p className="mb-3 text-sm text-stone-600">
           {mode === 'remote'
             ? 'Exportá un JSON con movimientos, categorías, ajustes e importaciones desde la nube. Sirve como respaldo o para migrar datos.'
             : 'Cada navegador guarda su propia copia en IndexedDB, aunque uses la misma URL. El explorador embebido de Cursor y Chrome/Safari/Firefox no comparten datos entre sí.'}
         </p>
-        <div className="mb-4 space-y-1 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
+        <div className="mb-4 space-y-1 rounded-lg bg-surface-50 p-3 text-sm text-stone-700">
           <p>
-            <span className="text-slate-500">Origen:</span> {origin || '—'}
+            <span className="text-stone-500">Origen:</span> {origin || '—'}
           </p>
           {stats && (
             <p>
-              <span className="text-slate-500">Movimientos:</span> {stats.total} ({stats.expenses}{' '}
+              <span className="text-stone-500">Movimientos:</span> {stats.total} ({stats.expenses}{' '}
               gastos, {stats.incomes} ingresos, {stats.settlements} liquidaciones)
             </p>
           )}
           {lastBackupAt && (
             <p>
-              <span className="text-slate-500">Último backup:</span>{' '}
+              <span className="text-stone-500">Último backup:</span>{' '}
               {formatDate(lastBackupAt.slice(0, 10))}
             </p>
           )}
@@ -745,7 +732,7 @@ export function SettingsPage() {
             {backupMessage}
           </StatusMessage>
         )}
-        <p className="mt-3 text-xs text-slate-500">
+        <p className="mt-3 text-xs text-stone-500">
           {mode === 'remote'
             ? 'Importar backup reemplaza solo los datos locales de este navegador; no sube automáticamente a la nube.'
             : 'Para ver los mismos movimientos en otro navegador, exportá acá e importá allí.'}
@@ -755,7 +742,7 @@ export function SettingsPage() {
 
       <Card className="border-red-200">
         <h3 className="mb-2 font-semibold text-red-700">Zona de peligro</h3>
-        <p className="mb-3 text-sm text-slate-600">
+        <p className="mb-3 text-sm text-stone-600">
           Restablece la base de datos local y carga datos de ejemplo.
         </p>
         <Button variant="danger" size="sm" onClick={handleReset}>
@@ -763,7 +750,7 @@ export function SettingsPage() {
         </Button>
       </Card>
 
-      <p className="text-center text-xs text-slate-400">
+      <p className="text-center text-xs text-stone-400">
         Finanzas Pareja v0.2 —{' '}
         {mode === 'remote' ? 'Datos sincronizados en Supabase' : 'Datos almacenados localmente en tu navegador'}
       </p>

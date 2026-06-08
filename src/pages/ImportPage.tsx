@@ -21,6 +21,9 @@ import {
 import { imageProfileLabel, type ImageProfile } from '@/lib/ocr/profile-labels'
 import { pdfProfileLabel, type PdfProfile } from '@/lib/pdf/parse-pdf'
 import { Badge } from '@/components/ui/Card'
+import { ChoiceChip } from '@/components/ui/ChoiceChip'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { Stepper } from '@/components/ui/Stepper'
 import type { ImportShareValues } from '@/components/ImportShareControls'
 import { Button, Select, StatusMessage, LiveRegion } from '@/components/ui/Form'
@@ -340,20 +343,20 @@ export function ImportPage() {
 
   return (
     <div className="mx-auto min-w-0 max-w-2xl space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900">Importar resumen</h2>
-        <p className="mt-0.5 text-sm text-slate-500">CSV, Excel, PDF de tarjeta o captura de Wallbit</p>
-      </div>
+      <PageHeader
+        title="Importar resumen"
+        subtitle="CSV, Excel, PDF de tarjeta o captura de Wallbit"
+      />
 
       <Stepper steps={[...IMPORT_STEPS]} currentStepId={step} completedStepIds={completedStepIds} />
 
       {(step === 'upload' || step === 'mapping' || step === 'done') && (
-      <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="min-w-0 overflow-hidden rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
       {step === 'upload' && (
         <div className="space-y-4">
           <div>
-            <h3 className="text-sm font-semibold text-slate-800">Subí tu resumen</h3>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <h3 className="text-sm font-semibold text-stone-800">Subí tu resumen</h3>
+            <p className="mt-0.5 text-xs text-stone-500">
               CSV, Excel, PDF o captura. Vas a poder revisar todo antes de guardar.
             </p>
           </div>
@@ -371,17 +374,17 @@ export function ImportPage() {
               loading && 'pointer-events-none opacity-60',
               dragging
                 ? 'border-brand-500 bg-brand-50'
-                : 'border-slate-300 bg-slate-50 hover:border-brand-400 hover:bg-brand-50/40',
+                : 'border-stone-300 bg-surface-50 hover:border-brand-400 hover:bg-brand-50/40',
             )}
           >
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
               ⬆️
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-slate-800">
+              <p className="text-sm font-semibold text-stone-800">
                 {loading ? (loadingDetail ?? 'Procesando archivo...') : 'Arrastrá un archivo o tocá para elegir'}
               </p>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-0.5 text-xs text-stone-500">
                 CSV, XLSX, XLS, PDF, PNG, JPG o WEBP · máximo 20 MB
               </p>
             </div>
@@ -398,69 +401,54 @@ export function ImportPage() {
             />
           </label>
 
-          <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
+          <div className="space-y-3 rounded-xl border border-stone-200 bg-white p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Configuración</p>
-                <p className="text-xs text-slate-400">Defaults para interpretar el archivo</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Configuración</p>
+                <p className="text-xs text-stone-400">Defaults para interpretar el archivo</p>
               </div>
               <Badge variant="info">Editable después</Badge>
             </div>
 
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm font-medium text-slate-700">Tipo de cuenta</span>
-                <div className="inline-grid grid-cols-2 rounded-full border border-slate-200 bg-slate-50 p-0.5">
-                  {([
+                <span className="text-sm font-medium text-stone-700">Tipo de cuenta</span>
+                <SegmentedControl
+                  aria-label="Tipo de cuenta"
+                  options={[
                     { value: 'credit' as const, label: 'Crédito' },
                     { value: 'debit' as const, label: 'Débito' },
-                  ]).map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setAccountType(opt.value)}
-                      className={cn(
-                        'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                        accountType === opt.value
-                          ? 'bg-white text-brand-700 shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700',
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
+                  ]}
+                  value={accountType}
+                  onChange={setAccountType}
+                  fullWidth={false}
+                  size="sm"
+                />
               </div>
 
               {showDefaultCurrency && (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <span className="text-sm font-medium text-slate-700">Moneda por defecto</span>
-                    <p className="text-xs text-slate-400">Si el archivo no trae moneda por movimiento</p>
+                    <span className="text-sm font-medium text-stone-700">Moneda por defecto</span>
+                    <p className="text-xs text-stone-400">Si el archivo no trae moneda por movimiento</p>
                   </div>
-                  <div className="inline-grid grid-cols-2 rounded-full border border-slate-200 bg-slate-50 p-0.5">
-                    {(['ARS', 'USD'] as const).map((currency) => (
-                      <button
-                        key={currency}
-                        type="button"
-                        onClick={() => setImportCurrency(currency)}
-                        className={cn(
-                          'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                          importCurrency === currency
-                            ? 'bg-white text-brand-700 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700',
-                        )}
-                      >
-                        {currency}
-                      </button>
-                    ))}
-                  </div>
+                  <SegmentedControl
+                    aria-label="Moneda por defecto"
+                    options={[
+                      { value: 'ARS' as const, label: 'ARS' },
+                      { value: 'USD' as const, label: 'USD' },
+                    ]}
+                    value={importCurrency}
+                    onChange={setImportCurrency}
+                    fullWidth={false}
+                    size="sm"
+                  />
                 </div>
               )}
             </div>
 
             {showDefaultCurrency && importCurrency === 'USD' && (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-stone-400">
                 Conversión con cotización global: 1 USD = {defaultRate.toLocaleString('es-AR')} ARS
               </p>
             )}
@@ -469,38 +457,38 @@ export function ImportPage() {
           {error && <StatusMessage tone="error">{error}</StatusMessage>}
           {loading && <LiveRegion>{loadingDetail ?? 'Procesando archivo'}</LiveRegion>}
 
-          <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-            <span className="font-medium text-slate-600">Privacidad:</span> las capturas se procesan con OCR en tu navegador, sin enviarse a servicios externos.
+          <div className="rounded-xl bg-surface-50 px-3 py-2 text-xs text-stone-500">
+            <span className="font-medium text-stone-600">Privacidad:</span> las capturas se procesan con OCR en tu navegador, sin enviarse a servicios externos.
           </div>
         </div>
       )}
 
       {step === 'mapping' && (
         <div className="space-y-6">
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+          <div className="flex items-center gap-3 rounded-xl border border-stone-200 bg-white p-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-lg">📄</div>
             <div className="min-w-0">
-              <p className="truncate font-semibold text-slate-800">{fileName}</p>
-              <p className="text-xs text-slate-500">
+              <p className="truncate font-semibold text-stone-800">{fileName}</p>
+              <p className="text-xs text-stone-500">
                 {rawRows.length} filas detectadas · Encabezados detectados automáticamente
               </p>
             </div>
-            <button type="button" onClick={reset} className="ml-auto shrink-0 text-xs text-slate-400 hover:text-slate-600">
+            <button type="button" onClick={reset} className="ml-auto shrink-0 text-xs text-stone-400 hover:text-stone-600">
               Cambiar archivo
             </button>
           </div>
 
           <div className="space-y-6">
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-slate-700">Asignar columnas</h3>
-              <p className="text-xs text-slate-500">Vinculá cada campo con la columna correspondiente del archivo.</p>
+              <h3 className="text-sm font-semibold text-stone-700">Asignar columnas</h3>
+              <p className="text-xs text-stone-500">Vinculá cada campo con la columna correspondiente del archivo.</p>
               <div className="space-y-3">
                 {mappingFields.map((field) => {
                   const fieldId = `import-mapping-${field.id}`
                   const mapped = mapping[field.id]
                   return (
                     <div key={field.id} className="space-y-1">
-                      <label htmlFor={fieldId} className="flex items-center gap-1 text-xs font-medium text-slate-700">
+                      <label htmlFor={fieldId} className="flex items-center gap-1 text-xs font-medium text-stone-700">
                         <span>{field.label}</span>
                         {field.required && <span className="text-red-500">*</span>}
                         {mapped && <span className="text-brand-500">✓</span>}
@@ -526,14 +514,14 @@ export function ImportPage() {
 
             {previewRows.length > 0 && (
               <div className="min-w-0 space-y-2">
-                <h3 className="text-sm font-semibold text-slate-700">Vista previa</h3>
-                <p className="text-xs text-slate-500">Primeras {previewRows.length} filas del archivo</p>
-                <div className="w-full min-w-0 overflow-x-auto rounded-xl border border-slate-200">
+                <h3 className="text-sm font-semibold text-stone-700">Vista previa</h3>
+                <p className="text-xs text-stone-500">Primeras {previewRows.length} filas del archivo</p>
+                <div className="w-full min-w-0 overflow-x-auto rounded-xl border border-stone-200">
                   <table className="w-full min-w-max text-xs">
                     <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50">
+                      <tr className="border-b border-stone-200 bg-surface-50">
                         {headers.map((h) => (
-                          <th key={h} className="whitespace-nowrap px-3 py-2 text-left font-semibold text-slate-600">
+                          <th key={h} className="whitespace-nowrap px-3 py-2 text-left font-semibold text-stone-600">
                             {h}
                           </th>
                         ))}
@@ -541,9 +529,9 @@ export function ImportPage() {
                     </thead>
                     <tbody>
                       {previewRows.map((row, i) => (
-                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
+                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-surface-50/60'}>
                           {headers.map((h) => (
-                            <td key={h} className="whitespace-nowrap px-3 py-2 text-slate-700">
+                            <td key={h} className="whitespace-nowrap px-3 py-2 text-stone-700">
                               {row[h] ?? ''}
                             </td>
                           ))}
@@ -572,20 +560,20 @@ export function ImportPage() {
               <path d="M7.5 12l3 3 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <h3 className="mt-5 text-xl font-bold text-slate-900">¡Importación completada!</h3>
-          <p className="mt-2 text-slate-500">
-            Se importaron <strong className="text-slate-800">{confirmedCount} movimiento(s)</strong> desde{' '}
-            <strong className="text-slate-800">{fileName}</strong>
+          <h3 className="mt-5 text-xl font-bold text-stone-900">¡Importación completada!</h3>
+          <p className="mt-2 text-stone-500">
+            Se importaron <strong className="text-stone-800">{confirmedCount} movimiento(s)</strong> desde{' '}
+            <strong className="text-stone-800">{fileName}</strong>
           </p>
           <div className="mt-6 grid w-full max-w-xs grid-cols-3 gap-3">
             {[
               { label: 'Importados', value: confirmedCount, color: 'text-brand-700', bg: 'bg-brand-50' },
-              { label: 'Ignorados', value: ignoredCount, color: 'text-slate-600', bg: 'bg-slate-100' },
+              { label: 'Ignorados', value: ignoredCount, color: 'text-stone-600', bg: 'bg-surface-100' },
               { label: 'Duplicados', value: duplicateCount, color: 'text-amber-600', bg: 'bg-amber-50' },
             ].map((stat) => (
               <div key={stat.label} className={cn('flex flex-col items-center rounded-xl py-3', stat.bg)}>
                 <span className={cn('text-xl font-bold tabular-nums', stat.color)}>{stat.value}</span>
-                <span className="text-xs text-slate-500">{stat.label}</span>
+                <span className="text-xs text-stone-500">{stat.label}</span>
               </div>
             ))}
           </div>
@@ -599,14 +587,14 @@ export function ImportPage() {
 
       {step === 'review' && (
         <div className="space-y-4">
-          <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+          <div className="space-y-4 rounded-xl border border-stone-200 bg-white p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-base">
                 {imageProfile ? '🖼️' : pdfProfile ? '📑' : '📄'}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-800">{fileName}</p>
-                <p className="text-xs text-slate-500">
+                <p className="truncate text-sm font-semibold text-stone-800">{fileName}</p>
+                <p className="text-xs text-stone-500">
                   {[
                     pdfProfile && pdfProfileLabel(pdfProfile),
                     imageProfile && imageProfileLabel(imageProfile),
@@ -622,16 +610,16 @@ export function ImportPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-4 divide-x divide-slate-100 rounded-lg border border-slate-100 bg-slate-50">
+            <div className="grid grid-cols-4 divide-x divide-stone-100 rounded-lg border border-stone-100 bg-surface-50">
               {[
                 { label: 'Pendientes', value: pendingCount, color: 'text-brand-700' },
-                { label: 'Ignorados', value: ignoredCount, color: 'text-slate-500' },
+                { label: 'Ignorados', value: ignoredCount, color: 'text-stone-500' },
                 { label: 'Duplicados', value: duplicateCount, color: 'text-amber-600' },
-                { label: 'Total ARS', value: formatCurrency(pendingTotalArs, 'ARS'), color: 'text-slate-800' },
+                { label: 'Total ARS', value: formatCurrency(pendingTotalArs, 'ARS'), color: 'text-stone-800' },
               ].map((stat) => (
                 <div key={stat.label} className="flex flex-col items-center py-3">
                   <span className={cn('text-lg font-bold tabular-nums', stat.color)}>{stat.value}</span>
-                  <span className="text-xs text-slate-500">{stat.label}</span>
+                  <span className="text-xs text-stone-500">{stat.label}</span>
                 </div>
               ))}
             </div>
@@ -661,25 +649,21 @@ export function ImportPage() {
                 ['all', `Todos (${pendingItems.length})`],
               ] as const
             ).map(([filter, label]) => (
-              <button
+              <ChoiceChip
                 key={filter}
-                type="button"
+                shape="pill"
+                size="sm"
+                selected={reviewFilter === filter}
                 onClick={() => setReviewFilter(filter)}
-                className={cn(
-                  'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                  reviewFilter === filter
-                    ? 'border-brand-500 bg-brand-50 text-brand-700'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50',
-                )}
               >
                 {label}
-              </button>
+              </ChoiceChip>
             ))}
           </div>
 
           <div className="space-y-2 pb-28">
             {visibleItems.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-4 text-center text-sm text-slate-500">
+              <div className="rounded-xl border border-stone-200 bg-white p-4 text-center text-sm text-stone-500">
                 No hay movimientos en esta vista.
               </div>
             ) : (
@@ -701,13 +685,13 @@ export function ImportPage() {
             )}
           </div>
 
-          <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+          <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-stone-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
             <div className="mx-auto flex max-w-2xl flex-col gap-2 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
-                <p className="font-semibold text-slate-800">
+                <p className="font-semibold text-stone-800">
                   {loading ? 'Importando...' : `Confirmar ${pendingCount} movimiento(s)`}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-stone-500">
                   {ignoredCount > 0 && `${ignoredCount} ignorado(s) · `}
                   Total pendiente ~{formatCurrency(pendingTotalArs, 'ARS')}
                 </p>

@@ -9,10 +9,10 @@ const toneStyles: Record<
   { container: string; title: string; description: string; icon: string }
 > = {
   info: {
-    container: 'border-blue-200 bg-blue-50',
-    title: 'text-blue-900',
-    description: 'text-blue-800',
-    icon: 'text-blue-600',
+    container: 'border-brand-200 bg-brand-50',
+    title: 'text-brand-900',
+    description: 'text-brand-800',
+    icon: 'text-brand-600',
   },
   warning: {
     container: 'border-amber-200 bg-amber-50',

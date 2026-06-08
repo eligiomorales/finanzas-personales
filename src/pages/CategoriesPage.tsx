@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
 import { useMovements, useCategories, useSettings, useBudgets } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
@@ -15,12 +14,14 @@ import { formatInViewCurrency, getCurrencyConfig } from '@/lib/currency'
 import { formatPeriodHeaderTitle } from '@/lib/period-presets'
 import { formatDate, previousPeriodForRange, cn } from '@/lib/utils'
 import { Card, EmptyState, StatCard } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { TextLink } from '@/components/ui/TextLink'
 import { PeriodFilter } from '@/components/PeriodFilter'
 
 const deltaColors = {
   positive: 'text-emerald-700',
   negative: 'text-red-700',
-  neutral: 'text-slate-500',
+  neutral: 'text-stone-500',
 }
 
 export function CategoriesPage() {
@@ -112,15 +113,10 @@ export function CategoriesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="-mx-4 space-y-2 border-b border-slate-200 px-4 pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-bold text-slate-900">{periodTitle}</h2>
-            <p className="text-xs text-slate-500">{periodSubtitle}</p>
-            <p className="mt-1 text-xs text-slate-400">
-              Comparación vs {formatDate(previousPeriod.from)} – {formatDate(previousPeriod.to)}
-            </p>
-          </div>
+      <PageHeader
+        title={periodTitle}
+        subtitle={`${periodSubtitle} · Comparación vs ${formatDate(previousPeriod.from)} – ${formatDate(previousPeriod.to)}`}
+        trailing={
           <PeriodFilter
             period={period}
             onChange={setPeriod}
@@ -128,14 +124,15 @@ export function CategoriesPage() {
             variant="dates"
             datesLabelOnly
           />
-        </div>
+        }
+      >
         <PeriodFilter
           period={period}
           onChange={setPeriod}
           idPrefix="categories-period"
           variant="presets"
         />
-      </div>
+      </PageHeader>
 
       <StatCard
         label={isPersonal ? 'Mis gastos del período' : 'Total gastos del período'}
@@ -147,17 +144,17 @@ export function CategoriesPage() {
       {!isPersonal && (budgetSummary?.totalBudgeted ?? 0) > 0 && (
         <Card compact className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
               Presupuesto compartido
             </p>
-            <p className="text-sm text-slate-700">
+            <p className="text-sm text-stone-700">
               {formatInViewCurrency(budgetSummary!.totalSpent, currencyConfig)} de{' '}
               {formatInViewCurrency(budgetSummary!.totalBudgeted, currencyConfig)}
             </p>
           </div>
-          <Link to="/presupuesto" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+          <TextLink to="/presupuesto" className="text-sm">
             Editar →
-          </Link>
+          </TextLink>
         </Card>
       )}
 
@@ -183,13 +180,13 @@ export function CategoriesPage() {
                         style={{ backgroundColor: cat.color }}
                       />
                     )}
-                    <span className="truncate font-medium text-slate-800">{cat.categoryName}</span>
+                    <span className="truncate font-medium text-stone-800">{cat.categoryName}</span>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="font-bold tabular-nums text-slate-900">
+                    <p className="font-bold tabular-nums text-stone-900">
                       {formatInViewCurrency(cat.total, currencyConfig)}
                     </p>
-                    <p className="text-xs text-slate-500">{pct.toFixed(1)}% del total</p>
+                    <p className="text-xs text-stone-500">{pct.toFixed(1)}% del total</p>
                     {cat.delta && (
                       <p className={cn('text-xs font-medium', deltaColors[cat.delta.tone])}>
                         {cat.delta.text}
@@ -215,7 +212,7 @@ export function CategoriesPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-2 overflow-hidden rounded-full bg-surface-100">
                     <div
                       className="h-full rounded-full transition-all"
                       style={{

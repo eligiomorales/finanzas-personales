@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { useFilteredMovements, useCategories, useSettings, useMovementMutations } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
@@ -23,6 +22,7 @@ import { payerDisplayLabel } from '@/lib/couple/person-labels'
 import { getDisplayAmountForView } from '@/lib/balance'
 import { formatMovementAmountLinesForView, getCurrencyConfig } from '@/lib/currency'
 import { MOVEMENTS_PAGE_SIZE } from '@/lib/movements-query'
+import { ButtonLink } from '@/components/ui/TextLink'
 import { Card, EmptyState, Badge } from '@/components/ui/Card'
 import { Button, LiveRegion } from '@/components/ui/Form'
 import type { MovementFilters } from '@/types'
@@ -119,7 +119,7 @@ export function MovementsPage() {
         clearAllLabel="Restablecer filtros"
       />
 
-      <p className="text-sm text-slate-500" aria-live="polite">
+      <p className="text-sm text-stone-500" aria-live="polite">
         {isLoading
           ? 'Cargando movimientos...'
           : total === 0
@@ -147,7 +147,7 @@ export function MovementsPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs text-slate-500">{formatShortDate(m.date)}</span>
+                          <span className="text-xs text-stone-500">{formatShortDate(m.date)}</span>
                           <span
                             className={`rounded px-1.5 py-0.5 text-xs font-medium ${movementTypeColor(m.type)}`}
                           >
@@ -155,7 +155,7 @@ export function MovementsPage() {
                           </span>
                           {m.source === 'imported' && <Badge variant="info">Importado</Badge>}
                         </div>
-                        <p className="mt-1 break-words font-medium text-slate-800">{m.description}</p>
+                        <p className="mt-1 break-words font-medium text-stone-800">{m.description}</p>
                       </div>
                       <div className="shrink-0 text-right">
                         <p
@@ -165,12 +165,12 @@ export function MovementsPage() {
                           {amountLines.primary}
                         </p>
                         {amountLines.secondary && (
-                          <p className="text-xs tabular-nums text-slate-500">{amountLines.secondary}</p>
+                          <p className="text-xs tabular-nums text-stone-500">{amountLines.secondary}</p>
                         )}
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                      <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5 text-xs text-slate-500">
+                      <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5 text-xs text-stone-500">
                         {cat && <span>{cat.name}</span>}
                         <span>· Pagó: {payerDisplayLabel(m.paidBy, persons)}</span>
                         {m.isShared && (
@@ -181,11 +181,9 @@ export function MovementsPage() {
                         {!m.isShared && <span>· Personal</span>}
                       </div>
                       <div className="ml-auto flex shrink-0 gap-1">
-                        <Link to={`/movimientos/editar/${m.id}`}>
-                          <Button size="sm" variant="ghost">
-                            Editar
-                          </Button>
-                        </Link>
+                        <ButtonLink to={`/movimientos/editar/${m.id}`} size="sm" variant="ghost">
+                          Editar
+                        </ButtonLink>
                         <Button
                           size="sm"
                           variant="ghost"

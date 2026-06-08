@@ -5,9 +5,9 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/lib/utils'
+import { focusRing, textMuted } from '@/components/ui/styles'
 
-const focusRing =
-  'focus-visible:border-brand-500 focus-visible:ring-2 focus-visible:ring-brand-100 focus-visible:outline-none'
+export { focusRing }
 
 export function describedBy(...ids: (string | false | undefined | null)[]): string | undefined {
   const value = ids.filter(Boolean).join(' ')
@@ -25,9 +25,9 @@ export function Button({
 }) {
   const variants = {
     primary: 'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-700',
-    secondary: 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
+    secondary: 'border border-stone-300 bg-white text-stone-700 hover:bg-surface-50',
     danger: 'bg-red-600 text-white hover:bg-red-700',
-    ghost: 'text-slate-600 hover:bg-slate-100',
+    ghost: 'text-stone-600 hover:bg-stone-100',
   }
   const sizes = {
     sm: 'px-3 py-1.5 text-sm',
@@ -60,7 +60,7 @@ export function Input({
       type={type}
       aria-invalid={invalid || props['aria-invalid']}
       className={cn(
-        'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition-colors',
+        'w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none transition-colors',
         focusRing,
         invalid && 'border-red-400',
         type === 'date' && 'block min-w-0 max-w-full',
@@ -81,7 +81,7 @@ export function Select({
     <select
       aria-invalid={invalid || props['aria-invalid']}
       className={cn(
-        'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none',
+        'w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none',
         focusRing,
         invalid && 'border-red-400',
         className,
@@ -103,7 +103,7 @@ export function Label({
   className?: string
 }) {
   return (
-    <label htmlFor={htmlFor} className={cn('mb-1 block text-sm font-medium text-slate-700', className)}>
+    <label htmlFor={htmlFor} className={cn('mb-1 block text-sm font-medium text-stone-700', className)}>
       {children}
     </label>
   )
@@ -123,7 +123,7 @@ export function FieldError({ id, children }: { id?: string; children: ReactNode 
 
 export function FieldHint({ id, children }: { id?: string; children: ReactNode }) {
   return (
-    <p id={id} className="mt-1 text-xs text-slate-500">
+    <p id={id} className={cn('mt-1 text-xs', textMuted)}>
       {children}
     </p>
   )
@@ -143,7 +143,7 @@ export function StatusMessage({
   const tones = {
     error: 'text-red-600',
     success: 'text-emerald-600',
-    info: 'text-slate-600',
+    info: 'text-stone-600',
   }
 
   return (

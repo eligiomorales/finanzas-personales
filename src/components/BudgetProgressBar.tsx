@@ -16,7 +16,7 @@ export function BudgetProgressBar({
   const useCategoryColor = status === 'ok' || status === 'unbudgeted'
 
   return (
-    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+    <div className="h-2 overflow-hidden rounded-full bg-surface-100">
       <div
         className={cn(
           'h-full rounded-full transition-all',
@@ -47,7 +47,7 @@ export function BudgetProgressMeta({
   if (budgeted <= 0) return null
 
   return (
-    <p className="text-xs text-slate-500">
+    <p className="text-xs text-stone-500">
       {formatInViewCurrency(spent, currencyConfig)} / {formatInViewCurrency(budgeted, currencyConfig)}
       {' · '}
       {Math.round(percentUsed * 100)}% · {budgetStatusLabel(status)}

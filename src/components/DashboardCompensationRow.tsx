@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { formatInViewCurrency, type CurrencyConfig } from '@/lib/currency'
+import { cardSurface, focusRing } from '@/components/ui/styles'
 
 interface DashboardCompensationRowProps {
   hasPendingCompensation: boolean
@@ -23,10 +24,12 @@ export function DashboardCompensationRow({
     <Link
       to="/balance"
       className={cn(
-        'flex min-h-[44px] items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors',
+        cardSurface,
+        focusRing,
+        'flex min-h-[44px] items-center gap-2 px-4 py-3 text-sm transition-colors',
         hasPendingCompensation
-          ? 'bg-amber-50/70 text-slate-800 hover:bg-amber-50'
-          : 'bg-emerald-50/50 text-emerald-800 hover:bg-emerald-50/70',
+          ? 'border-amber-200/80 bg-amber-50/70 text-stone-800 hover:bg-amber-50'
+          : 'border-emerald-200/80 bg-emerald-50/50 text-emerald-800 hover:bg-emerald-50/70',
       )}
     >
       <p className="min-w-0 flex-1 truncate">

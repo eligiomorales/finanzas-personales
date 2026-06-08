@@ -7,6 +7,7 @@ import {
 } from '@/lib/couple/person-labels'
 import { payerFieldLabel, splitDistributionLabel } from '@/lib/movement-form-defaults'
 import { cn } from '@/lib/utils'
+import { ChoiceChip } from '@/components/ui/ChoiceChip'
 import { FieldHint, Input, Label, FormGroup } from '@/components/ui/Form'
 import type { Payer } from '@/types'
 
@@ -71,9 +72,7 @@ export function ImportShareControls({
   }
 
   const formLabel = (role: 'personA' | 'personB') => formLabelWithName(role, persons)
-  const payerButtonClass = compact
-    ? 'rounded-lg border px-2 py-1.5 text-xs font-medium'
-    : 'rounded-lg border px-3 py-2 text-sm font-medium'
+  const chipSize = compact ? 'sm' : 'md'
 
   function handlePaidByChange(nextPaidBy: Payer) {
     const next: ImportShareValues = { paidBy: nextPaidBy, isShared, sharePersonA, sharePersonB, splitPreset }
@@ -124,7 +123,7 @@ export function ImportShareControls({
         <span
           id={`${idPrefix}-paid-by-label`}
           className={cn(
-            'mb-1 block font-medium text-slate-700',
+            'mb-1 block font-medium text-stone-700',
             compact ? 'text-xs' : 'text-sm',
           )}
         >
@@ -143,27 +142,21 @@ export function ImportShareControls({
                 { value: 'both' as const, label: 'Ambos' },
               ] as const
             ).map(({ value, label }) => (
-              <button
+              <ChoiceChip
                 key={value}
-                type="button"
                 role="radio"
-                aria-checked={paidBy === value}
+                size={chipSize}
+                selected={paidBy === value}
+                className="w-full"
                 onClick={() => handlePaidByChange(value)}
-                className={cn(
-                  payerButtonClass,
-                  'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                  paidBy === value
-                    ? 'border-brand-500 bg-brand-50 text-brand-700'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50',
-                )}
               >
                 {label}
-              </button>
+              </ChoiceChip>
             ))}
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1">
-            <Label htmlFor={`${idPrefix}-shared`} className="!mb-0 text-xs font-medium text-slate-600">
+          <div className="flex shrink-0 items-center gap-1.5 rounded-lg border border-stone-200 bg-surface-50 px-2 py-1">
+            <Label htmlFor={`${idPrefix}-shared`} className="!mb-0 text-xs font-medium text-stone-600">
               Compartido
             </Label>
             <button
@@ -175,7 +168,7 @@ export function ImportShareControls({
               onClick={() => handleSharedChange(!isShared)}
               className={cn(
                 'relative h-5 w-9 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                isShared ? 'bg-brand-600' : 'bg-slate-300',
+                isShared ? 'bg-brand-600' : 'bg-stone-300',
               )}
             >
               <span
@@ -201,7 +194,7 @@ export function ImportShareControls({
             <span
               id={`${idPrefix}-split-label`}
               className={cn(
-                'mb-1 block font-medium text-slate-700',
+                'mb-1 block font-medium text-stone-700',
                 compact ? 'text-xs' : 'text-sm',
               )}
             >
@@ -209,21 +202,16 @@ export function ImportShareControls({
             </span>
             <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-labelledby={`${idPrefix}-split-label`}>
               {SPLIT_PRESETS.map((preset) => (
-                <button
+                <ChoiceChip
                   key={preset.value}
-                  type="button"
                   role="radio"
-                  aria-checked={splitPreset === preset.value}
+                  size="sm"
+                  shape="pill"
+                  selected={splitPreset === preset.value}
                   onClick={() => handleSplitPresetChange(preset.value)}
-                  className={cn(
-                    'rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                    splitPreset === preset.value
-                      ? 'border-brand-500 bg-brand-50 text-brand-700'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50',
-                  )}
                 >
                   {preset.label}
-                </button>
+                </ChoiceChip>
               ))}
             </div>
           </FormGroup>
@@ -282,7 +270,7 @@ export function ImportShareControls({
       )}
 
       {previewText && (
-        <p className="rounded-md bg-slate-50 px-2 py-1.5 text-xs text-slate-600">{previewText}</p>
+        <p className="rounded-md bg-surface-50 px-2 py-1.5 text-xs text-stone-600">{previewText}</p>
       )}
     </div>
   )
@@ -296,18 +284,18 @@ export function ImportShareControls({
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-controls={`${idPrefix}-reparto-panel`}
-        className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-left transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
+        className="flex w-full items-center justify-between gap-2 rounded-lg border border-stone-200 bg-surface-50 px-2.5 py-2 text-left transition-colors hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
       >
         <div className="min-w-0">
-          <span className="block text-sm font-semibold text-slate-800">Reparto</span>
-          <span className="mt-0.5 block truncate text-xs text-slate-500">{summaryText}</span>
+          <span className="block text-sm font-semibold text-stone-800">Reparto</span>
+          <span className="mt-0.5 block truncate text-xs text-stone-500">{summaryText}</span>
         </div>
-        <span className="shrink-0 text-slate-400" aria-hidden="true">
+        <span className="shrink-0 text-stone-400" aria-hidden="true">
           {open ? '▴' : '▾'}
         </span>
       </button>
       {open && (
-        <div id={`${idPrefix}-reparto-panel`} className="mt-1.5 rounded-lg border border-slate-200 p-2.5">
+        <div id={`${idPrefix}-reparto-panel`} className="mt-1.5 rounded-lg border border-stone-200 p-2.5">
           {controls}
         </div>
       )}

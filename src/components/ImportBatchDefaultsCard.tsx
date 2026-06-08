@@ -11,7 +11,7 @@ import {
 } from '@/lib/import-display'
 import type { CouplePersonsView } from '@/lib/couple/person-labels'
 import { payerDisplayLabel } from '@/lib/couple/person-labels'
-import { cn } from '@/lib/utils'
+import { ChoiceChip } from '@/components/ui/ChoiceChip'
 import { Button } from '@/components/ui/Form'
 import type { Category } from '@/types'
 
@@ -76,15 +76,15 @@ export function ImportBatchDefaultsCard({
   }, [expenseCategories, primaryCategories, showAllCategories])
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3">
+    <div className="rounded-xl border border-stone-200 bg-white p-3">
       <div className="flex items-start gap-3">
         <div
           className="mt-1 h-4 w-4 shrink-0 rounded-full border border-brand-500 bg-brand-500"
           aria-hidden="true"
         />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-slate-900">Defaults del lote</p>
-          <p className="text-xs text-slate-500">
+          <p className="text-sm font-semibold text-stone-900">Defaults del lote</p>
+          <p className="text-xs text-stone-500">
             Aplicar a {pendingCount} pendiente{pendingCount === 1 ? '' : 's'}
           </p>
         </div>
@@ -92,25 +92,17 @@ export function ImportBatchDefaultsCard({
 
       <div className="ml-7 mt-2 space-y-2">
         <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
+          <ChoiceChip
+            shape="pill"
+            size="sm"
+            selected={Boolean(selectedCategory)}
             onClick={() => setEditOpen(true)}
-            className={cn(
-              'rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
-              selectedCategory
-                ? 'border-brand-500 bg-brand-50 text-brand-700'
-                : 'border-slate-200 text-slate-500',
-            )}
           >
             {selectedCategory?.name ?? 'Sin categoría'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditOpen(true)}
-            className="rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600"
-          >
+          </ChoiceChip>
+          <ChoiceChip shape="pill" size="sm" onClick={() => setEditOpen(true)}>
             {repartoChip}
-          </button>
+          </ChoiceChip>
           <button
             type="button"
             onClick={() => setEditOpen((open) => !open)}
@@ -121,35 +113,28 @@ export function ImportBatchDefaultsCard({
         </div>
 
         {editOpen && (
-          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-2.5">
+          <div className="space-y-3 rounded-xl border border-stone-200 bg-surface-50/70 p-2.5">
             <div className="space-y-1.5">
-              <span className="text-xs font-semibold text-slate-600">Categoría masiva</span>
+              <span className="text-xs font-semibold text-stone-600">Categoría masiva</span>
               <div className="flex flex-wrap gap-1.5">
-                {categoryOptions.map((option) => {
-                  const isSelected = bulkCategoryId === option.id
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => onCategoryChange(option.id)}
-                      className={cn(
-                        'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
-                        isSelected
-                          ? 'border-brand-500 bg-brand-50 text-brand-700'
-                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
-                      )}
-                    >
-                      {option.name}
-                    </button>
-                  )
-                })}
-                <button
-                  type="button"
+                {categoryOptions.map((option) => (
+                  <ChoiceChip
+                    key={option.id}
+                    shape="pill"
+                    size="sm"
+                    selected={bulkCategoryId === option.id}
+                    onClick={() => onCategoryChange(option.id)}
+                  >
+                    {option.name}
+                  </ChoiceChip>
+                ))}
+                <ChoiceChip
+                  shape="pill"
+                  size="sm"
                   onClick={() => setShowAllCategories((open) => !open)}
-                  className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
                 >
                   {showAllCategories ? 'Ver menos' : 'Más'}
-                </button>
+                </ChoiceChip>
               </div>
             </div>
 

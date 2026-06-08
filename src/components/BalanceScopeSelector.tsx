@@ -1,6 +1,6 @@
-import { cn } from '@/lib/utils'
 import type { PeriodRange } from '@/components/PeriodFilter'
 import { PeriodFilter } from '@/components/PeriodFilter'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
 export type BalanceScope = 'current_month' | 'all' | 'custom'
 
@@ -25,29 +25,13 @@ export function BalanceScopeSelector({
 }: BalanceScopeSelectorProps) {
   return (
     <div className="space-y-3">
-      <div
-        role="tablist"
+      <SegmentedControl
         aria-label="Alcance del balance"
-        className="flex gap-1 rounded-lg bg-slate-100 p-1"
-      >
-        {SCOPES.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={scope === value}
-            onClick={() => onScopeChange(value)}
-            className={cn(
-              'flex-1 rounded-md px-2 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100 sm:text-sm',
-              scope === value
-                ? 'bg-white text-brand-700 shadow-sm'
-                : 'text-slate-600 hover:text-slate-800',
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+        options={SCOPES}
+        value={scope}
+        onChange={onScopeChange}
+        size="sm"
+      />
       {scope === 'custom' && (
         <PeriodFilter period={customPeriod} onChange={onCustomPeriodChange} idPrefix="balance-period" />
       )}

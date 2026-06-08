@@ -36,7 +36,7 @@ export function Stepper({ steps, currentStepId, completedStepIds = [], className
                     'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
                     isCurrent && 'bg-brand-600 text-white',
                     isCompleted && 'bg-emerald-100 text-emerald-700',
-                    isUpcoming && 'bg-slate-100 text-slate-400',
+                    isUpcoming && 'bg-surface-100 text-stone-400',
                   )}
                   aria-hidden="true"
                 >
@@ -47,7 +47,7 @@ export function Stepper({ steps, currentStepId, completedStepIds = [], className
                     'max-w-[4.5rem] truncate text-center text-[10px] font-medium sm:max-w-none sm:text-xs',
                     isCurrent && 'text-brand-700',
                     isCompleted && 'text-emerald-700',
-                    isUpcoming && 'text-slate-400',
+                    isUpcoming && 'text-stone-400',
                   )}
                 >
                   {step.label}
@@ -59,7 +59,7 @@ export function Stepper({ steps, currentStepId, completedStepIds = [], className
                     'mx-1 mb-4 h-0.5 flex-1 rounded',
                     index < currentIndex || completedSet.has(steps[index + 1]?.id)
                       ? 'bg-emerald-200'
-                      : 'bg-slate-200',
+                      : 'bg-stone-200',
                   )}
                   aria-hidden="true"
                 />
