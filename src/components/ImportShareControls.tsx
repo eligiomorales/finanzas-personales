@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { splitPreset as getSplitPreset, personalSharesFromPayer } from '@/lib/balance'
 import {
   formLabelWithName,
@@ -8,6 +7,7 @@ import {
 import { payerFieldLabel, splitDistributionLabel } from '@/lib/movement-form-defaults'
 import { cn } from '@/lib/utils'
 import { ChoiceChip } from '@/components/ui/ChoiceChip'
+import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel'
 import { FieldHint, Input, Label, FormGroup } from '@/components/ui/Form'
 import type { Payer } from '@/types'
 
@@ -63,14 +63,6 @@ export function ImportShareControls({
   open: openProp,
   onOpenChange,
 }: ImportShareControlsProps) {
-  const [internalOpen, setInternalOpen] = useState(!collapsible)
-  const open = openProp ?? internalOpen
-
-  function setOpen(nextOpen: boolean) {
-    onOpenChange?.(nextOpen)
-    if (openProp === undefined) setInternalOpen(nextOpen)
-  }
-
   const formLabel = (role: 'personA' | 'personB') => formLabelWithName(role, persons)
   const chipSize = compact ? 'sm' : 'md'
 
@@ -278,27 +270,15 @@ export function ImportShareControls({
   if (!collapsible) return controls
 
   return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
-        aria-controls={`${idPrefix}-reparto-panel`}
-        className="flex w-full items-center justify-between gap-2 rounded-lg border border-stone-200 bg-surface-50 px-2.5 py-2 text-left transition-colors hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
-      >
-        <div className="min-w-0">
-          <span className="block text-sm font-semibold text-stone-800">Reparto</span>
-          <span className="mt-0.5 block truncate text-xs text-stone-500">{summaryText}</span>
-        </div>
-        <span className="shrink-0 text-stone-400" aria-hidden="true">
-          {open ? '▴' : '▾'}
-        </span>
-      </button>
-      {open && (
-        <div id={`${idPrefix}-reparto-panel`} className="mt-1.5 rounded-lg border border-stone-200 p-2.5">
-          {controls}
-        </div>
-      )}
-    </div>
+    <CollapsiblePanel
+      title="Reparto"
+      summary={summaryText}
+      open={openProp}
+      onOpenChange={onOpenChange}
+      panelId={`${idPrefix}-reparto-panel`}
+      compact
+    >
+      {controls}
+    </CollapsiblePanel>
   )
 }

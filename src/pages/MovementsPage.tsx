@@ -4,13 +4,7 @@ import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { usePeriod } from '@/contexts/PeriodContext'
 import { useConfirmDialog } from '@/hooks/useConfirmDialog'
-import {
-  currentMonthRange,
-  formatShortDate,
-  movementTypeColor,
-  movementTypeLabel,
-  movementAmountColor,
-} from '@/lib/utils'
+import { currentMonthRange, formatShortDate } from '@/lib/utils'
 import {
   buildMovementFilterChips,
   defaultMovementFilters,
@@ -22,8 +16,8 @@ import { payerDisplayLabel } from '@/lib/couple/person-labels'
 import { getDisplayAmountForView } from '@/lib/balance'
 import { formatMovementAmountLinesForView, getCurrencyConfig } from '@/lib/currency'
 import { MOVEMENTS_PAGE_SIZE } from '@/lib/movements-query'
-import { ButtonLink } from '@/components/ui/TextLink'
-import { Card, EmptyState, Badge } from '@/components/ui/Card'
+import { EmptyState } from '@/components/ui/Card'
+import { MovementList, MovementRow } from '@/components/ui/MovementRow'
 import { Button, LiveRegion } from '@/components/ui/Form'
 import type { MovementFilters } from '@/types'
 
@@ -135,72 +129,32 @@ export function MovementsPage() {
         />
       ) : (
         <>
-          <div className="space-y-2">
+          <MovementList>
             {movements.map((m) => {
               const cat = categories.find((c) => c.id === m.categoryId)
               const displayAmount = getDisplayAmountForView(m, myRole, currencyConfig, expenseViewMode)
               const amountLines = formatMovementAmountLinesForView(m, currencyConfig, displayAmount)
               const amountSign = m.type === 'income' ? '+' : m.type === 'expense' ? '-' : ''
               return (
-                <Card key={m.id} className="!p-3">
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs text-stone-500">{formatShortDate(m.date)}</span>
-                          <span
-                            className={`rounded px-1.5 py-0.5 text-xs font-medium ${movementTypeColor(m.type)}`}
-                          >
-                            {movementTypeLabel(m.type)}
-                          </span>
-                          {m.source === 'imported' && <Badge variant="info">Importado</Badge>}
-                        </div>
-                        <p className="mt-1 break-words font-medium text-stone-800">{m.description}</p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p
-                          className={`text-sm font-bold tabular-nums sm:text-base ${movementAmountColor(m.type)}`}
-                        >
-                          {amountSign}
-                          {amountLines.primary}
-                        </p>
-                        {amountLines.secondary && (
-                          <p className="text-xs tabular-nums text-stone-500">{amountLines.secondary}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                      <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5 text-xs text-stone-500">
-                        {cat && <span>{cat.name}</span>}
-                        <span>· Pagó: {payerDisplayLabel(m.paidBy, persons)}</span>
-                        {m.isShared && (
-                          <span>
-                            · {m.sharePersonA}/{m.sharePersonB}
-                          </span>
-                        )}
-                        {!m.isShared && <span>· Personal</span>}
-                      </div>
-                      <div className="ml-auto flex shrink-0 gap-1">
-                        <ButtonLink to={`/movimientos/editar/${m.id}`} size="sm" variant="ghost">
-                          Editar
-                        </ButtonLink>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-red-700"
-                          disabled={deletingId === m.id}
-                          aria-busy={deletingId === m.id}
-                          onClick={() => handleDelete(m.id)}
-                        >
-                          Eliminar
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
+                <MovementRow
+                  key={m.id}
+                  description={m.description}
+                  date={formatShortDate(m.date)}
+                  movementType={m.type}
+                  amountPrimary={amountLines.primary}
+                  amountSecondary={amountLines.secondary}
+                  amountSign={amountSign}
+                  categoryName={cat?.name}
+                  payerLabel={payerDisplayLabel(m.paidBy, persons)}
+                  sharingLabel={m.isShared ? `${m.sharePersonA}/${m.sharePersonB}` : 'Personal'}
+                  imported={m.source === 'imported'}
+                  editTo={`/movimientos/editar/${m.id}`}
+                  onDelete={() => handleDelete(m.id)}
+                  deleting={deletingId === m.id}
+                />
               )
             })}
-          </div>
+          </MovementList>
 
           {hasMore && (
             <Button

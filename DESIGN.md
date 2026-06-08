@@ -31,13 +31,16 @@ Radios: `rounded-lg` controles, `rounded-xl` cards, `rounded-2xl` modales.
 | Superficie contenedora | `Card.tsx` |
 | Métrica label + valor | `MetricCard.tsx` |
 | Título de página + acciones | `PageHeader.tsx` |
+| Bloque de Ajustes (card + título) | `SettingsSection.tsx` |
 | Sección con link | `SectionHeader.tsx` |
 | Toggle single-select | `SegmentedControl.tsx` |
 | Chip seleccionable | `ChoiceChip.tsx` |
+| Panel colapsable (reparto, etc.) | `CollapsiblePanel.tsx` |
 | Link de marca | `TextLink.tsx` |
 | Link con estilo botón | `ButtonLink.tsx` |
 | Mensajes | `Alert.tsx` |
 | Modal | `Dialog.tsx` |
+| Fila de movimiento | `MovementRow.tsx` (+ `MovementList`) |
 
 **No usar:** `<Link><Button>` anidados. Usar `ButtonLink`.
 
@@ -48,7 +51,10 @@ Etiquetas Yo / Mi pareja: `src/lib/couple/person-labels.ts`. No hardcodear nombr
 ## Criterios de aceptación (overhaul)
 
 - [ ] Registrar gasto en &lt; 30 s en móvil
-- [ ] Balance de pareja legible en Dashboard y Balance
-- [ ] Focus ring unificado (`styles.ts`)
-- [ ] Misma interacción de segmented control en moneda, vista y create/join
-- [ ] `npm run ci` verde tras cambios visuales
+- [x] Balance de pareja legible en Dashboard y Balance
+- [x] Focus ring unificado (`styles.ts`)
+- [x] Misma interacción de segmented control en moneda, vista y create/join
+- [x] Lista de movimientos unificada (`MovementRow` en Dashboard y Movimientos)
+- [x] Secciones de Ajustes unificadas (`SettingsSection`)
+- [x] Bloque de reparto colapsable unificado (`CollapsiblePanel`)
+- [x] `npm run ci` verde tras cambios visuales

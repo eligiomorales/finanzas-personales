@@ -17,6 +17,7 @@ import {
   repartoSummary,
   splitDistributionLabel,
 } from '@/lib/movement-form-defaults'
+import { buildImportCategoryButtons } from '@/lib/import-display'
 import { formatCurrency, todayISO } from '@/lib/utils'
 import {
   Button,
@@ -31,6 +32,7 @@ import {
 } from '@/components/ui/Form'
 import { CurrencyAmountInput } from '@/components/CurrencyAmountInput'
 import { ChoiceChip } from '@/components/ui/ChoiceChip'
+import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel'
 import { Card } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { SPLIT_PRESETS } from '@/components/ImportShareControls'
@@ -114,23 +116,29 @@ export function MovementFormPage() {
     [movements, form.type],
   )
 
-  const chipCategories = useMemo(
+  const primaryCategories = useMemo(
     () =>
-      frequentCategoryIds
-        .map((categoryId) => filteredCategories.find((c) => c.id === categoryId))
-        .filter((c): c is NonNullable<typeof c> => Boolean(c)),
-    [frequentCategoryIds, filteredCategories],
+      buildImportCategoryButtons(
+        filteredCategories,
+        frequentCategoryIds,
+        form.categoryId,
+        null,
+        3,
+      ),
+    [filteredCategories, frequentCategoryIds, form.categoryId],
   )
+
+  const categoryOptions = useMemo(() => {
+    if (!showAllCategories) return primaryCategories
+    const seen = new Set(primaryCategories.map((c) => c.id))
+    const extra = filteredCategories.filter((c) => !seen.has(c.id))
+    return [...primaryCategories, ...extra]
+  }, [filteredCategories, primaryCategories, showAllCategories])
 
   const topCategoryName = useMemo(() => {
     const topId = getDefaultCategoryId(movements, form.type)
     return filteredCategories.find((c) => c.id === topId)?.name
   }, [movements, form.type, filteredCategories])
-
-  const showCategorySelect =
-    showAllCategories ||
-    chipCategories.length === 0 ||
-    (form.categoryId != null && !frequentCategoryIds.includes(form.categoryId))
 
   function validate(): boolean {
     const errs: Record<string, string> = {}
@@ -371,48 +379,33 @@ export function MovementFormPage() {
                 </div>
               ) : (
                 <>
-                  {chipCategories.length > 0 && (
-                    <div className="mb-2 flex flex-wrap gap-2" role="group" aria-labelledby="category-label">
-                      {chipCategories.map((category) => (
-                        <ChoiceChip
-                          key={category.id}
-                          shape="pill"
-                          size="sm"
-                          selected={form.categoryId === category.id}
-                          onClick={() => {
-                            setForm({ ...form, categoryId: category.id })
-                            setShowAllCategories(false)
-                          }}
-                        >
-                          {category.name}
-                        </ChoiceChip>
-                      ))}
+                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="category-label">
+                    {categoryOptions.map((category) => (
+                      <ChoiceChip
+                        key={category.id}
+                        role="radio"
+                        shape="pill"
+                        size="sm"
+                        selected={form.categoryId === category.id}
+                        onClick={() => {
+                          setForm({ ...form, categoryId: category.id })
+                          setShowAllCategories(false)
+                        }}
+                      >
+                        {category.name}
+                      </ChoiceChip>
+                    ))}
+                    {filteredCategories.length > primaryCategories.length && (
                       <ChoiceChip
                         shape="pill"
                         size="sm"
-                        selected={showAllCategories}
-                        onClick={() => setShowAllCategories(true)}
+                        aria-expanded={showAllCategories}
+                        onClick={() => setShowAllCategories((open) => !open)}
                       >
-                        Ver todas
+                        {showAllCategories ? 'Ver menos' : 'Ver todas'}
                       </ChoiceChip>
-                    </div>
-                  )}
-                  {showCategorySelect && (
-                    <Select
-                      id="category"
-                      value={form.categoryId ?? ''}
-                      invalid={Boolean(errors.categoryId)}
-                      aria-describedby={describedBy(errors.categoryId && 'category-error', 'category-hint')}
-                      onChange={(e) => setForm({ ...form, categoryId: e.target.value || null })}
-                    >
-                      <option value="">Seleccionar...</option>
-                      {filteredCategories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
+                    )}
+                  </div>
                   {topCategoryName && form.date === todayISO() && (
                     <FieldHint id="category-hint">
                       Más usada: {topCategoryName} · Fecha: hoy
@@ -453,24 +446,14 @@ export function MovementFormPage() {
 
           {form.type !== 'income' && (
             <FormGroup className="!mb-0">
-            <button
-              type="button"
-              onClick={() => setRepartoOpen((open) => !open)}
-              aria-expanded={repartoOpen}
-              aria-controls="reparto-section"
-              className="flex w-full items-center justify-between gap-3 rounded-lg border border-stone-200 bg-surface-50 px-3 py-3 text-left transition-colors hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
+            <CollapsiblePanel
+              title="Reparto"
+              summary={summaryText}
+              open={repartoOpen}
+              onOpenChange={setRepartoOpen}
+              panelId="reparto-section"
+              contentClassName="space-y-4"
             >
-              <div>
-                <span className="block text-sm font-semibold text-stone-800">Reparto</span>
-                <span className="mt-0.5 block text-xs text-stone-500">{summaryText}</span>
-              </div>
-              <span className="text-stone-400" aria-hidden="true">
-                {repartoOpen ? '▴' : '▾'}
-              </span>
-            </button>
-
-            {repartoOpen && (
-              <div id="reparto-section" className="mt-3 space-y-4 rounded-lg border border-stone-200 p-3">
                 <FormGroup className="!mb-0">
                   <span id="paid-by-label" className="mb-1 block text-sm font-medium text-stone-700">
                     {payerFieldLabel(form.type)}
@@ -608,8 +591,7 @@ export function MovementFormPage() {
                     {previewText}
                   </p>
                 )}
-              </div>
-            )}
+            </CollapsiblePanel>
             </FormGroup>
           )}
 

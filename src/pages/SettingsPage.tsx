@@ -22,7 +22,7 @@ import type { DatabaseBackup } from '@/lib/backup'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { CurrencyToggle } from '@/components/CurrencyToggle'
-import { Card } from '@/components/ui/Card'
+import { SettingsSection } from '@/components/ui/SettingsSection'
 import { Alert } from '@/components/ui/Alert'
 import { Button, Input, Select, Label, FormGroup, StatusMessage, LiveRegion } from '@/components/ui/Form'
 import type { Category, CategoryType } from '@/types'
@@ -358,11 +358,10 @@ export function SettingsPage() {
         </Alert>
       )}
 
-      <Card>
-        <h3 className="mb-4 font-semibold">Tipo de cambio</h3>
-        <p className="mb-4 text-sm text-stone-600">
-          Una sola cotización para toda la app. Al cambiarla, se recalculan balances y totales.
-        </p>
+      <SettingsSection
+        title="Tipo de cambio"
+        description="Una sola cotización para toda la app. Al cambiarla, se recalculan balances y totales."
+      >
         <form
           onSubmit={handleSaveCurrency}
           className="grid grid-cols-[auto_minmax(9rem,1fr)] items-end gap-x-4 gap-y-2"
@@ -385,13 +384,12 @@ export function SettingsPage() {
             {currencySaved ? 'Guardado' : 'Guardar cotización'}
           </Button>
         </form>
-      </Card>
+      </SettingsSection>
 
-      <Card>
-        <h3 className="mb-4 font-semibold">Visualización</h3>
-        <p className="mb-3 text-sm text-stone-600">
-          Personal: tus gastos + tu parte de los compartidos. Compartido: totales de la pareja.
-        </p>
+      <SettingsSection
+        title="Visualización"
+        description="Personal: tus gastos + tu parte de los compartidos. Compartido: totales de la pareja."
+      >
         <SegmentedControl
           aria-label="Modo de vista de gastos"
           options={(['couple', 'personal'] as ExpenseViewMode[]).map((option) => ({
@@ -401,14 +399,12 @@ export function SettingsPage() {
           value={expenseViewMode}
           onChange={setExpenseViewMode}
         />
-      </Card>
+      </SettingsSection>
 
-      <Card>
-        <h3 className="mb-4 font-semibold">Categorías</h3>
-        <p className="mb-4 text-sm text-stone-600">
-          Agregá, editá o renombrá categorías. La gestión está acá en Ajustes; en Categorías ves el análisis de gastos.
-        </p>
-
+      <SettingsSection
+        title="Categorías"
+        description="Agregá, editá o renombrá categorías. La gestión está acá en Ajustes; en Categorías ves el análisis de gastos."
+      >
         <form onSubmit={handleAddCategory} className="mb-4 rounded-lg border border-stone-200 bg-white p-3">
           <Label htmlFor="settings-new-category-name">Agregar categoría</Label>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row">
@@ -516,10 +512,9 @@ export function SettingsPage() {
             </div>
           ))}
         </div>
-      </Card>
+      </SettingsSection>
 
-      <Card>
-        <h3 className="mb-2 font-semibold">Cuenta y sincronización</h3>
+      <SettingsSection title="Cuenta y sincronización">
         {configured && user ? (
           <div className="space-y-3 text-sm text-stone-700">
             <p>
@@ -579,14 +574,13 @@ export function SettingsPage() {
             Modo local sin Supabase. Configurá VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY para sincronizar.
           </p>
         )}
-      </Card>
+      </SettingsSection>
 
       {mode === 'remote' && migrationPreview && (
-        <Card>
-          <h3 className="mb-2 font-semibold">Migrar datos locales a cuenta</h3>
-          <p className="mb-3 text-sm text-stone-600">
-            Subí los movimientos que tengas en IndexedDB de este navegador a la pareja compartida.
-          </p>
+        <SettingsSection
+          title="Migrar datos locales a cuenta"
+          description="Subí los movimientos que tengas en IndexedDB de este navegador a la pareja compartida."
+        >
           <div className="mb-4 grid gap-3 text-sm sm:grid-cols-2">
             <div className="rounded-lg bg-surface-50 p-3">
               <p className="font-medium text-stone-700">Local (IndexedDB)</p>
@@ -623,11 +617,10 @@ export function SettingsPage() {
               {migrationMessage}
             </StatusMessage>
           )}
-        </Card>
+        </SettingsSection>
       )}
 
-      <Card>
-        <h3 className="mb-4 font-semibold">Nombres en la pareja</h3>
+      <SettingsSection title="Nombres en la pareja">
         {mode === 'remote' ? (
           <>
             <p className="mb-4 text-sm text-stone-600">
@@ -684,17 +677,16 @@ export function SettingsPage() {
             </Button>
           </form>
         )}
-      </Card>
+      </SettingsSection>
 
-      <Card>
-        <h3 className="mb-2 font-semibold">
-          {mode === 'remote' ? 'Backup de la pareja' : 'Datos locales de este navegador'}
-        </h3>
-        <p className="mb-3 text-sm text-stone-600">
-          {mode === 'remote'
+      <SettingsSection
+        title={mode === 'remote' ? 'Backup de la pareja' : 'Datos locales de este navegador'}
+        description={
+          mode === 'remote'
             ? 'Exportá un JSON con movimientos, categorías, ajustes e importaciones desde la nube. Sirve como respaldo o para migrar datos.'
-            : 'Cada navegador guarda su propia copia en IndexedDB, aunque uses la misma URL. El explorador embebido de Cursor y Chrome/Safari/Firefox no comparten datos entre sí.'}
-        </p>
+            : 'Cada navegador guarda su propia copia en IndexedDB, aunque uses la misma URL. El explorador embebido de Cursor y Chrome/Safari/Firefox no comparten datos entre sí.'
+        }
+      >
         <div className="mb-4 space-y-1 rounded-lg bg-surface-50 p-3 text-sm text-stone-700">
           <p>
             <span className="text-stone-500">Origen:</span> {origin || '—'}
@@ -738,17 +730,17 @@ export function SettingsPage() {
             : 'Para ver los mismos movimientos en otro navegador, exportá acá e importá allí.'}
           {!lastBackupAt && ' Te recomendamos exportar un backup periódicamente.'}
         </p>
-      </Card>
+      </SettingsSection>
 
-      <Card className="border-red-200">
-        <h3 className="mb-2 font-semibold text-red-700">Zona de peligro</h3>
-        <p className="mb-3 text-sm text-stone-600">
-          Restablece la base de datos local y carga datos de ejemplo.
-        </p>
+      <SettingsSection
+        title="Zona de peligro"
+        description="Restablece la base de datos local y carga datos de ejemplo."
+        tone="danger"
+      >
         <Button variant="danger" size="sm" onClick={handleReset}>
           Restablecer datos
         </Button>
-      </Card>
+      </SettingsSection>
 
       <p className="text-center text-xs text-stone-400">
         Finanzas Pareja v0.2 —{' '}
