@@ -36,9 +36,18 @@ export interface MovementsQueryResult {
   hasMore: boolean
 }
 
+export interface MovementsFilteredResult {
+  items: Movement[]
+  total: number
+}
+
 export interface MovementRepository {
   list(): Promise<Movement[]>
   getById(id: string): Promise<Movement | undefined>
+  queryFiltered(
+    filters: MovementFilters,
+    searchContext?: MovementSearchContext,
+  ): Promise<MovementsFilteredResult>
   queryUpToPage(
     filters: MovementFilters,
     page: number,

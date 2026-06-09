@@ -1,5 +1,5 @@
 import { db } from '@/db/database'
-import { movementVisibleInPersonalView } from '@/lib/balance'
+import { getDisplayAmountForView, movementVisibleInPersonalView } from '@/lib/balance'
 import { movementMatchesSearch, type MovementSearchContext } from '@/lib/movement-search'
 import type { Category, Movement, MovementFilters, MovementSortDir, MovementSortField } from '@/types'
 
@@ -35,6 +35,7 @@ export function compareMovements(
   sortBy: MovementSortField,
   sortDir: MovementSortDir,
   categories: Category[],
+  searchContext?: MovementSearchContext,
 ): number {
   const names = categoryNameById(categories)
   let cmp = 0
@@ -43,9 +44,27 @@ export function compareMovements(
     case 'date':
       cmp = a.date.localeCompare(b.date)
       break
-    case 'amount':
-      cmp = a.amount - b.amount
+    case 'amount': {
+      const amountView = searchContext?.amountView
+      const amountA = amountView
+        ? getDisplayAmountForView(
+            a,
+            amountView.personalRole,
+            amountView.currencyConfig,
+            amountView.expenseViewMode,
+          )
+        : a.amount
+      const amountB = amountView
+        ? getDisplayAmountForView(
+            b,
+            amountView.personalRole,
+            amountView.currencyConfig,
+            amountView.expenseViewMode,
+          )
+        : b.amount
+      cmp = amountA - amountB
       break
+    }
     case 'description':
       cmp = a.description.localeCompare(b.description, 'es')
       break
@@ -68,9 +87,10 @@ export function sortMovements(
   movements: Movement[],
   filters: MovementFilters,
   categories: Category[] = [],
+  searchContext?: MovementSearchContext,
 ): Movement[] {
   const { sortBy, sortDir } = resolveMovementSort(filters)
-  return [...movements].sort((a, b) => compareMovements(a, b, sortBy, sortDir, categories))
+  return [...movements].sort((a, b) => compareMovements(a, b, sortBy, sortDir, categories, searchContext))
 }
 
 export function movementMatchesFilters(
@@ -185,7 +205,7 @@ export async function queryMovementsPage(
   }
 
   const all = await collection.toArray()
-  const sorted = sortMovements(all, filters, categories)
+  const sorted = sortMovements(all, filters, categories, searchContext)
   const offset = Math.max(0, (page - 1) * pageSize)
   const items = sorted.slice(offset, offset + pageSize)
 
@@ -196,6 +216,29 @@ export async function queryMovementsPage(
     pageSize,
     hasMore: offset + items.length < total,
   }
+}
+
+export interface MovementsFilteredResult {
+  items: Movement[]
+  total: number
+}
+
+/** Returns all movements matching filters, sorted globally. Pagination is a UI concern. */
+export async function queryFilteredMovements(
+  filters: MovementFilters,
+  searchContext?: MovementSearchContext,
+): Promise<MovementsFilteredResult> {
+  const collection = buildMovementsCollection(filters, searchContext)
+  const categories = searchContext?.categories ?? []
+
+  if (usesDexieDateOrder(filters)) {
+    const items = await collection.reverse().toArray()
+    return { items, total: items.length }
+  }
+
+  const all = await collection.toArray()
+  const items = sortMovements(all, filters, categories, searchContext)
+  return { items, total: items.length }
 }
 
 /** Loads all items up to the given page (for incremental "load more" UX). */
@@ -222,7 +265,7 @@ export async function queryMovementsUpToPage(
   }
 
   const all = await collection.toArray()
-  const sorted = sortMovements(all, filters, categories)
+  const sorted = sortMovements(all, filters, categories, searchContext)
   const items = sorted.slice(0, limit)
 
   return {

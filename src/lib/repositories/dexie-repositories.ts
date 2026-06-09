@@ -8,6 +8,7 @@ import {
 import {
   MOVEMENTS_PAGE_SIZE,
   movementMatchesFilters,
+  queryFilteredMovements,
   queryMovementsUpToPage,
   sortMovements,
 } from '@/lib/movements-query'
@@ -37,6 +38,13 @@ class DexieMovementRepository implements MovementRepository {
 
   async getById(id: string): Promise<Movement | undefined> {
     return db.movements.get(id)
+  }
+
+  async queryFiltered(
+    filters: MovementFilters,
+    searchContext?: import('@/lib/movement-search').MovementSearchContext,
+  ) {
+    return queryFilteredMovements(filters, searchContext)
   }
 
   async queryUpToPage(
@@ -237,6 +245,17 @@ export function createDexieRepositories(): Repositories {
   return dexieRepos
 }
 
+export function filterAllMovementsInMemory(
+  movements: Movement[],
+  filters: MovementFilters,
+  searchContext?: import('@/lib/movement-search').MovementSearchContext,
+) {
+  const categories = searchContext?.categories ?? []
+  const filtered = movements.filter((m) => movementMatchesFilters(m, filters, searchContext))
+  const items = sortMovements(filtered, filters, categories, searchContext)
+  return { items, total: items.length }
+}
+
 export function filterMovementsInMemory(
   movements: Movement[],
   filters: MovementFilters,
@@ -244,11 +263,7 @@ export function filterMovementsInMemory(
   pageSize: number,
   searchContext?: import('@/lib/movement-search').MovementSearchContext,
 ) {
-  const categories = searchContext?.categories ?? []
-  const filtered = movements.filter((m) => movementMatchesFilters(m, filters, searchContext))
-  const sorted = sortMovements(filtered, filters, categories)
-
-  const total = sorted.length
+  const { items: sorted, total } = filterAllMovementsInMemory(movements, filters, searchContext)
   const limit = page * pageSize
   const items = sorted.slice(0, limit)
 
