@@ -1,3 +1,4 @@
+import { forwardRef } from 'react'
 import { cn } from '@/lib/utils'
 import { currencyInputPrefix, parseAmountInput } from '@/lib/movement-form-defaults'
 import type { CurrencyCode } from '@/types'
@@ -12,15 +13,18 @@ interface CurrencyAmountInputProps {
   'aria-describedby'?: string
 }
 
-export function CurrencyAmountInput({
-  id,
-  currency,
-  value,
-  onChange,
-  invalid,
-  autoFocus,
-  'aria-describedby': ariaDescribedBy,
-}: CurrencyAmountInputProps) {
+export const CurrencyAmountInput = forwardRef<HTMLInputElement, CurrencyAmountInputProps>(function CurrencyAmountInput(
+  {
+    id,
+    currency,
+    value,
+    onChange,
+    invalid,
+    autoFocus,
+    'aria-describedby': ariaDescribedBy,
+  },
+  ref,
+) {
   return (
     <div
       className={cn(
@@ -35,6 +39,7 @@ export function CurrencyAmountInput({
         {currencyInputPrefix(currency)}
       </span>
       <input
+        ref={ref}
         id={id}
         type="text"
         inputMode="decimal"
@@ -49,4 +54,4 @@ export function CurrencyAmountInput({
       />
     </div>
   )
-}
+})

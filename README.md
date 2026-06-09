@@ -2,15 +2,16 @@
 
 Aplicación web responsive para gestionar las finanzas de una pareja, con sincronización en la nube entre dispositivos.
 
-**Producción:** https://finanzas-personales-ebon.vercel.app — Fase 4.1 desplegada (identidad por cuenta + Yo/Mi pareja).
+**Producción:** https://finanzas-personales-ebon.vercel.app — Fase 5 desplegada (UI overhaul + presupuestos + identidad Yo/Mi pareja).
 
 | Hecho | Pendiente |
 |-------|-----------|
-| Auth, pareja, movimientos/categorías/settings/importaciones en Supabase | Presupuestos, metas, gastos recurrentes |
-| Identidad por cuenta: nombres desde perfiles, UI Yo/Mi pareja, migración `005` en prod | Tests de integración contra Supabase (opcional) |
-| Deploy en Vercel (`npm run deploy`) | Offline-first con cola de sync |
-| Realtime entre navegadores | |
-| Códigos de invitación (expiración, revocación, regeneración) en prod | |
+| Auth, pareja, movimientos/categorías/settings/importaciones en Supabase | Metas compartidas, gastos recurrentes |
+| Identidad por cuenta: nombres desde perfiles, UI Yo/Mi pareja | Tests de integración contra Supabase (opcional) |
+| Presupuestos por categoría (mensual y recurrente); migraciones `006`/`007` en prod | Offline-first con cola de sync |
+| UI overhaul (`DESIGN.md`): tokens, componentes compartidos, pantallas migradas | |
+| Deploy en Vercel (`npm run deploy`); realtime entre navegadores | |
+| Códigos de invitación (expiración, revocación, regeneración) | |
 
 Detalle: `siguiente-sesion-implementacion.md`. Flujo local → deploy: `flujo-desarrollo-deploy.md`.
 
@@ -92,7 +93,8 @@ Sin `.env.local` la app arranca en **modo local** (IndexedDB + datos de ejemplo)
 - **Auth email + contraseña** (Supabase)
 - **Pareja compartida** — crear pareja o unirse con código de invitación
 - **Códigos de invitación** — vencen a los 7 días (parejas nuevas), revocables y regenerables desde Ajustes
-- **Sincronización en tiempo casi real** entre navegadores (movimientos, categorías, settings, importaciones)
+- **Presupuestos por categoría** — límite mensual opt-in y límites recurrentes con barra de progreso
+- **Sincronización en tiempo casi real** entre navegadores (movimientos, categorías, settings, importaciones, presupuestos)
 
 ## Datos y persistencia
 
@@ -102,6 +104,7 @@ Sin `.env.local` la app arranca en **modo local** (IndexedDB + datos de ejemplo)
 | Categorías | Nube, compartidas | IndexedDB local |
 | Settings (moneda, cotización; nombres derivados de perfiles) | Nube | IndexedDB local (nombres editables manualmente) |
 | Importaciones y pendientes | Nube, compartidas | IndexedDB local |
+| Presupuestos por categoría | Nube, compartidos | IndexedDB local |
 | Backup JSON export/import | Sigue disponible en Ajustes | IndexedDB local |
 
 La lógica de balance vive en `src/lib/balance.ts` y no depende del backend.
@@ -115,6 +118,8 @@ La lógica de balance vive en `src/lib/balance.ts` y no depende del backend.
    - `supabase/migrations/003_imports_realtime.sql`
    - `supabase/migrations/004_invite_code_expiration.sql`
    - `supabase/migrations/005_couple_profile_read.sql`
+   - `supabase/migrations/006_category_budgets.sql`
+   - `supabase/migrations/007_recurring_budgets.sql`
 3. En Authentication → Providers → Email: habilitar email/password (desactivar confirmación de email en dev si conviene)
 4. Copiar Project URL y anon key a `.env.local`
 
@@ -146,8 +151,10 @@ Guía completa (desarrollo local, validación, deploy, migraciones, preview): **
 
 ## Próximas iteraciones
 
-1. Presupuestos mensuales, metas, gastos recurrentes.
+1. Metas compartidas y gastos recurrentes.
 2. Offline-first con cola de sync.
-3. Tests de integración contra Supabase.
+3. Tests de integración contra Supabase (opcional).
+
+Guía de diseño vigente: `DESIGN.md`.
 
 Estado completo y prompt para la próxima sesión: `siguiente-sesion-implementacion.md`.

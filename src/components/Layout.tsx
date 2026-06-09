@@ -1,4 +1,8 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import {
+  MOVEMENT_FORM_FOCUS_AMOUNT_STATE,
+  scheduleAmountFocusFromUserGesture,
+} from '@/lib/movement-form-focus'
 import { Badge } from '@/components/ui/Card'
 import { useAmountsVisibility, useAmountsVisible } from '@/contexts/AmountsVisibilityContext'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
@@ -111,10 +115,16 @@ function RoutedContent() {
 
 export function Layout() {
   const location = useLocation()
+  const navigate = useNavigate()
   const { isPersonal } = useExpenseViewMode()
   const { visible: amountsVisible, toggle: toggleAmountsVisibility } = useAmountsVisibility()
   const isFormPage = location.pathname.includes('/nuevo') || location.pathname.includes('/editar')
   const hideFab = isFormPage || location.pathname === '/presupuesto'
+
+  function handleNewMovementClick() {
+    scheduleAmountFocusFromUserGesture()
+    navigate('/movimientos/nuevo', { state: MOVEMENT_FORM_FOCUS_AMOUNT_STATE })
+  }
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col bg-surface-50 md:max-w-2xl lg:max-w-4xl">
@@ -200,8 +210,9 @@ export function Layout() {
       )}
 
       {!hideFab && (
-        <NavLink
-          to="/movimientos/nuevo"
+        <button
+          type="button"
+          onClick={handleNewMovementClick}
           className={cn(
             'fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] right-5 z-20',
             'flex h-[52px] w-[52px] items-center justify-center rounded-full',
@@ -212,7 +223,7 @@ export function Layout() {
           aria-label="Nuevo movimiento"
         >
           +
-        </NavLink>
+        </button>
       )}
     </div>
   )
