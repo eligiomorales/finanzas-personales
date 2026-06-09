@@ -11,6 +11,7 @@ import type {
   Payer,
   PendingImportMovement,
 } from '@/types'
+import type { MovementSearchContext } from '@/lib/movement-search'
 
 export interface ConfirmImportItem extends PendingImportMovement {
   selectedCategoryId: string | null
@@ -38,7 +39,12 @@ export interface MovementsQueryResult {
 export interface MovementRepository {
   list(): Promise<Movement[]>
   getById(id: string): Promise<Movement | undefined>
-  queryUpToPage(filters: MovementFilters, page: number, pageSize: number): Promise<MovementsQueryResult>
+  queryUpToPage(
+    filters: MovementFilters,
+    page: number,
+    pageSize: number,
+    searchContext?: MovementSearchContext,
+  ): Promise<MovementsQueryResult>
   create(data: MovementFormData, source?: Movement['source']): Promise<Movement>
   update(id: string, data: MovementFormData): Promise<void>
   delete(id: string): Promise<void>

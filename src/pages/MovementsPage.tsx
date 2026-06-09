@@ -47,7 +47,12 @@ export function MovementsPage() {
     [filtersWithPeriod, isPersonal, myRole],
   )
 
-  const query = useFilteredMovements(effectiveFilters, page)
+  const searchContext = useMemo(
+    () => ({ categories, persons }),
+    [categories, persons],
+  )
+
+  const query = useFilteredMovements(effectiveFilters, page, searchContext)
   const movements = query?.items ?? []
   const total = query?.total ?? 0
   const hasMore = query?.hasMore ?? false

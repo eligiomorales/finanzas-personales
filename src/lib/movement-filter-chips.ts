@@ -1,6 +1,7 @@
 import type { FilterChip } from '@/components/ui/FilterChips'
 import { payerFilterLabel, type CouplePersonsView } from '@/lib/couple/person-labels'
 import { activePeriodPresetId, formatPeriodRangeLabel } from '@/lib/period-presets'
+import { isDefaultMovementSort, movementSortLabel } from '@/lib/movements-query'
 import type { Category, MovementFilters } from '@/types'
 import { movementTypeLabel } from '@/lib/utils'
 
@@ -54,6 +55,10 @@ export function buildMovementFilterChips(
     chips.push({ id: 'currency', label: filters.currency })
   }
 
+  if (!isDefaultMovementSort(filters)) {
+    chips.push({ id: 'sort', label: `Orden: ${movementSortLabel(filters)}` })
+  }
+
   return chips
 }
 
@@ -76,6 +81,8 @@ export function removeMovementFilterChip(
       return { ...filters, isShared: undefined }
     case 'currency':
       return { ...filters, currency: undefined }
+    case 'sort':
+      return { ...filters, sortBy: undefined, sortDir: undefined }
     default:
       return filters
   }

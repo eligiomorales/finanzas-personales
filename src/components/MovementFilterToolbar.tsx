@@ -6,6 +6,11 @@ import { Input } from '@/components/ui/Form'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { usePeriod } from '@/contexts/PeriodContext'
 import { formatPeriodHeaderTitle } from '@/lib/period-presets'
+import {
+  MOVEMENT_SORT_OPTIONS,
+  movementSortOptionValue,
+  parseMovementSortOptionValue,
+} from '@/lib/movements-query'
 import { formLabelWithName, type CouplePersonsView } from '@/lib/couple/person-labels'
 import type { Category } from '@/types'
 import type { CurrencyCode, MovementFilters, MovementType, Payer } from '@/types'
@@ -159,28 +164,46 @@ export function MovementFilterToolbar({
         </div>
       </PageHeader>
 
-      <div className="relative">
-        <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
-        <Input
-          id={searchId}
-          type="search"
-          role="searchbox"
-          aria-label="Buscar movimientos por descripción"
-          placeholder="Buscar por descripción…"
-          value={searchDraft}
-          className="py-1.5 pl-9 pr-9 text-sm"
-          onChange={(e) => setSearchDraft(e.target.value)}
-        />
-        {searchDraft.length > 0 && (
-          <button
-            type="button"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md px-2 py-0.5 text-sm text-stone-500 hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
-            aria-label="Limpiar búsqueda"
-            onClick={() => setSearchDraft('')}
-          >
-            ×
-          </button>
-        )}
+      <div className="flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+          <Input
+            id={searchId}
+            type="search"
+            role="searchbox"
+            aria-label="Buscar movimientos"
+            placeholder="Buscar descripción, categoría, pagador… (>10000, usd, importado)"
+            value={searchDraft}
+            className="py-1.5 pl-9 pr-9 text-sm"
+            onChange={(e) => setSearchDraft(e.target.value)}
+          />
+          {searchDraft.length > 0 && (
+            <button
+              type="button"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md px-2 py-0.5 text-sm text-stone-500 hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+              aria-label="Limpiar búsqueda"
+              onClick={() => setSearchDraft('')}
+            >
+              ×
+            </button>
+          )}
+        </div>
+        <div className="shrink-0">
+          <FacetMenu
+            facetId="sort"
+            label="Orden"
+            value={movementSortOptionValue(filters)}
+            options={MOVEMENT_SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+            openFacet={openFacet}
+            setOpenFacet={setOpenFacet}
+            onChange={(v) => {
+              if (!v) return
+              const parsed = parseMovementSortOptionValue(v)
+              if (!parsed) return
+              patch({ sortBy: parsed.sortBy, sortDir: parsed.sortDir })
+            }}
+          />
+        </div>
       </div>
 
       {showAdvanced && (

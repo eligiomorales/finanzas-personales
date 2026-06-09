@@ -150,9 +150,14 @@ export function createSupabaseRepositories(coupleId: string): Repositories {
       return data ? rowToMovement(data) : undefined
     },
 
-    async queryUpToPage(filters: MovementFilters, page: number, pageSize = MOVEMENTS_PAGE_SIZE) {
+    async queryUpToPage(
+      filters: MovementFilters,
+      page: number,
+      pageSize = MOVEMENTS_PAGE_SIZE,
+      searchContext?: import('@/lib/movement-search').MovementSearchContext,
+    ) {
       const all = await movements.list()
-      return filterMovementsInMemory(all, filters, page, pageSize)
+      return filterMovementsInMemory(all, filters, page, pageSize, searchContext)
     },
 
     async create(data: MovementFormData, source: Movement['source'] = 'manual') {
