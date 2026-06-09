@@ -121,8 +121,11 @@ export function Layout() {
   const isFormPage = location.pathname.includes('/nuevo') || location.pathname.includes('/editar')
   const hideFab = isFormPage || location.pathname === '/presupuesto'
 
-  function handleNewMovementClick() {
+  function handleNewMovementPointerDown() {
     scheduleAmountFocusFromUserGesture()
+  }
+
+  function handleNewMovementClick() {
     navigate('/movimientos/nuevo', { state: MOVEMENT_FORM_FOCUS_AMOUNT_STATE })
   }
 
@@ -212,6 +215,7 @@ export function Layout() {
       {!hideFab && (
         <button
           type="button"
+          onPointerDown={handleNewMovementPointerDown}
           onClick={handleNewMovementClick}
           className={cn(
             'fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] right-5 z-20',
