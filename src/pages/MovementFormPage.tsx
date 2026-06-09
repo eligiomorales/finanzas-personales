@@ -1,6 +1,11 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { registerAmountInput } from '@/lib/movement-form-focus'
+import { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import {
+  focusAmountInput,
+  isIosDevice,
+  registerAmountInput,
+  shouldFocusAmountFromNavigation,
+} from '@/lib/movement-form-focus'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useCategories, useMovements, useSettings, useMovementMutations } from '@/hooks/useData'
@@ -47,6 +52,7 @@ const movementTypeLabels: Record<MovementType, string> = {
 
 export function MovementFormPage() {
   const { id } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const { membership } = useAuth()
   const persons = useCouplePersons()
@@ -70,6 +76,14 @@ export function MovementFormPage() {
   }, [])
 
   useEffect(() => () => registerAmountInput(null), [])
+
+  useLayoutEffect(() => {
+    if (isEditing || !shouldFocusAmountFromNavigation(location.state)) return
+    const el = document.getElementById('amount')
+    if (el instanceof HTMLInputElement) {
+      focusAmountInput(el)
+    }
+  }, [isEditing, location.pathname, location.state])
 
   const personAName = persons.personAName
   const personBName = persons.personBName
@@ -335,7 +349,7 @@ export function MovementFormPage() {
                   currency={form.currency}
                   value={form.amount}
                   invalid={Boolean(errors.amount)}
-                  autoFocus={!isEditing}
+                  autoFocus={!isEditing && !isIosDevice()}
                   aria-describedby={describedBy(errors.amount && 'amount-error')}
                   onChange={(amount) => setForm({ ...form, amount })}
                 />
