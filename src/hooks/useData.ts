@@ -5,6 +5,7 @@ import { useDataContext, useRepositories } from '@/contexts/DataContext'
 import type { ConfirmImportInput } from '@/lib/repositories/types'
 import type { UpsertCategoryBudgetInput } from '@/lib/repositories/types'
 import type { CurrencyCode, Movement, MovementFilters, MovementFormData } from '@/types'
+import type { MovementSearchContext } from '@/lib/movement-search'
 import { updateMyDisplayName } from '@/lib/couple/persons'
 import {
   MOVEMENTS_PAGE_SIZE,
@@ -81,13 +82,27 @@ export function useMovements() {
   return mode === 'local' ? (local ?? []) : remote
 }
 
-export function useFilteredMovements(filters: MovementFilters, page: number) {
+export function useFilteredMovements(
+  filters: MovementFilters,
+  page: number,
+  searchContext?: MovementSearchContext,
+) {
   const { mode, repos } = useDataContext()
   const filtersKey = serializeMovementFilters(filters)
+  const searchContextKey = searchContext
+    ? JSON.stringify({
+        categories: searchContext.categories.map((c) => [c.id, c.name]),
+        persons: {
+          personAName: searchContext.persons.personAName,
+          personBName: searchContext.persons.personBName,
+          myRole: searchContext.persons.myRole,
+        },
+      })
+    : ''
 
   const local = useLiveQuery(
-    () => repos.movements.queryUpToPage(filters, page, MOVEMENTS_PAGE_SIZE),
-    [filtersKey, page, repos],
+    () => repos.movements.queryUpToPage(filters, page, MOVEMENTS_PAGE_SIZE, searchContext),
+    [filtersKey, page, repos, searchContextKey],
   )
 
   const [remote, setRemote] = useState<Awaited<ReturnType<typeof repos.movements.queryUpToPage>> | undefined>(
@@ -99,7 +114,7 @@ export function useFilteredMovements(filters: MovementFilters, page: number) {
     let cancelled = false
 
     async function load() {
-      const result = await repos.movements.queryUpToPage(filters, page, MOVEMENTS_PAGE_SIZE)
+      const result = await repos.movements.queryUpToPage(filters, page, MOVEMENTS_PAGE_SIZE, searchContext)
       if (!cancelled) setRemote(result)
     }
 
@@ -107,7 +122,7 @@ export function useFilteredMovements(filters: MovementFilters, page: number) {
     return repos.movements.subscribe(() => {
       void load()
     })
-  }, [mode, repos, filtersKey, page, filters])
+  }, [mode, repos, filtersKey, page, filters, searchContextKey, searchContext])
 
   return mode === 'local' ? local : remote
 }

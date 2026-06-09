@@ -71,6 +71,9 @@ export interface AppSettings {
   defaultExchangeRateUsd: number
 }
 
+export type MovementSortField = 'date' | 'amount' | 'description' | 'category' | 'createdAt'
+export type MovementSortDir = 'asc' | 'desc'
+
 export interface MovementFilters {
   dateFrom?: string
   dateTo?: string
@@ -81,6 +84,8 @@ export interface MovementFilters {
   isShared?: boolean
   currency?: CurrencyCode
   search?: string
+  sortBy?: MovementSortField
+  sortDir?: MovementSortDir
   /** When set, hide movements not visible in personal view for this role. */
   personalViewRole?: 'personA' | 'personB'
 }

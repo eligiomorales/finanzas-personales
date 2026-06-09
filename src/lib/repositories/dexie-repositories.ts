@@ -9,6 +9,7 @@ import {
   MOVEMENTS_PAGE_SIZE,
   movementMatchesFilters,
   queryMovementsUpToPage,
+  sortMovements,
 } from '@/lib/movements-query'
 import type {
   CategoryRepository,
@@ -38,8 +39,13 @@ class DexieMovementRepository implements MovementRepository {
     return db.movements.get(id)
   }
 
-  async queryUpToPage(filters: MovementFilters, page: number, pageSize = MOVEMENTS_PAGE_SIZE) {
-    return queryMovementsUpToPage(filters, page, pageSize)
+  async queryUpToPage(
+    filters: MovementFilters,
+    page: number,
+    pageSize = MOVEMENTS_PAGE_SIZE,
+    searchContext?: import('@/lib/movement-search').MovementSearchContext,
+  ) {
+    return queryMovementsUpToPage(filters, page, pageSize, searchContext)
   }
 
   async create(data: MovementFormData, source: Movement['source'] = 'manual'): Promise<Movement> {
@@ -236,14 +242,15 @@ export function filterMovementsInMemory(
   filters: MovementFilters,
   page: number,
   pageSize: number,
+  searchContext?: import('@/lib/movement-search').MovementSearchContext,
 ) {
-  const filtered = movements
-    .filter((m) => movementMatchesFilters(m, filters))
-    .sort((a, b) => b.date.localeCompare(a.date))
+  const categories = searchContext?.categories ?? []
+  const filtered = movements.filter((m) => movementMatchesFilters(m, filters, searchContext))
+  const sorted = sortMovements(filtered, filters, categories)
 
-  const total = filtered.length
+  const total = sorted.length
   const limit = page * pageSize
-  const items = filtered.slice(0, limit)
+  const items = sorted.slice(0, limit)
 
   return {
     items,
