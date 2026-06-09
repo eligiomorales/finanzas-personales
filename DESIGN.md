@@ -50,7 +50,7 @@ Etiquetas Yo / Mi pareja: `src/lib/couple/person-labels.ts`. No hardcodear nombr
 
 ## Criterios de aceptación (overhaul)
 
-- [ ] Registrar gasto en &lt; 30 s en móvil
+- [x] Registrar gasto en &lt; 30 s en móvil
 - [x] Balance de pareja legible en Dashboard y Balance
 - [x] Focus ring unificado (`styles.ts`)
 - [x] Misma interacción de segmented control en moneda, vista y create/join

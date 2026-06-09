@@ -1,10 +1,8 @@
 # Siguiente Sesion De Implementacion
 
-## Estado: Fase 5 (UI Overhaul) completada en local — pendiente PR y deploy
+## Estado: Fase 5 (UI Overhaul) desplegada en producción
 
-La app está en Vercel con Supabase configurado. En **main/prod**: movimientos, categorías, settings, importaciones, invitaciones, identidad por cuenta, **presupuestos por categoría** y parsers adicionales (Visa Santander, Wallbit OCR). Migraciones `005`–`007` aplicadas.
-
-En **local** (rama `ui-error-expense-parsing`, sin merge a main): overhaul visual completo según `DESIGN.md` + fix de parsing de gastos en importación (`a0885d5`). `npm run ci` verde.
+La app está en Vercel con Supabase configurado. En **main/prod**: movimientos, categorías, settings, importaciones, invitaciones, identidad por cuenta, **presupuestos por categoría**, parsers adicionales (Visa Santander, Wallbit OCR) y **overhaul visual** según `DESIGN.md` (merge de `ui-error-expense-parsing`). Migraciones `001`–`007` aplicadas en Supabase prod. Smoke mobile validado (dashboard, movimiento, balance, filtros, presupuesto, importación; registro de gasto &lt; 30 s).
 
 **URL producción:** https://finanzas-personales-ebon.vercel.app
 
@@ -76,7 +74,7 @@ En **local** (rama `ui-error-expense-parsing`, sin merge a main): overhaul visua
 | **Modelo** | Tabla `category_budgets` en `006_category_budgets.sql`; RLS + realtime |
 | **Límites fijos** | Migración `007_recurring_budgets.sql`: un presupuesto recurrente por categoría (`year_month = 'recurring'`), opt-in |
 | **UI** | `BudgetPage.tsx`, `BudgetProgressBar.tsx`; progreso vs gastos del mes |
-| **Prod** | PRs #3 y #4 mergeados a main; migraciones `006`/`007` pendientes de confirmar en Supabase prod |
+| **Prod** | PRs #3 y #4 mergeados a main; migraciones `006`/`007` aplicadas en Supabase prod |
 
 ### Fase 4.3 — Importadores y UX de importación (en prod)
 
@@ -86,7 +84,7 @@ En **local** (rama `ui-error-expense-parsing`, sin merge a main): overhaul visua
 | **UI importación** | Rediseño parcial en main (PR #7); wizard completo migrado al overhaul en Fase 5 |
 | **Tests** | Fixtures y tests en `src/lib/import.test.ts` |
 
-### Fase 5 — UI Overhaul incremental (sesión anterior, local)
+### Fase 5 — UI Overhaul (en prod)
 
 Overhaul visual inspirado en Monarch, identidad propia (paleta cálida sage/teal, foco en finanzas de pareja). Sin cambios de lógica en `src/lib/`. Referencia: `DESIGN.md`.
 
@@ -101,8 +99,9 @@ Overhaul visual inspirado en Monarch, identidad propia (paleta cálida sage/teal
 | **Dashboard piloto** | `DashboardPage` + `DashboardSummaryBento`, `DashboardCompensationRow`, `DashboardCategoryBreakdown`, `DashboardMovementList`, `InsightCard`, `OnboardingBanner` |
 | **Migración de pantallas** | Login, CoupleSetup, Categories, Balance, Movements (+ `MovementFilterToolbar`), Settings, Budget, MovementForm, Import (+ componentes hijos) |
 | **Controles unificados** | `SegmentedControl` en moneda (`CurrencyToggle`), vista personal/pareja (`BalanceScopeSelector`), create/join; `ChoiceChip` donde aplica |
-| **Validación** | `npm run ci` verde en rama local |
-| **Fix colateral** | Commit `a0885d5`: parsing de montos negativos/gastos en importación (`src/lib/import.ts`) |
+| **Validación** | `npm run ci` verde; PR mergeado a main y deploy en Vercel |
+| **Fix colateral** | Parsing de montos negativos/gastos en importación (`src/lib/import.ts`) |
+| **Prod** | Smoke mobile OK: dashboard, nuevo movimiento, balance, filtros, presupuesto, importación; registro de gasto &lt; 30 s |
 
 ### Archivos clave (Fase 2–5)
 
@@ -160,7 +159,7 @@ src/lib/import.ts
 
 - [x] Presupuesto opt-in por categoría con progreso mensual
 - [x] Límites recurrentes (migración `007`)
-- [ ] Confirmar migraciones `006`/`007` aplicadas en Supabase prod
+- [x] Migraciones `006`/`007` aplicadas en Supabase prod
 
 **Fase 5 (UI Overhaul)**
 
@@ -168,10 +167,10 @@ src/lib/import.ts
 - [x] Componentes compartidos (`PageHeader`, `MetricCard`, `SegmentedControl`, `ChoiceChip`, `ButtonLink`)
 - [x] Dashboard piloto y resto de pantallas migradas
 - [x] Focus ring unificado (`styles.ts`)
-- [x] `npm run ci` verde (local)
-- [ ] Smoke manual mobile post-merge (Dashboard, nuevo movimiento, balance, filtros, presupuesto, importación)
-- [ ] PR mergeado a main y deploy en Vercel
-- [ ] Registrar gasto en &lt; 30 s en móvil (validación manual pendiente)
+- [x] `npm run ci` verde
+- [x] Smoke manual mobile en prod (Dashboard, nuevo movimiento, balance, filtros, presupuesto, importación)
+- [x] PR mergeado a main y deploy en Vercel
+- [x] Registrar gasto en &lt; 30 s en móvil
 
 ---
 
@@ -181,12 +180,9 @@ src/lib/import.ts
 
 | Prioridad | Tarea |
 |-----------|-------|
-| 1 | **PR + merge UI Overhaul** (rama `ui-error-expense-parsing` → main) |
-| 2 | Smoke visual mobile y deploy a prod |
-| 3 | Confirmar migraciones `006`/`007` en Supabase prod si aún no aplicadas |
-| 4 | Metas compartidas y gastos recurrentes (feature) |
-| 5 | Tests de integración contra Supabase (opcional) |
-| 6 | Offline-first con cola de sync (arquitectura) |
+| 1 | Metas compartidas y gastos recurrentes (feature) |
+| 2 | Tests de integración contra Supabase (opcional) |
+| 3 | Offline-first con cola de sync (arquitectura) |
 
 ### Fuera de alcance
 
@@ -204,14 +200,12 @@ src/lib/import.ts
 
 - **RLS en producción**: revisar políticas antes de uso real con datos sensibles; no usar `service_role` en el frontend.
 - **`couple_settings.person_a/b_name`**: columnas legacy sincronizadas al guardar perfil; la fuente de verdad en UI es `profiles` + `couple_members`. Deprecación completa opcional en fase futura.
-- **UI Overhaul sin merge**: prod sigue con estética anterior hasta PR/deploy; evitar divergencia prolongada.
-
 ---
 
 ## Prompt sugerido para la próxima sesión
 
 ```text
-Quiero continuar Finanzas Pareja después del UI Overhaul (Fase 5).
+Quiero continuar Finanzas Pareja después de Fase 5 (UI Overhaul en prod).
 
 Lee:
 - README.md
@@ -220,12 +214,11 @@ Lee:
 
 Contexto:
 - Producción: https://finanzas-personales-ebon.vercel.app (Vercel + Supabase).
-- Main: presupuestos, importadores (Galicia, Santander, Wallbit OCR), identidad Yo/Mi pareja.
-- Local (rama ui-error-expense-parsing): overhaul visual completo + fix parsing import; npm run ci verde; sin merge a main.
+- Main: UI overhaul, presupuestos, importadores (Galicia, Santander, Wallbit OCR), identidad Yo/Mi pareja.
+- Migraciones 001–007 aplicadas en Supabase prod.
 
 Objetivo:
-- Abrir PR del UI Overhaul, mergear a main y validar smoke mobile en prod.
-- Confirmar migraciones 006/007 en Supabase prod si faltan.
+- Implementar metas compartidas y/o gastos recurrentes (definir alcance al inicio).
 
 Ejecuta build y tests al final.
 ```

@@ -141,6 +141,8 @@ Si agregás una migración nueva:
 | `003_imports_realtime.sql` | Realtime en importaciones |
 | `004_invite_code_expiration.sql` | Expiración/revocación de códigos |
 | `005_couple_profile_read.sql` | Lectura de perfiles entre miembros de la pareja |
+| `006_category_budgets.sql` | Presupuestos por categoría (mensual) |
+| `007_recurring_budgets.sql` | Límites recurrentes por categoría |
 
 Las migraciones **no se aplican solas** con el deploy de Vercel: siempre SQL Editor primero, deploy después.
 
