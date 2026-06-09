@@ -131,7 +131,7 @@ export function useFilteredMovements(
     return repos.movements.subscribe(() => {
       void load()
     })
-  }, [mode, repos, filtersKey, filters, queryKey, searchContextKey, searchContext])
+  }, [mode, repos, queryKey])
 
   return {
     query: mode === 'local' ? local : remote,
