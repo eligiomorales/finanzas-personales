@@ -7,10 +7,7 @@ import type { UpsertCategoryBudgetInput } from '@/lib/repositories/types'
 import type { CurrencyCode, Movement, MovementFilters, MovementFormData } from '@/types'
 import type { MovementSearchContext } from '@/lib/movement-search'
 import { updateMyDisplayName } from '@/lib/couple/persons'
-import {
-  MOVEMENTS_PAGE_SIZE,
-  serializeMovementFilters,
-} from '@/lib/movements-query'
+import { serializeMovementFilters } from '@/lib/movements-query'
 import { RECURRING_BUDGET_MONTH } from '@/lib/budget'
 
 export function useSettings() {
@@ -84,7 +81,6 @@ export function useMovements() {
 
 export function useFilteredMovements(
   filters: MovementFilters,
-  page: number,
   searchContext?: MovementSearchContext,
 ) {
   const { mode, repos } = useDataContext()
@@ -97,34 +93,50 @@ export function useFilteredMovements(
           personBName: searchContext.persons.personBName,
           myRole: searchContext.persons.myRole,
         },
+        amountView: searchContext.amountView
+          ? {
+              displayCurrency: searchContext.amountView.currencyConfig.displayCurrency,
+              exchangeRateUsd: searchContext.amountView.currencyConfig.exchangeRateUsd,
+              expenseViewMode: searchContext.amountView.expenseViewMode,
+              personalRole: searchContext.amountView.personalRole,
+            }
+          : undefined,
       })
     : ''
+  const queryKey = `${filtersKey}|${searchContextKey}`
 
   const local = useLiveQuery(
-    () => repos.movements.queryUpToPage(filters, page, MOVEMENTS_PAGE_SIZE, searchContext),
-    [filtersKey, page, repos, searchContextKey],
+    async () => {
+      const result = await repos.movements.queryFiltered(filters, searchContext)
+      return { ...result, queryKey }
+    },
+    [queryKey, repos],
   )
 
-  const [remote, setRemote] = useState<Awaited<ReturnType<typeof repos.movements.queryUpToPage>> | undefined>(
-    undefined,
-  )
+  const [remote, setRemote] = useState<
+    (Awaited<ReturnType<typeof repos.movements.queryFiltered>> & { queryKey: string }) | undefined
+  >(undefined)
 
   useEffect(() => {
     if (mode !== 'remote') return
     let cancelled = false
+    setRemote(undefined)
 
     async function load() {
-      const result = await repos.movements.queryUpToPage(filters, page, MOVEMENTS_PAGE_SIZE, searchContext)
-      if (!cancelled) setRemote(result)
+      const result = await repos.movements.queryFiltered(filters, searchContext)
+      if (!cancelled) setRemote({ ...result, queryKey })
     }
 
     void load()
     return repos.movements.subscribe(() => {
       void load()
     })
-  }, [mode, repos, filtersKey, page, filters, searchContextKey, searchContext])
+  }, [mode, repos, filtersKey, filters, queryKey, searchContextKey, searchContext])
 
-  return mode === 'local' ? local : remote
+  return {
+    query: mode === 'local' ? local : remote,
+    queryKey,
+  }
 }
 
 export function useImports() {

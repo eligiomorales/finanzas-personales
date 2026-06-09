@@ -1,10 +1,17 @@
 import { payerDisplayLabel, payerFilterLabel, type CouplePersonsView } from '@/lib/couple/person-labels'
+import type { CurrencyConfig } from '@/lib/currency'
+import type { ExpenseViewMode } from '@/lib/expense-view-mode'
 import { movementTypeLabel } from '@/lib/utils'
 import type { Category, CurrencyCode, Movement, MovementSource, MovementType } from '@/types'
 
 export interface MovementSearchContext {
   categories: Category[]
   persons: CouplePersonsView
+  amountView?: {
+    currencyConfig: CurrencyConfig
+    expenseViewMode: ExpenseViewMode
+    personalRole: 'personA' | 'personB'
+  }
 }
 
 export interface ParsedMovementSearch {

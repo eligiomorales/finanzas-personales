@@ -1,7 +1,7 @@
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { subscribeToPostgresChanges } from '@/lib/supabase/realtime-subscribe'
 import { normalizeMovementFormData } from '@/lib/balance'
-import { filterMovementsInMemory } from '@/lib/repositories/dexie-repositories'
+import { filterAllMovementsInMemory, filterMovementsInMemory } from '@/lib/repositories/dexie-repositories'
 import {
   buildConfirmedPendingItems,
   buildImportRecord,
@@ -148,6 +148,14 @@ export function createSupabaseRepositories(coupleId: string): Repositories {
 
       if (error) throw error
       return data ? rowToMovement(data) : undefined
+    },
+
+    async queryFiltered(
+      filters: MovementFilters,
+      searchContext?: import('@/lib/movement-search').MovementSearchContext,
+    ) {
+      const all = await movements.list()
+      return filterAllMovementsInMemory(all, filters, searchContext)
     },
 
     async queryUpToPage(

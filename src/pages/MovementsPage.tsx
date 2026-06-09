@@ -30,7 +30,7 @@ export function MovementsPage() {
   const { deleteMovement } = useMovementMutations()
   const { confirm, dialog } = useConfirmDialog()
   const [filters, setFilters] = useState<MovementFilters>(defaultMovementFilters)
-  const [page, setPage] = useState(1)
+  const [visibleCount, setVisibleCount] = useState(MOVEMENTS_PAGE_SIZE)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const myRole = persons.myRole ?? 'personA'
 
@@ -47,18 +47,28 @@ export function MovementsPage() {
     [filtersWithPeriod, isPersonal, myRole],
   )
 
+  const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
+
   const searchContext = useMemo(
-    () => ({ categories, persons }),
-    [categories, persons],
+    () => ({
+      categories,
+      persons,
+      amountView: {
+        currencyConfig,
+        expenseViewMode,
+        personalRole: myRole,
+      },
+    }),
+    [categories, persons, currencyConfig, expenseViewMode, myRole],
   )
 
-  const query = useFilteredMovements(effectiveFilters, page, searchContext)
-  const movements = query?.items ?? []
-  const total = query?.total ?? 0
-  const hasMore = query?.hasMore ?? false
-  const isLoading = query === undefined
-
-  const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
+  const { query, queryKey } = useFilteredMovements(effectiveFilters, searchContext)
+  const queryMatchesCurrentView = query?.queryKey === queryKey
+  const allMovements = queryMatchesCurrentView ? (query?.items ?? []) : []
+  const total = queryMatchesCurrentView ? (query?.total ?? 0) : 0
+  const movements = allMovements.slice(0, visibleCount)
+  const hasMore = visibleCount < total
+  const isLoading = query === undefined || !queryMatchesCurrentView
 
   const activeFilterChips = useMemo(
     () =>
@@ -70,13 +80,13 @@ export function MovementsPage() {
   )
 
   const updateFilters = useCallback((next: MovementFilters) => {
-    setPage(1)
+    setVisibleCount(MOVEMENTS_PAGE_SIZE)
     setFilters(next)
   }, [])
 
   useEffect(() => {
-    setPage(1)
-  }, [period.from, period.to])
+    setVisibleCount(MOVEMENTS_PAGE_SIZE)
+  }, [queryKey])
 
   async function handleDelete(id: string) {
     const confirmed = await confirm({
@@ -108,7 +118,7 @@ export function MovementsPage() {
         chips={activeFilterChips}
         onRemove={(chipId) => {
           if (chipId === 'period') {
-            setPage(1)
+            setVisibleCount(MOVEMENTS_PAGE_SIZE)
             setPeriod(currentMonthRange())
             return
           }
@@ -165,7 +175,7 @@ export function MovementsPage() {
             <Button
               variant="secondary"
               className="w-full"
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => setVisibleCount((count) => count + MOVEMENTS_PAGE_SIZE)}
             >
               Cargar más ({Math.min(MOVEMENTS_PAGE_SIZE, total - movements.length)} siguientes)
             </Button>
