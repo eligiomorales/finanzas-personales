@@ -12,7 +12,7 @@ import { buildBudgetProgress, getBudgetMonthKey } from '@/lib/budget'
 import { BudgetProgressBar, BudgetProgressMeta } from '@/components/BudgetProgressBar'
 import { formatInViewCurrency, getCurrencyConfig } from '@/lib/currency'
 import { formatPeriodHeaderTitle } from '@/lib/period-presets'
-import { formatDate, previousPeriodForRange, cn } from '@/lib/utils'
+import { previousPeriodForRange, cn } from '@/lib/utils'
 import { Card, EmptyState, StatCard } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { TextLink } from '@/components/ui/TextLink'
@@ -103,19 +103,10 @@ export function CategoriesPage() {
 
   const periodTitle = useMemo(() => formatPeriodHeaderTitle(period), [period])
 
-  const periodSubtitle = [
-    `Del ${formatDate(period.from)} al ${formatDate(period.to)}`,
-    `montos en ${currencyConfig.displayCurrency}`,
-    isPersonal ? 'Vista personal' : null,
-  ]
-    .filter(Boolean)
-    .join(' · ')
-
   return (
     <div className="space-y-4">
       <PageHeader
         title={periodTitle}
-        subtitle={`${periodSubtitle} · Comparación vs ${formatDate(previousPeriod.from)} – ${formatDate(previousPeriod.to)}`}
         trailing={
           <PeriodFilter
             period={period}

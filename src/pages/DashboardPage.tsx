@@ -17,7 +17,7 @@ import { buildPeriodComparison } from '@/lib/dashboard-insights'
 import { buildBudgetProgress, getBudgetMonthKey } from '@/lib/budget'
 import { getCurrencyConfig } from '@/lib/currency'
 import { formatPeriodHeaderTitle } from '@/lib/period-presets'
-import { filterMovements, formatDate, previousPeriodForRange } from '@/lib/utils'
+import { filterMovements, previousPeriodForRange } from '@/lib/utils'
 import { Card, EmptyState } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { PeriodFilter } from '@/components/PeriodFilter'
@@ -109,14 +109,6 @@ export function DashboardPage() {
   const hasPendingCompensation =
     coupleBalance.owedBy !== 'balanced' && coupleBalance.owedAmount > 0.01
 
-  const periodSubtitle = [
-    `Del ${formatDate(period.from)} al ${formatDate(period.to)}`,
-    `montos en ${currencyConfig.displayCurrency}`,
-    isPersonal ? 'Vista personal' : null,
-  ]
-    .filter(Boolean)
-    .join(' · ')
-
   return (
     <div className="space-y-4">
       {onboarding.visible && (
@@ -129,7 +121,6 @@ export function DashboardPage() {
 
       <PageHeader
         title={periodTitle}
-        subtitle={periodSubtitle}
         trailing={
           <PeriodFilter
             period={period}

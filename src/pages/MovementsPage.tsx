@@ -11,7 +11,6 @@ import {
   removeMovementFilterChip,
 } from '@/lib/movement-filter-chips'
 import { MovementFilterToolbar } from '@/components/MovementFilterToolbar'
-import { FilterChips } from '@/components/ui/FilterChips'
 import { payerDisplayLabel } from '@/lib/couple/person-labels'
 import { getDisplayAmountForView } from '@/lib/balance'
 import { formatMovementAmountLinesForView, getCurrencyConfig } from '@/lib/currency'
@@ -84,6 +83,24 @@ export function MovementsPage() {
     setFilters(next)
   }, [])
 
+  const removeFilterChip = useCallback(
+    (chipId: string) => {
+      if (chipId === 'period') {
+        setVisibleCount(MOVEMENTS_PAGE_SIZE)
+        setPeriod(currentMonthRange())
+        return
+      }
+      updateFilters(removeMovementFilterChip(filters, chipId))
+    },
+    [filters, setPeriod, updateFilters],
+  )
+
+  const clearFilters = useCallback(() => {
+    setVisibleCount(MOVEMENTS_PAGE_SIZE)
+    setPeriod(currentMonthRange())
+    setFilters(defaultMovementFilters())
+  }, [setPeriod])
+
   useEffect(() => {
     setVisibleCount(MOVEMENTS_PAGE_SIZE)
   }, [queryKey])
@@ -111,21 +128,9 @@ export function MovementsPage() {
         onChange={updateFilters}
         categories={categories}
         persons={persons}
-      />
-
-      <FilterChips
-        size="compact"
-        chips={activeFilterChips}
-        onRemove={(chipId) => {
-          if (chipId === 'period') {
-            setVisibleCount(MOVEMENTS_PAGE_SIZE)
-            setPeriod(currentMonthRange())
-            return
-          }
-          updateFilters(removeMovementFilterChip(filters, chipId))
-        }}
-        onClearAll={() => updateFilters(defaultMovementFilters())}
-        clearAllLabel="Restablecer filtros"
+        activeChips={activeFilterChips}
+        onRemoveChip={removeFilterChip}
+        onClearFilters={clearFilters}
       />
 
       <p className="text-sm text-stone-500" aria-live="polite">

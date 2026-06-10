@@ -345,7 +345,6 @@ export function ImportPage() {
     <div className="mx-auto min-w-0 max-w-2xl space-y-6">
       <PageHeader
         title="Importar resumen"
-        subtitle="CSV, Excel, PDF de tarjeta o captura de Wallbit"
       />
 
       <Stepper steps={[...IMPORT_STEPS]} currentStepId={step} completedStepIds={completedStepIds} />
