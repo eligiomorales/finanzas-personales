@@ -76,7 +76,7 @@ export function ImportBatchDefaultsCard({
   }, [expenseCategories, primaryCategories, showAllCategories])
 
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-3">
+    <section className="border-t border-stone-200 pt-4">
       <div className="flex items-start gap-3">
         <div
           className="mt-1 h-4 w-4 shrink-0 rounded-full border border-brand-500 bg-brand-500"
@@ -113,7 +113,7 @@ export function ImportBatchDefaultsCard({
         </div>
 
         {editOpen && (
-          <div className="space-y-3 rounded-xl border border-stone-200 bg-surface-50/70 p-2.5">
+          <div className="space-y-3 rounded-lg bg-surface-100/80 p-2.5">
             <div className="space-y-1.5">
               <span className="text-xs font-semibold text-stone-600">Categoría masiva</span>
               <div className="flex flex-wrap gap-1.5">
@@ -167,6 +167,6 @@ export function ImportBatchDefaultsCard({
           </div>
         )}
       </div>
-    </div>
+    </section>
   )
 }
