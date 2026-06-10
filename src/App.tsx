@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { DataProvider } from '@/contexts/DataContext'
 import { AmountsVisibilityProvider } from '@/contexts/AmountsVisibilityContext'
 import { ExpenseViewProvider } from '@/contexts/ExpenseViewContext'
-import { PeriodProvider } from '@/contexts/PeriodContext'
+import { MovementFiltersProvider } from '@/contexts/MovementFiltersContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Layout } from '@/components/Layout'
 import { LoadingState } from '@/components/ui/PageShell'
@@ -51,9 +51,9 @@ function AuthenticatedApp() {
     return (
       <AmountsVisibilityProvider>
         <ExpenseViewProvider>
-          <PeriodProvider>
+          <MovementFiltersProvider>
             <AppRoutes />
-          </PeriodProvider>
+          </MovementFiltersProvider>
         </ExpenseViewProvider>
       </AmountsVisibilityProvider>
     )
@@ -74,11 +74,11 @@ function AuthenticatedApp() {
   return (
     <AmountsVisibilityProvider>
       <ExpenseViewProvider>
-        <PeriodProvider>
+        <MovementFiltersProvider>
           <DataProvider>
             <AppRoutes />
           </DataProvider>
-        </PeriodProvider>
+        </MovementFiltersProvider>
       </ExpenseViewProvider>
     </AmountsVisibilityProvider>
   )

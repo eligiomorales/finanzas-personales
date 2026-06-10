@@ -2,14 +2,10 @@ import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useFilteredMovements, useCategories, useSettings, useMovementMutations } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
-import { usePeriod } from '@/contexts/PeriodContext'
+import { useMovementFilters } from '@/contexts/MovementFiltersContext'
 import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import { currentMonthRange, formatShortDate } from '@/lib/utils'
-import {
-  buildMovementFilterChips,
-  defaultMovementFilters,
-  removeMovementFilterChip,
-} from '@/lib/movement-filter-chips'
+import { buildMovementFilterChips, removeMovementFilterChip } from '@/lib/movement-filter-chips'
 import { MovementFilterToolbar } from '@/components/MovementFilterToolbar'
 import { payerDisplayLabel } from '@/lib/couple/person-labels'
 import { getDisplayAmountForView } from '@/lib/balance'
@@ -25,25 +21,19 @@ export function MovementsPage() {
   const settings = useSettings()
   const persons = useCouplePersons()
   const { isPersonal, mode: expenseViewMode } = useExpenseViewMode()
-  const { period, setPeriod } = usePeriod()
+  const { filters, listFilters, setFilters, setPeriod, clearFilters } = useMovementFilters()
   const { deleteMovement } = useMovementMutations()
   const { confirm, dialog } = useConfirmDialog()
-  const [filters, setFilters] = useState<MovementFilters>(defaultMovementFilters)
   const [visibleCount, setVisibleCount] = useState(MOVEMENTS_PAGE_SIZE)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const myRole = persons.myRole ?? 'personA'
 
-  const filtersWithPeriod = useMemo(
-    () => ({ ...filters, dateFrom: period.from, dateTo: period.to }),
-    [filters, period],
-  )
-
   const effectiveFilters = useMemo(
     () =>
       isPersonal
-        ? { ...filtersWithPeriod, personalViewRole: myRole }
-        : filtersWithPeriod,
-    [filtersWithPeriod, isPersonal, myRole],
+        ? { ...filters, personalViewRole: myRole }
+        : filters,
+    [filters, isPersonal, myRole],
   )
 
   const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
@@ -71,17 +61,20 @@ export function MovementsPage() {
 
   const activeFilterChips = useMemo(
     () =>
-      buildMovementFilterChips(filtersWithPeriod, {
+      buildMovementFilterChips(filters, {
         categories,
         persons,
       }),
-    [filtersWithPeriod, categories, persons],
+    [filters, categories, persons],
   )
 
-  const updateFilters = useCallback((next: MovementFilters) => {
-    setVisibleCount(MOVEMENTS_PAGE_SIZE)
-    setFilters(next)
-  }, [])
+  const updateListFilters = useCallback(
+    (next: MovementFilters) => {
+      setVisibleCount(MOVEMENTS_PAGE_SIZE)
+      setFilters({ ...filters, ...next })
+    },
+    [filters, setFilters],
+  )
 
   const removeFilterChip = useCallback(
     (chipId: string) => {
@@ -90,16 +83,15 @@ export function MovementsPage() {
         setPeriod(currentMonthRange())
         return
       }
-      updateFilters(removeMovementFilterChip(filters, chipId))
+      updateListFilters(removeMovementFilterChip(listFilters, chipId))
     },
-    [filters, setPeriod, updateFilters],
+    [listFilters, setPeriod, updateListFilters],
   )
 
-  const clearFilters = useCallback(() => {
+  const resetFilters = useCallback(() => {
     setVisibleCount(MOVEMENTS_PAGE_SIZE)
-    setPeriod(currentMonthRange())
-    setFilters(defaultMovementFilters())
-  }, [setPeriod])
+    clearFilters()
+  }, [clearFilters])
 
   useEffect(() => {
     setVisibleCount(MOVEMENTS_PAGE_SIZE)
@@ -124,13 +116,13 @@ export function MovementsPage() {
       {dialog}
 
       <MovementFilterToolbar
-        filters={filters}
-        onChange={updateFilters}
+        filters={listFilters}
+        onChange={updateListFilters}
         categories={categories}
         persons={persons}
         activeChips={activeFilterChips}
         onRemoveChip={removeFilterChip}
-        onClearFilters={clearFilters}
+        onClearFilters={resetFilters}
       />
 
       <p className="text-sm text-stone-500" aria-live="polite">

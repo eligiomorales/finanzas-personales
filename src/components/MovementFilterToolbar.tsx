@@ -6,7 +6,7 @@ import { Button, Input } from '@/components/ui/Form'
 import { Dialog } from '@/components/ui/Dialog'
 import { FilterChips, type FilterChip } from '@/components/ui/FilterChips'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { usePeriod } from '@/contexts/PeriodContext'
+import { usePeriod } from '@/contexts/MovementFiltersContext'
 import { formatPeriodHeaderTitle } from '@/lib/period-presets'
 import {
   MOVEMENT_SORT_OPTIONS,
