@@ -17,7 +17,7 @@ export function Stepper({ steps, currentStepId, completedStepIds = [], className
   const completedSet = new Set(completedStepIds)
 
   return (
-    <nav aria-label="Progreso" className={cn('w-full px-[50px]', className)}>
+    <nav aria-label="Progreso" className={cn('w-full px-2 sm:px-6', className)}>
       <ol className="flex items-center">
         {steps.map((step, index) => {
           const isCurrent = step.id === currentStepId
