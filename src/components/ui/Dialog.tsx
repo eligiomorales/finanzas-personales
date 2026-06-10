@@ -45,7 +45,7 @@ export function Dialog({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 md:items-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center md:p-4">
       {closeOnBackdrop ? (
         <button
           type="button"
@@ -63,7 +63,7 @@ export function Dialog({
         aria-labelledby={resolvedTitleId}
         aria-describedby={description ? resolvedDescriptionId : undefined}
         className={cn(
-          'relative w-full max-w-md rounded-2xl border border-stone-200/80 bg-white p-5 shadow-xl shadow-stone-300/20',
+          'relative w-full max-w-md rounded-t-2xl border border-b-0 border-stone-200/80 bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-xl shadow-stone-300/20 md:rounded-2xl md:border-b md:pb-5',
           className,
         )}
       >
@@ -75,7 +75,7 @@ export function Dialog({
             {description}
           </p>
         )}
-        <div className={description ? 'mt-4' : 'mt-4'}>{children}</div>
+        <div className={description ? 'mt-4' : 'mt-3'}>{children}</div>
       </div>
     </div>
   )

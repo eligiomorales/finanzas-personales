@@ -120,10 +120,12 @@ export function MovementFilterToolbar({
     onChange({ ...filters, ...patch })
   }
 
+  const dialogFacetClassName = 'w-full justify-between py-2.5 text-sm'
+
   const advancedFilters = (
     <div
       id="movements-advanced-filters"
-      className="grid gap-2 sm:grid-cols-2"
+      className="grid grid-cols-2 gap-3"
       role="group"
       aria-label="Filtros por criterio"
     >
@@ -135,6 +137,7 @@ export function MovementFilterToolbar({
         openFacet={openFacet}
         setOpenFacet={setOpenFacet}
         onChange={(v) => patch({ type: (v as MovementType) || undefined })}
+        buttonClassName={dialogFacetClassName}
       />
       <FacetMenu
         facetId="category"
@@ -144,6 +147,7 @@ export function MovementFilterToolbar({
         openFacet={openFacet}
         setOpenFacet={setOpenFacet}
         onChange={(v) => patch({ categoryId: v || undefined })}
+        buttonClassName={dialogFacetClassName}
       />
       <FacetMenu
         facetId="paidBy"
@@ -153,6 +157,7 @@ export function MovementFilterToolbar({
         openFacet={openFacet}
         setOpenFacet={setOpenFacet}
         onChange={(v) => patch({ paidBy: (v as Payer) || undefined })}
+        buttonClassName={dialogFacetClassName}
       />
       <FilterFacet
         label={moreActive > 0 ? `Más (${moreActive})` : 'Más'}
@@ -160,6 +165,7 @@ export function MovementFilterToolbar({
         open={openFacet === 'more'}
         onOpen={() => setOpenFacet('more')}
         onClose={() => setOpenFacet(null)}
+        buttonClassName={dialogFacetClassName}
       >
         <li className="px-3 py-2 text-xs font-semibold text-stone-500">Compartido</li>
         {(
@@ -313,7 +319,6 @@ export function MovementFilterToolbar({
           setShowAdvanced(false)
         }}
         title="Filtros"
-        description="Refiná los movimientos por tipo, categoría, pagador, moneda o reparto."
         className="max-w-lg"
       >
         {advancedFilters}

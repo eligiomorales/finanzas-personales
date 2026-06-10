@@ -66,6 +66,7 @@ export function FilterFacet({
   onOpen,
   onClose,
   menuMinWidth,
+  buttonClassName,
   children,
 }: {
   label: string
@@ -75,6 +76,7 @@ export function FilterFacet({
   onOpen: () => void
   onClose: () => void
   menuMinWidth?: number
+  buttonClassName?: string
   children: ReactNode
 }) {
   const menuId = useId()
@@ -134,6 +136,7 @@ export function FilterFacet({
           active
             ? 'border-brand-600 bg-brand-50 text-brand-800'
             : 'border-stone-300 bg-white text-stone-700 hover:bg-surface-50',
+          buttonClassName,
         )}
         onClick={() => (open ? onClose() : onOpen())}
       >
@@ -192,6 +195,7 @@ export function FacetMenu({
   openFacet,
   setOpenFacet,
   onChange,
+  buttonClassName,
 }: {
   facetId: string
   label: string
@@ -200,6 +204,7 @@ export function FacetMenu({
   openFacet: string | null
   setOpenFacet: (id: string | null) => void
   onChange: (value: string | undefined) => void
+  buttonClassName?: string
 }) {
   const active = value !== undefined && value !== ''
   const activeOption = options.find((o) => o.value === (value ?? ''))
@@ -212,6 +217,7 @@ export function FacetMenu({
       open={openFacet === facetId}
       onOpen={() => setOpenFacet(facetId)}
       onClose={() => setOpenFacet(null)}
+      buttonClassName={buttonClassName}
     >
       {options.map((opt) => (
         <FacetOptionItem
