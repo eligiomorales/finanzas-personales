@@ -1,8 +1,10 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { cn, formatDate } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { PeriodFilter } from '@/components/PeriodFilter'
 import { FacetMenu, FilterFacet, FacetOptionItem, type FacetOption } from '@/components/FacetDropdown'
-import { Input } from '@/components/ui/Form'
+import { Button, Input } from '@/components/ui/Form'
+import { Dialog } from '@/components/ui/Dialog'
+import { FilterChips, type FilterChip } from '@/components/ui/FilterChips'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { usePeriod } from '@/contexts/PeriodContext'
 import { formatPeriodHeaderTitle } from '@/lib/period-presets'
@@ -22,6 +24,9 @@ interface MovementFilterToolbarProps {
   onChange: (next: MovementFilters) => void
   categories: Category[]
   persons: CouplePersonsView
+  activeChips: FilterChip[]
+  onRemoveChip: (chipId: string) => void
+  onClearFilters: () => void
 }
 
 function SearchIcon({ className }: { className?: string }) {
@@ -63,6 +68,9 @@ export function MovementFilterToolbar({
   onChange,
   categories,
   persons,
+  activeChips,
+  onRemoveChip,
+  onClearFilters,
 }: MovementFilterToolbarProps) {
   const [searchDraft, setSearchDraft] = useState(filters.search ?? '')
   const [openFacet, setOpenFacet] = useState<string | null>(null)
@@ -73,17 +81,12 @@ export function MovementFilterToolbar({
 
   const { period, setPeriod } = usePeriod()
   const periodTitle = useMemo(() => formatPeriodHeaderTitle(period), [period])
-  const periodSubtitle = `Del ${formatDate(period.from)} al ${formatDate(period.to)}`
   const moreActive = moreFiltersActiveCount(filters)
   const advancedActive = advancedFiltersActiveCount(filters)
 
   useEffect(() => {
     setSearchDraft(filters.search ?? '')
   }, [filters.search])
-
-  useEffect(() => {
-    if (advancedActive > 0) setShowAdvanced(true)
-  }, [advancedActive])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -117,11 +120,95 @@ export function MovementFilterToolbar({
     onChange({ ...filters, ...patch })
   }
 
+  const advancedFilters = (
+    <div
+      id="movements-advanced-filters"
+      className="grid gap-2 sm:grid-cols-2"
+      role="group"
+      aria-label="Filtros por criterio"
+    >
+      <FacetMenu
+        facetId="type"
+        label="Tipo"
+        value={filters.type ?? ''}
+        options={typeOptions}
+        openFacet={openFacet}
+        setOpenFacet={setOpenFacet}
+        onChange={(v) => patch({ type: (v as MovementType) || undefined })}
+      />
+      <FacetMenu
+        facetId="category"
+        label="Categoría"
+        value={filters.categoryId ?? ''}
+        options={categoryOptions}
+        openFacet={openFacet}
+        setOpenFacet={setOpenFacet}
+        onChange={(v) => patch({ categoryId: v || undefined })}
+      />
+      <FacetMenu
+        facetId="paidBy"
+        label="Pagó"
+        value={filters.paidBy ?? ''}
+        options={paidByOptions}
+        openFacet={openFacet}
+        setOpenFacet={setOpenFacet}
+        onChange={(v) => patch({ paidBy: (v as Payer) || undefined })}
+      />
+      <FilterFacet
+        label={moreActive > 0 ? `Más (${moreActive})` : 'Más'}
+        active={moreActive > 0}
+        open={openFacet === 'more'}
+        onOpen={() => setOpenFacet('more')}
+        onClose={() => setOpenFacet(null)}
+      >
+        <li className="px-3 py-2 text-xs font-semibold text-stone-500">Compartido</li>
+        {(
+          [
+            { value: '', label: 'Todos' },
+            { value: 'true', label: 'Compartido' },
+            { value: 'false', label: 'Personal' },
+          ] as FacetOption[]
+        ).map((opt) => (
+          <FacetOptionItem
+            key={`shared-${opt.value || 'all'}`}
+            selected={
+              filters.isShared === undefined
+                ? opt.value === ''
+                : String(filters.isShared) === opt.value
+            }
+            onSelect={() =>
+              patch({
+                isShared: opt.value === '' ? undefined : opt.value === 'true',
+              })
+            }
+          >
+            {opt.label}
+          </FacetOptionItem>
+        ))}
+        <li className="border-t border-stone-100 px-3 py-2 text-xs font-semibold text-stone-500">Moneda</li>
+        {(
+          [
+            { value: '', label: 'Todas' },
+            { value: 'ARS', label: 'ARS' },
+            { value: 'USD', label: 'USD' },
+          ] as FacetOption[]
+        ).map((opt) => (
+          <FacetOptionItem
+            key={`currency-${opt.value || 'all'}`}
+            selected={(filters.currency ?? '') === opt.value}
+            onSelect={() => patch({ currency: (opt.value as CurrencyCode) || undefined })}
+          >
+            {opt.label}
+          </FacetOptionItem>
+        ))}
+      </FilterFacet>
+    </div>
+  )
+
   return (
-    <div className="space-y-2" id="movements-filter-toolbar">
+    <div className="space-y-3" id="movements-filter-toolbar">
       <PageHeader
         title={periodTitle}
-        subtitle={periodSubtitle}
         trailing={
           <PeriodFilter
             period={period}
@@ -132,49 +219,27 @@ export function MovementFilterToolbar({
           />
         }
       >
-        <div className="flex items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <PeriodFilter
-              period={period}
-              onChange={setPeriod}
-              idPrefix="movements-period"
-              variant="presets"
-            />
-          </div>
-          <button
-            type="button"
-            aria-expanded={showAdvanced}
-            aria-controls="movements-advanced-filters"
-            className={cn(
-              'shrink-0 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300',
-              showAdvanced || advancedActive > 0
-                ? 'border-brand-600 bg-brand-50 text-brand-800'
-                : 'border-stone-300 bg-white text-stone-700 hover:bg-surface-50',
-            )}
-            onClick={() => setShowAdvanced((v) => !v)}
-          >
-            Filtros
-            {advancedActive > 0 && (
-              <span className="ml-1 tabular-nums text-brand-600">({advancedActive})</span>
-            )}
-            <span className="ml-0.5 text-stone-400" aria-hidden>
-              {showAdvanced ? '▴' : '▾'}
-            </span>
-          </button>
+        <div className="min-w-0 overflow-x-auto pb-0.5">
+          <PeriodFilter
+            period={period}
+            onChange={setPeriod}
+            idPrefix="movements-period"
+            variant="presets"
+          />
         </div>
       </PageHeader>
 
-      <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
+      <div className="space-y-2 rounded-xl border border-stone-200/80 bg-white p-2 shadow-sm shadow-stone-200/40">
+        <div className="relative">
           <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
           <Input
             id={searchId}
             type="search"
             role="searchbox"
             aria-label="Buscar movimientos"
-            placeholder="Buscar descripción, categoría, pagador… (>10000, usd, importado)"
+            placeholder="Buscar movimientos, categorías, importes..."
             value={searchDraft}
-            className="py-1.5 pl-9 pr-9 text-sm"
+            className="border-stone-200 py-2 pl-9 pr-9 text-sm"
             onChange={(e) => setSearchDraft(e.target.value)}
           />
           {searchDraft.length > 0 && (
@@ -188,108 +253,86 @@ export function MovementFilterToolbar({
             </button>
           )}
         </div>
-        <div className="shrink-0">
-          <FacetMenu
-            facetId="sort"
-            label="Orden"
-            value={movementSortOptionValue(filters)}
-            options={MOVEMENT_SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-            openFacet={openFacet}
-            setOpenFacet={setOpenFacet}
-            onChange={(v) => {
-              if (!v) return
-              const parsed = parseMovementSortOptionValue(v)
-              if (!parsed) return
-              patch({ sortBy: parsed.sortBy, sortDir: parsed.sortDir })
+
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            aria-expanded={showAdvanced}
+            aria-controls="movements-advanced-filters"
+            className={cn(
+              'inline-flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300',
+              showAdvanced || advancedActive > 0
+                ? 'border-brand-600 bg-brand-50 text-brand-800'
+                : 'border-stone-300 bg-white text-stone-700 hover:bg-surface-50',
+            )}
+            onClick={() => {
+              setOpenFacet(null)
+              setShowAdvanced(true)
             }}
-          />
+          >
+            Filtros
+            {advancedActive > 0 && (
+              <span className="tabular-nums text-brand-600">({advancedActive})</span>
+            )}
+            <span className="text-stone-400" aria-hidden>
+              ▾
+            </span>
+          </button>
+
+          <div className="min-w-0 shrink-0">
+            <FacetMenu
+              facetId="sort"
+              label="Orden"
+              value={movementSortOptionValue(filters)}
+              options={MOVEMENT_SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              openFacet={openFacet}
+              setOpenFacet={setOpenFacet}
+              onChange={(v) => {
+                if (!v) return
+                const parsed = parseMovementSortOptionValue(v)
+                if (!parsed) return
+                patch({ sortBy: parsed.sortBy, sortDir: parsed.sortDir })
+              }}
+            />
+          </div>
         </div>
+
+        <FilterChips
+          size="compact"
+          chips={activeChips}
+          onRemove={onRemoveChip}
+          onClearAll={onClearFilters}
+          clearAllLabel="Restablecer filtros"
+        />
       </div>
 
-      {showAdvanced && (
-        <div
-          id="movements-advanced-filters"
-          className="flex flex-wrap gap-1.5 rounded-lg border border-stone-200 bg-white p-2"
-          role="group"
-          aria-label="Filtros por criterio"
-        >
-          <FacetMenu
-            facetId="type"
-            label="Tipo"
-            value={filters.type ?? ''}
-            options={typeOptions}
-            openFacet={openFacet}
-            setOpenFacet={setOpenFacet}
-            onChange={(v) => patch({ type: (v as MovementType) || undefined })}
-          />
-          <FacetMenu
-            facetId="category"
-            label="Categoría"
-            value={filters.categoryId ?? ''}
-            options={categoryOptions}
-            openFacet={openFacet}
-            setOpenFacet={setOpenFacet}
-            onChange={(v) => patch({ categoryId: v || undefined })}
-          />
-          <FacetMenu
-            facetId="paidBy"
-            label="Pagó"
-            value={filters.paidBy ?? ''}
-            options={paidByOptions}
-            openFacet={openFacet}
-            setOpenFacet={setOpenFacet}
-            onChange={(v) => patch({ paidBy: (v as Payer) || undefined })}
-          />
-          <FilterFacet
-            label={moreActive > 0 ? `Más (${moreActive})` : 'Más'}
-            active={moreActive > 0}
-            open={openFacet === 'more'}
-            onOpen={() => setOpenFacet('more')}
-            onClose={() => setOpenFacet(null)}
+      <Dialog
+        open={showAdvanced}
+        onClose={() => {
+          setOpenFacet(null)
+          setShowAdvanced(false)
+        }}
+        title="Filtros"
+        description="Refiná los movimientos por tipo, categoría, pagador, moneda o reparto."
+        className="max-w-lg"
+      >
+        {advancedFilters}
+        <div className="mt-5 flex items-center justify-between gap-2">
+          <Button type="button" variant="ghost" size="sm" onClick={onClearFilters}>
+            Restablecer
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              setOpenFacet(null)
+              setShowAdvanced(false)
+            }}
           >
-            <li className="px-3 py-2 text-xs font-semibold text-stone-500">Compartido</li>
-            {(
-              [
-                { value: '', label: 'Todos' },
-                { value: 'true', label: 'Compartido' },
-                { value: 'false', label: 'Personal' },
-              ] as FacetOption[]
-            ).map((opt) => (
-              <FacetOptionItem
-                key={`shared-${opt.value || 'all'}`}
-                selected={
-                  filters.isShared === undefined
-                    ? opt.value === ''
-                    : String(filters.isShared) === opt.value
-                }
-                onSelect={() =>
-                  patch({
-                    isShared: opt.value === '' ? undefined : opt.value === 'true',
-                  })
-                }
-              >
-                {opt.label}
-              </FacetOptionItem>
-            ))}
-            <li className="border-t border-stone-100 px-3 py-2 text-xs font-semibold text-stone-500">Moneda</li>
-            {(
-              [
-                { value: '', label: 'Todas' },
-                { value: 'ARS', label: 'ARS' },
-                { value: 'USD', label: 'USD' },
-              ] as FacetOption[]
-            ).map((opt) => (
-              <FacetOptionItem
-                key={`currency-${opt.value || 'all'}`}
-                selected={(filters.currency ?? '') === opt.value}
-                onSelect={() => patch({ currency: (opt.value as CurrencyCode) || undefined })}
-              >
-                {opt.label}
-              </FacetOptionItem>
-            ))}
-          </FilterFacet>
+            Ver movimientos
+          </Button>
         </div>
-      )}
+      </Dialog>
     </div>
   )
 }

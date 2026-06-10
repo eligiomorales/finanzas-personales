@@ -26,7 +26,7 @@ describe('period presets', () => {
     expect(activePeriodPresetId({ from: '2020-01-01', to: '2020-01-31' })).toBeNull()
   })
 
-  it('exposes three presets', () => {
-    expect(PERIOD_PRESETS).toHaveLength(3)
+  it('exposes the month presets', () => {
+    expect(PERIOD_PRESETS).toHaveLength(2)
   })
 })

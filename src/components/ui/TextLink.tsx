@@ -25,7 +25,7 @@ export function TextLink({ className, children, ...props }: TextLinkProps) {
 
 interface ButtonLinkProps extends Omit<LinkProps, 'className'> {
   variant?: 'primary' | 'secondary' | 'ghost'
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   className?: string
   children: React.ReactNode
 }
@@ -43,6 +43,7 @@ export function ButtonLink({
     ghost: 'text-stone-600 hover:bg-stone-100',
   }
   const sizes = {
+    xs: 'px-2 py-1 text-xs',
     sm: 'px-3 py-1.5 text-sm',
     md: 'px-4 py-2 text-sm',
     lg: 'px-6 py-3 text-base',

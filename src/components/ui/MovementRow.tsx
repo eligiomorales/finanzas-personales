@@ -21,7 +21,7 @@ function MovementAmount({ type, sign = '', primary, secondary, size = 'md' }: Mo
         className={cn(
           'font-bold tabular-nums',
           movementAmountColor(type),
-          size === 'sm' ? 'text-sm font-semibold' : 'text-sm sm:text-base',
+          size === 'sm' ? 'text-sm font-semibold' : 'text-sm',
         )}
       >
         {sign}
@@ -34,7 +34,7 @@ function MovementAmount({ type, sign = '', primary, secondary, size = 'md' }: Mo
 
 export function MovementList({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <Card compact className={cn('divide-y divide-stone-100 p-0', className)}>
+    <Card compact className={cn('space-y-[5px] p-0 [&>*+*]:border-t [&>*+*]:border-stone-200/70', className)}>
       {children}
     </Card>
   )
@@ -75,7 +75,7 @@ export function MovementRow(props: MovementRowProps) {
   if (props.variant === 'compact') {
     const { description, categoryName, movementType, amount, amountSign, className } = props
     return (
-      <div className={cn('flex items-center gap-3 px-4 py-3', className)}>
+      <div className={cn('flex items-center gap-3 px-4 py-2.5', className)}>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-stone-800">{description}</p>
           {categoryName && <p className={cn('mt-0.5 truncate text-xs', textMuted)}>{categoryName}</p>}
@@ -109,11 +109,11 @@ export function MovementRow(props: MovementRowProps) {
   } = props
 
   const row = (
-    <div className={cn(layout === 'list' ? 'space-y-2 px-4 py-3' : 'space-y-2', className)}>
-      <div className="flex items-start justify-between gap-3">
+    <div className={cn(layout === 'list' ? 'space-y-1.5 px-4 py-2.5' : 'space-y-1.5', className)}>
+      <div className="flex items-start justify-between gap-2.5">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-stone-500">{date}</span>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-5">
+            <span className="text-stone-500">{date}</span>
             <span
               className={cn(
                 'rounded px-1.5 py-0.5 text-xs font-medium',
@@ -124,7 +124,9 @@ export function MovementRow(props: MovementRowProps) {
             </span>
             {imported && <Badge variant="info">Importado</Badge>}
           </div>
-          <p className="mt-1 break-words font-medium text-stone-800">{description}</p>
+          <p className="mt-0.5 break-words text-sm font-medium leading-5 text-stone-800">
+            {description}
+          </p>
         </div>
         <MovementAmount
           type={movementType}
@@ -134,8 +136,8 @@ export function MovementRow(props: MovementRowProps) {
         />
       </div>
       {(categoryName || payerLabel || sharingLabel || editTo || onDelete) && (
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <div className={cn('flex min-w-0 flex-wrap gap-x-2 gap-y-0.5 text-xs', textMuted)}>
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
+          <div className={cn('flex min-w-0 flex-wrap gap-x-2 gap-y-0.5 text-xs leading-5', textMuted)}>
             {categoryName && <span>{categoryName}</span>}
             {payerLabel && (
               <span>
@@ -151,15 +153,15 @@ export function MovementRow(props: MovementRowProps) {
             )}
           </div>
           {(editTo || onDelete) && (
-            <div className="ml-auto flex shrink-0 gap-1">
+            <div className="ml-auto flex shrink-0 gap-0.5">
               {editTo && (
-                <ButtonLink to={editTo} size="sm" variant="ghost">
+                <ButtonLink to={editTo} size="xs" variant="ghost">
                   Editar
                 </ButtonLink>
               )}
               {onDelete && (
                 <Button
-                  size="sm"
+                  size="xs"
                   variant="ghost"
                   className="text-red-700"
                   disabled={deleting}
