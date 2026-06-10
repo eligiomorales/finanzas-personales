@@ -4,13 +4,12 @@ import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { calculateCoupleBalance } from '@/lib/balance'
 import {
   displayLabelForRole,
-  formLabelForRole,
   formLabelWithName,
 } from '@/lib/couple/person-labels'
 import { formatInViewCurrency, getCurrencyConfig, SUPPORTED_CURRENCIES } from '@/lib/currency'
 import { currentMonthRange, filterMovements, todayISO } from '@/lib/utils'
 import type { CurrencyCode, Movement } from '@/types'
-import { StatCard, Card } from '@/components/ui/Card'
+import { Card } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Dialog } from '@/components/ui/Dialog'
 import {
@@ -162,59 +161,40 @@ export function BalancePage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard
-          label={`Pagó ${formLabelForRole('personA', persons).toLowerCase()}`}
-          value={formatInViewCurrency(balance.personA.paid, currencyConfig)}
-        />
-        <StatCard
-          label={`Pagó ${formLabelForRole('personB', persons).toLowerCase()}`}
-          value={formatInViewCurrency(balance.personB.paid, currencyConfig)}
-        />
-        <StatCard
-          label={`Asumió ${formLabelForRole('personA', persons).toLowerCase()}`}
-          value={formatInViewCurrency(balance.personA.assumed, currencyConfig)}
-        />
-        <StatCard
-          label={`Asumió ${formLabelForRole('personB', persons).toLowerCase()}`}
-          value={formatInViewCurrency(balance.personB.assumed, currencyConfig)}
-        />
-      </div>
-
       <Card>
         <h3 className="mb-4 font-semibold">Detalle por persona</h3>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {(['personA', 'personB'] as const).map((role) => {
             const data = role === 'personA' ? balance.personA : balance.personB
             const diff = data.difference
             return (
               <div key={role} className="rounded-lg bg-surface-50 p-3">
-                <p className="font-medium text-stone-800">
+                <p className="mb-2 font-medium text-stone-800">
                   {displayLabelForRole(role, persons, { preferYo: true })}
                 </p>
-                <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <p className="text-stone-500">Pagó</p>
-                    <p className="font-semibold tabular-nums">
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className="shrink-0 text-stone-500">Pagó</span>
+                    <span className="truncate text-right font-semibold tabular-nums">
                       {formatInViewCurrency(data.paid, currencyConfig)}
-                    </p>
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-stone-500">Debía asumir</p>
-                    <p className="font-semibold tabular-nums">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className="shrink-0 text-stone-500">Debía asumir</span>
+                    <span className="truncate text-right font-semibold tabular-nums">
                       {formatInViewCurrency(data.assumed, currencyConfig)}
-                    </p>
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-stone-500">Diferencia</p>
-                    <p
-                      className={`font-semibold tabular-nums ${
+                  <div className="flex items-baseline justify-between gap-4 border-t border-stone-200 pt-1">
+                    <span className="shrink-0 text-stone-500">Diferencia</span>
+                    <span
+                      className={`truncate text-right font-semibold tabular-nums ${
                         diff > 0 ? 'text-emerald-700' : diff < 0 ? 'text-red-700' : 'text-stone-600'
                       }`}
                     >
                       {diff >= 0 ? '+' : ''}
                       {formatInViewCurrency(diff, currencyConfig)}
-                    </p>
+                    </span>
                   </div>
                 </div>
                 <p className="mt-2 text-xs text-stone-500">
