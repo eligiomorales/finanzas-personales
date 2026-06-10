@@ -5,7 +5,15 @@ import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { cn } from '@/lib/utils'
 import { focusRing } from '@/components/ui/styles'
 
-type NavIconName = 'home' | 'movements' | 'balance' | 'categories' | 'budget' | 'import' | 'settings'
+type NavIconName =
+  | 'home'
+  | 'movements'
+  | 'balance'
+  | 'analysis'
+  | 'categories'
+  | 'budget'
+  | 'import'
+  | 'settings'
 
 function NavIcon({ name, className }: { name: NavIconName; className?: string }) {
   const props = {
@@ -36,6 +44,13 @@ function NavIcon({ name, className }: { name: NavIconName; className?: string })
       return (
         <svg {...props}>
           <path d="M12 3v18M7 8h10M6 12h12M7 16h10" />
+        </svg>
+      )
+    case 'analysis':
+      return (
+        <svg {...props}>
+          <path d="M4 20V10M4 10h16M8 18v-4M12 18V8M16 18v-6" />
+          <path d="M4 4h16" />
         </svg>
       )
     case 'categories':
@@ -98,8 +113,7 @@ const navItems: { to: string; label: string; icon: NavIconName }[] = [
   { to: '/', label: 'Inicio', icon: 'home' },
   { to: '/movimientos', label: 'Movimientos', icon: 'movements' },
   { to: '/balance', label: 'Balance', icon: 'balance' },
-  { to: '/presupuesto', label: 'Presupuesto', icon: 'budget' },
-  { to: '/categorias', label: 'Categorías', icon: 'categories' },
+  { to: '/analisis', label: 'Análisis', icon: 'analysis' },
   { to: '/importar', label: 'Importar', icon: 'import' },
 ]
 
@@ -114,7 +128,7 @@ export function Layout() {
   const { isPersonal } = useExpenseViewMode()
   const { visible: amountsVisible, toggle: toggleAmountsVisibility } = useAmountsVisibility()
   const isFormPage = location.pathname.includes('/nuevo') || location.pathname.includes('/editar')
-  const hideFab = isFormPage || location.pathname === '/presupuesto'
+  const hideFab = isFormPage || location.pathname.includes('/analisis/presupuesto')
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col bg-surface-50 md:max-w-2xl lg:max-w-4xl">
@@ -125,7 +139,7 @@ export function Layout() {
               FP
             </span>
             Finanzas Pareja
-            {isPersonal && location.pathname !== '/presupuesto' && (
+            {isPersonal && !location.pathname.includes('/analisis/presupuesto') && (
               <Badge variant="info">Personal</Badge>
             )}
           </h1>
