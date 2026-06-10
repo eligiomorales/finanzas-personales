@@ -355,9 +355,6 @@ export function ImportPage() {
         <div className="space-y-4">
           <div>
             <h3 className="text-sm font-semibold text-stone-800">Subí tu resumen</h3>
-            <p className="mt-0.5 text-xs text-stone-500">
-              CSV, Excel, PDF o captura. Vas a poder revisar todo antes de guardar.
-            </p>
           </div>
 
           <label
@@ -404,7 +401,6 @@ export function ImportPage() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Configuración</p>
-                <p className="text-xs text-stone-400">Defaults para interpretar el archivo</p>
               </div>
               <Badge variant="info">Editable después</Badge>
             </div>
