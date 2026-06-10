@@ -4,7 +4,6 @@ import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { calculateCoupleBalance } from '@/lib/balance'
 import {
   displayLabelForRole,
-  formLabelForRole,
   formLabelWithName,
 } from '@/lib/couple/person-labels'
 import { formatInViewCurrency, getCurrencyConfig, SUPPORTED_CURRENCIES } from '@/lib/currency'
