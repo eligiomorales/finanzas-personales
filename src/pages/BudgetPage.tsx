@@ -16,7 +16,7 @@ import { formatInViewCurrency, getCurrencyConfig } from '@/lib/currency'
 import { formatMonthLabel, cn, formatCurrency } from '@/lib/utils'
 import type { CategoryBudget, CategoryBudgetProgress } from '@/types'
 
-export function BudgetPage() {
+export function BudgetPage({ embedded = false }: { embedded?: boolean }) {
   const movements = useMovements() ?? []
   const categories = useCategories() ?? []
   const settings = useSettings()
@@ -127,35 +127,46 @@ export function BudgetPage() {
     setPickerCategoryId('')
   }
 
+  const monthNavigator = (
+    <div className="flex shrink-0 items-center gap-1">
+      <button
+        type="button"
+        onClick={() => setViewMonth((m) => shiftBudgetMonth(m, -1))}
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-stone-600 hover:bg-surface-100"
+        aria-label="Mes anterior"
+      >
+        ‹
+      </button>
+      <span className="min-w-[7rem] text-center text-sm font-semibold text-stone-800">
+        {monthLabel}
+      </span>
+      <button
+        type="button"
+        onClick={() => setViewMonth((m) => shiftBudgetMonth(m, 1))}
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-stone-600 hover:bg-surface-100"
+        aria-label="Mes siguiente"
+      >
+        ›
+      </button>
+    </div>
+  )
+
   return (
     <div className="space-y-4">
-      <PageHeader
-        title="Presupuesto"
-        subtitle={`Límites fijos · gastos compartidos de ${monthLabel}`}
-        trailing={
-          <div className="flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setViewMonth((m) => shiftBudgetMonth(m, -1))}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-stone-600 hover:bg-surface-100"
-              aria-label="Mes anterior"
-            >
-              ‹
-            </button>
-            <span className="min-w-[7rem] text-center text-sm font-semibold text-stone-800">
-              {monthLabel}
-            </span>
-            <button
-              type="button"
-              onClick={() => setViewMonth((m) => shiftBudgetMonth(m, 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-stone-600 hover:bg-surface-100"
-              aria-label="Mes siguiente"
-            >
-              ›
-            </button>
-          </div>
-        }
-      />
+      {embedded ? (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-stone-500">
+            Límites fijos · gastos compartidos de {monthLabel}
+          </p>
+          {monthNavigator}
+        </div>
+      ) : (
+        <PageHeader
+          title="Presupuesto"
+          subtitle={`Límites fijos · gastos compartidos de ${monthLabel}`}
+          trailing={monthNavigator}
+        />
+      )}
 
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <StatCard

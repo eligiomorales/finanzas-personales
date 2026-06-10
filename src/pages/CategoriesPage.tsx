@@ -143,7 +143,7 @@ export function CategoriesPage() {
               {formatInViewCurrency(budgetSummary!.totalBudgeted, currencyConfig)}
             </p>
           </div>
-          <TextLink to="/presupuesto" className="text-sm">
+          <TextLink to="/analisis/presupuesto" className="text-sm">
             Editar →
           </TextLink>
         </Card>

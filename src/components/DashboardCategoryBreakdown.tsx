@@ -32,7 +32,7 @@ export function DashboardCategoryBreakdown({
         label={showBudgetProgress && hasAnyBudget ? 'Presupuesto por categoría' : 'Gastos'}
         action={{
           label: showBudgetProgress && hasAnyBudget ? 'Ver presupuesto →' : 'Ver análisis →',
-          to: showBudgetProgress && hasAnyBudget ? '/presupuesto' : '/categorias',
+          to: showBudgetProgress && hasAnyBudget ? '/analisis/presupuesto' : '/analisis/categorias',
         }}
       />
       <Card compact className="space-y-4">
