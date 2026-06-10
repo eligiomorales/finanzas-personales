@@ -15,6 +15,7 @@ import { CategoriesPage } from '@/pages/CategoriesPage'
 import { BudgetPage } from '@/pages/BudgetPage'
 import { ImportPage } from '@/pages/ImportPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { CategorySettingsPage } from '@/pages/CategorySettingsPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { CoupleSetupPage } from '@/pages/CoupleSetupPage'
 
@@ -31,6 +32,7 @@ function AppRoutes() {
         <Route path="presupuesto" element={<BudgetPage />} />
         <Route path="importar" element={<ImportPage />} />
         <Route path="configuracion" element={<SettingsPage />} />
+        <Route path="configuracion/categorias" element={<CategorySettingsPage />} />
       </Route>
     </Routes>
   )

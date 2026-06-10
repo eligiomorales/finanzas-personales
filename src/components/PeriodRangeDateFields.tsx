@@ -5,18 +5,15 @@ interface PeriodRangeDateFieldsProps {
   period: PeriodRange
   onChange: (period: PeriodRange) => void
   idPrefix?: string
-  hint?: string
 }
 
 export function PeriodRangeDateFields({
   period,
   onChange,
   idPrefix = 'period',
-  hint = 'Ajustá el rango o usá los accesos rápidos.',
 }: PeriodRangeDateFieldsProps) {
   return (
-    <li className="px-3 py-2">
-      {hint && <p className="mb-2 text-xs text-stone-500">{hint}</p>}
+    <li className="px-3 py-1.5">
       <div className="space-y-2">
         <FormGroup className="!mb-0">
           <Label htmlFor={`${idPrefix}-from`} className="text-xs">
