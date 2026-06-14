@@ -1,5 +1,13 @@
 [
   {
+    "date": "2026-06-14",
+    "macrostructure": "Workbench",
+    "theme": "DESIGN.md (brand sage/teal)",
+    "enrichment": "none",
+    "scope": "app",
+    "brief": "SettingsPage · Hallmark redesign in-place"
+  },
+  {
     "date": "2026-06-10",
     "macrostructure": "Workbench",
     "theme": "DESIGN.md (brand sage/teal)",
