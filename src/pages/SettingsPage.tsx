@@ -2,6 +2,7 @@
  * design-system: DESIGN.md · designed-as-app · enrichment: none
  * pre-emit critique: P5 H4 E5 S5 R5 V4 */
 import { useState, useEffect, type ReactNode } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { useCategories, useSettings, useDataMutations, useDatabaseStats } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useAuth } from '@/contexts/AuthContext'
@@ -311,28 +312,32 @@ export function SettingsPage() {
 
       <PageHeader title="Configuración" />
 
-      {backupReminder.neverExported && (
-        <Alert
-          tone="warning"
-          title="Todavía no exportaste un backup"
-          action={{ label: 'Exportar backup ahora', onClick: handleExport }}
-        >
-          Tus datos viven solo en este navegador. Exportá un backup JSON para no perder movimientos si
-          cambiás de dispositivo o borrás el historial.
-        </Alert>
-      )}
+      <AnimatePresence>
+        {backupReminder.neverExported && (
+          <Alert
+            key="backup-never-exported"
+            tone="warning"
+            title="Todavía no exportaste un backup"
+            action={{ label: 'Exportar backup ahora', onClick: handleExport }}
+          >
+            Tus datos viven solo en este navegador. Exportá un backup JSON para no perder movimientos si
+            cambiás de dispositivo o borrás el historial.
+          </Alert>
+        )}
 
-      {!backupReminder.neverExported && backupReminder.overdue && (
-        <Alert
-          tone="warning"
-          title="Hace tiempo que no exportás un backup"
-          action={{ label: 'Exportar backup ahora', onClick: handleExport }}
-        >
-          Pasaron {backupReminder.daysSince} días desde el último backup
-          {lastBackupAt ? ` (${formatDate(lastBackupAt.slice(0, 10))})` : ''}. Te recomendamos exportar
-          uno nuevo para tener una copia reciente.
-        </Alert>
-      )}
+        {!backupReminder.neverExported && backupReminder.overdue && (
+          <Alert
+            key="backup-overdue"
+            tone="warning"
+            title="Hace tiempo que no exportás un backup"
+            action={{ label: 'Exportar backup ahora', onClick: handleExport }}
+          >
+            Pasaron {backupReminder.daysSince} días desde el último backup
+            {lastBackupAt ? ` (${formatDate(lastBackupAt.slice(0, 10))})` : ''}. Te recomendamos exportar
+            uno nuevo para tener una copia reciente.
+          </Alert>
+        )}
+      </AnimatePresence>
 
       <div className="space-y-2">
         <SectionHeader label="Preferencias" />
