@@ -19,7 +19,7 @@ interface SettingsListItemProps extends Omit<LinkProps, 'className'> {
 export function SettingsList({ title, children }: SettingsListProps) {
   return (
     <section className="space-y-2">
-      {title && <h3 className="px-1 text-sm font-semibold text-stone-900">{title}</h3>}
+      {title && <p className={cn('text-xs font-semibold uppercase tracking-wide', textMuted)}>{title}</p>}
       <Card compact className="divide-y divide-stone-200/80 p-0">
         {children}
       </Card>

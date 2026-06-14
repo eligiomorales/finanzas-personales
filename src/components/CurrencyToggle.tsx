@@ -3,7 +3,7 @@ import { SUPPORTED_CURRENCIES } from '@/lib/currency'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import type { CurrencyCode } from '@/types'
 
-export function CurrencyToggle() {
+export function CurrencyToggle({ className }: { className?: string }) {
   const settings = useSettings()
   const { updateDisplayCurrency } = useDataMutations()
   const active = settings?.displayCurrency ?? 'ARS'
@@ -20,6 +20,7 @@ export function CurrencyToggle() {
       value={active}
       onChange={handleSelect}
       fullWidth={false}
+      className={className}
     />
   )
 }
