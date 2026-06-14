@@ -1,5 +1,8 @@
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { focusRing } from '@/components/ui/styles'
+import { getTapMotionProps, motionTransitions } from '@/design/motion'
+import { useMotionPreferences } from '@/hooks/useMotionPreferences'
 
 export interface SegmentedOption<T extends string> {
   value: T
@@ -16,6 +19,8 @@ interface SegmentedControlProps<T extends string> {
   fullWidth?: boolean
 }
 
+const MotionButton = motion.button
+
 export function SegmentedControl<T extends string>({
   options,
   value,
@@ -25,6 +30,10 @@ export function SegmentedControl<T extends string>({
   size = 'md',
   fullWidth = true,
 }: SegmentedControlProps<T>) {
+  const { shouldAnimate } = useMotionPreferences()
+  const tapMotion = getTapMotionProps(shouldAnimate)
+  const indicatorLayoutId = `segmented-indicator-${ariaLabel.replace(/\s+/g, '-')}`
+
   return (
     <div
       role="group"
@@ -38,23 +47,34 @@ export function SegmentedControl<T extends string>({
       {options.map((option) => {
         const selected = option.value === value
         return (
-          <button
+          <MotionButton
             key={option.value}
             type="button"
             onClick={() => onChange(option.value)}
             aria-pressed={selected}
             className={cn(
-              'rounded-md font-medium transition-colors',
+              'relative rounded-md font-medium',
               focusRing,
               fullWidth && 'flex-1',
               size === 'sm' ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm',
-              selected
-                ? 'bg-white text-brand-700 shadow-sm'
-                : 'text-stone-600 hover:text-stone-800',
+              selected ? 'text-brand-700' : 'text-stone-600 hover:text-stone-800',
             )}
+            whileTap={tapMotion.whileTap}
+            transition={tapMotion.transition}
           >
-            {option.label}
-          </button>
+            {selected &&
+              (shouldAnimate ? (
+                <motion.span
+                  layoutId={indicatorLayoutId}
+                  className="absolute inset-0 rounded-md bg-white shadow-sm"
+                  transition={motionTransitions.microInteraction}
+                  aria-hidden="true"
+                />
+              ) : (
+                <span className="absolute inset-0 rounded-md bg-white shadow-sm" aria-hidden="true" />
+              ))}
+            <span className="relative">{option.label}</span>
+          </MotionButton>
         )
       })}
     </div>

@@ -10,6 +10,7 @@ Aplicación web responsive para gestionar las finanzas de una pareja, con sincro
 | Identidad por cuenta: nombres desde perfiles, UI Yo/Mi pareja | Tests de integración contra Supabase (opcional) |
 | Presupuestos por categoría (mensual y recurrente); migraciones `006`/`007` en prod | Offline-first con cola de sync |
 | UI overhaul (`DESIGN.md`): tokens, componentes compartidos, pantallas migradas | |
+| Motion Sprint 1: tokens, microinteracciones, `prefers-reduced-motion` (ver `implementations/mvp-motion-backlog.md`) | Motion Sprint 2+: rutas, skeletons, presupuesto animado |
 | Deploy en Vercel (`npm run deploy`); realtime entre navegadores | |
 | Códigos de invitación (expiración, revocación, regeneración) | |
 
@@ -54,6 +55,7 @@ Opcional en GitHub → Settings → Branches: proteger `main` (requerir PR + CI 
 - **Supabase** — auth, Postgres y sincronización compartida (modo principal)
 - **Dexie.js** — persistencia local de respaldo (modo sin Supabase)
 - **React Router** — navegación
+- **Framer Motion** — microinteracciones y animaciones (MVP en progreso)
 - **PapaParse** + **SheetJS** + **PDF.js** + **Tesseract.js** — importación CSV/Excel/PDF y capturas (OCR local)
 
 ## Ejecutar
@@ -67,6 +69,10 @@ npm run dev
 Abre http://localhost:5173 en el navegador.
 
 Sin `.env.local` la app arranca en **modo local** (IndexedDB + datos de ejemplo). Con Supabase configurado pide login y usa datos compartidos.
+
+**Probar en el celular (misma Wi‑Fi):** `npm run dev -- --host` → abrir la URL `Network` (ej. `http://192.168.x.x:5173`).
+
+**Animaciones:** opcional `VITE_ANIMATIONS_ENABLED=false` en `.env.local` para desactivarlas. Backlog: `implementations/mvp-motion-backlog.md`.
 
 ## Scripts
 
