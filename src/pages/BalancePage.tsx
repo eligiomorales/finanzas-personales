@@ -14,7 +14,6 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { Dialog } from '@/components/ui/Dialog'
 import {
   BalanceScopeSelector,
-  balanceScopeDescription,
   type BalanceScope,
 } from '@/components/BalanceScopeSelector'
 import type { PeriodRange } from '@/components/PeriodFilter'
@@ -48,7 +47,7 @@ export function BalancePage() {
   const persons = useCouplePersons()
   const { createSettlement } = useDataMutations()
   const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
-  const [scope, setScope] = useState<BalanceScope>('current_month')
+  const [scope, setScope] = useState<BalanceScope>('all')
   const [customPeriod, setCustomPeriod] = useState<PeriodRange>(() => currentMonthRange())
   const [showSettlement, setShowSettlement] = useState(false)
   const [settlementAmount, setSettlementAmount] = useState(0)
@@ -71,6 +70,8 @@ export function BalancePage() {
 
   const personAName = persons.personAName
   const personBName = persons.personBName
+  const myRole = persons.myRole ?? 'personA'
+  const viewerOwes = balance.owedBy !== 'balanced' && balance.owedBy === myRole
 
   const settlementSummary = (() => {
     const from = formLabelWithName(settlementPaidBy, persons)
@@ -78,8 +79,6 @@ export function BalancePage() {
     const to = displayLabelForRole(toRole, persons)
     return `${from} compensa a ${to}`
   })()
-
-  const scopeLabel = balanceScopeDescription(scope, customPeriod, currencyConfig.displayCurrency)
 
   function openSettlementForm() {
     if (balance.owedBy === 'balanced') return
@@ -123,7 +122,7 @@ export function BalancePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Balance entre personas" subtitle={scopeLabel} />
+      <PageHeader title="Balance entre personas" />
 
       <BalanceScopeSelector
         scope={scope}
@@ -132,15 +131,17 @@ export function BalancePage() {
         onCustomPeriodChange={setCustomPeriod}
       />
 
-      {scope !== 'all' && (
-        <p className="text-xs text-stone-500">
-          Este balance puede diferir del histórico si hay movimientos en otros meses.
-        </p>
-      )}
-
       {balance.owedBy !== 'balanced' && (
-        <Card className="border-amber-200 bg-amber-50">
-          <p className="text-center text-lg font-semibold text-amber-900">
+        <Card
+          className={
+            viewerOwes ? 'border-red-200 bg-red-50' : 'border-emerald-200 bg-emerald-50'
+          }
+        >
+          <p
+            className={`text-center text-lg font-semibold ${
+              viewerOwes ? 'text-red-700' : 'text-emerald-700'
+            }`}
+          >
             {displayLabelForRole(balance.owedBy, persons, { preferYo: true })} debe{' '}
             {formatInViewCurrency(balance.owedAmount, currencyConfig)} a{' '}
             {displayLabelForRole(
@@ -197,13 +198,6 @@ export function BalancePage() {
                     </span>
                   </div>
                 </div>
-                <p className="mt-2 text-xs text-stone-500">
-                  {diff > 0
-                    ? 'Pagó de más (le deben compensar)'
-                    : diff < 0
-                      ? 'Pagó de menos (debe compensar)'
-                      : 'Cuadrado'}
-                </p>
               </div>
             )
           })}
