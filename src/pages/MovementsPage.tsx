@@ -13,6 +13,7 @@ import { formatMovementAmountLinesForView, getCurrencyConfig } from '@/lib/curre
 import { MOVEMENTS_PAGE_SIZE } from '@/lib/movements-query'
 import { EmptyState } from '@/components/ui/Card'
 import { MovementList, MovementRow } from '@/components/ui/MovementRow'
+import { SkeletonList } from '@/components/skeletons/SkeletonList'
 import { Button, LiveRegion } from '@/components/ui/Form'
 import type { MovementFilters } from '@/types'
 
@@ -139,6 +140,8 @@ export function MovementsPage() {
           title="No hay movimientos"
           description="Ajusta los filtros o registra un nuevo movimiento"
         />
+      ) : isLoading ? (
+        <SkeletonList count={5} />
       ) : (
         <>
           <MovementList>
@@ -150,6 +153,7 @@ export function MovementsPage() {
               return (
                 <MovementRow
                   key={m.id}
+                  movementId={m.id}
                   description={m.description}
                   date={formatShortDate(m.date)}
                   movementType={m.type}

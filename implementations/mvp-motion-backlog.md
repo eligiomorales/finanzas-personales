@@ -5,6 +5,9 @@
 | Fecha | Alcance | Estado |
 |-------|---------|--------|
 | 2026-06-14 | Sprint 1 — tareas 1, 2, 3 | ✅ Completado |
+| 2026-06-14 | Sprint 2 — tarea 4 (page transitions) | ✅ Completado |
+| 2026-06-14 | Sprint 2 — tarea 5 (shared element lista → edición) | ✅ Completado |
+| 2026-06-14 | Sprint 2 — tarea 6 (skeletons) | ✅ Completado |
 
 ### Entregado en este push
 
@@ -39,7 +42,7 @@
 - Bundle principal ~+40 KB gzip por Framer Motion (evaluar `LazyMotion` más adelante)
 
 **Pendiente (Sprint 2+)**
-- Tareas 4–9: rutas animadas, shared element, skeletons, presupuesto, feedback animado, tests de motion.ts, docs Motion completas
+- Tareas 7–9: presupuesto, feedback animado, tests de motion.ts, docs Motion completas
 
 ---
 
@@ -77,9 +80,9 @@ Cada ítem debe cumplirse exactamente con:
    - `motionEnabled: boolean`
    - `shouldAnimate: boolean`
 3. [x] Flag `VITE_ANIMATIONS_ENABLED` en `.env.example` y lectura centralizada en `src/config/motion.ts`.
-4. [ ] Wrapper de rutas animadas en `src/components/AnimatedRoutes.tsx` usando `AnimatePresence`, montado alrededor del `Outlet` en `Layout.tsx`.
-5. `MovementRow` con `layoutId={`movement-${id}`}` en lista y mismo `layoutId` en `MovementFormPage` al editar.
-6. Skeletons en `src/components/skeletons/` con shimmer usando `motion`.
+4. [x] Wrapper de rutas animadas en `src/components/AnimatedRoutes.tsx` usando `AnimatePresence`, montado alrededor del `Outlet` en `Layout.tsx`.
+5. [x] `MovementRow` con `layoutId={`movement-${id}`}` en lista y mismo `layoutId` en `MovementFormPage` al editar.
+6. [x] Skeletons en `src/components/skeletons/` con shimmer usando `motion`.
 7. Barra de presupuesto en `src/components/BudgetProgressBar.tsx` con animación de progreso y label animado.
 8. Feedback animado: `ToastProvider` nuevo **o** animar `Dialog`/`Alert` existentes con `AnimatePresence` (no hay sistema de toasts hoy).
 9. Documentación en `DESIGN.md` y `implementations/mvp-motion-backlog.md`.
@@ -114,32 +117,33 @@ Cada ítem debe cumplirse exactamente con:
 - [x] Entregable: comportamiento reproducible; disabled states sin animación.
 - Estimación: 2 SP
 
-### 4. Page transitions wrapper
-- Crear `src/components/AnimatedRoutes.tsx`
-- Montar alrededor de `<Outlet />` en `src/components/Layout.tsx` (no envolver todo `Routes` — hay rutas anidadas bajo `/analisis`)
-- Usar `key={location.pathname}` y variantes `slideUp` de `motionVariants`
-- Tener en cuenta que `RoutedContent` remonta el outlet al cambiar visibilidad de montos; no animar ese remount
-- Entregable: transición consistente entre al menos 3 rutas principales (Dashboard, Movimientos, Balance).
+### 4. Page transitions wrapper ✅
+- [x] Crear `src/components/AnimatedRoutes.tsx`
+- [x] Montar alrededor de `<Outlet />` en `src/components/Layout.tsx` (no envolver todo `Routes` — hay rutas anidadas bajo `/analisis`)
+- [x] Usar `key={location.pathname}` y variantes `slideUp` de `motionVariants`
+- [x] Tener en cuenta que `RoutedContent` remonta el outlet al cambiar visibilidad de montos; no animar ese remount
+- [x] Entregable: transición consistente entre al menos 3 rutas principales (Dashboard, Movimientos, Balance).
 - Estimación: 2 SP
 
-### 5. Shared element transition: lista → edición
+### 5. Shared element transition: lista → edición ✅
 **Decisión MVP:** animar lista → `MovementFormPage` (`/movimientos/editar/:id`). No existe pantalla de detalle separada; no crear modal solo para motion.
 
-- En `MovementRow` (variante `detailed`) asignar `layoutId={`movement-${id}`}` al bloque principal
-- En `MovementFormPage` (modo edición) usar el mismo `layoutId` en el encabezado/resumen del movimiento
-- Usar `getLayoutTransition(shouldAnimate)` para la transición de layout
-- Expectativa: transición visible pero limitada (cambio de página completa, no modal)
-- Entregable: animación perceptible al abrir/cerrar edición desde lista.
+- [x] En `MovementRow` (variante `detailed`) asignar `layoutId={`movement-${id}`}` al bloque principal
+- [x] En `MovementFormPage` (modo edición) usar el mismo `layoutId` en el encabezado/resumen del movimiento
+- [x] Usar `getLayoutTransition(shouldAnimate)` para la transición de layout
+- [x] `LayoutGroup` + `AnimatePresence mode="popLayout"` en `AnimatedRoutes` para permitir shared layout entre rutas
+- [x] Expectativa: transición visible pero limitada (cambio de página completa, no modal)
+- [x] Entregable: animación perceptible al abrir/cerrar edición desde lista.
 - Estimación: 3 SP
 
-### 6. Skeletons y carga animada
-- Crear `src/components/skeletons/SkeletonCard.tsx`
-- Crear `src/components/skeletons/SkeletonList.tsx`
-- Usar variante `shimmer` de `motionVariants` o keyframes CSS con tokens
-- Integrar en:
+### 6. Skeletons y carga animada ✅
+- [x] Crear `src/components/skeletons/SkeletonCard.tsx`
+- [x] Crear `src/components/skeletons/SkeletonList.tsx`
+- [x] Usar variante `shimmer` de `motionVariants` o keyframes CSS con tokens
+- [x] Integrar en:
   - `src/pages/MovementsPage.tsx` (hoy solo muestra texto "Cargando movimientos...")
   - `src/pages/MovementFormPage.tsx` mientras carga movimiento existente
-- Entregable: skeletons cuando `loading === true`.
+- [x] Entregable: skeletons cuando `loading === true`.
 - Estimación: 1.5 SP
 
 ### 7. Barra de presupuesto animada + feedback animado

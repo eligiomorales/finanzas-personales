@@ -8,6 +8,8 @@ export const motionDurations = {
   xxs: 80,
   xs: 120,
   sm: 180,
+  page: 220,
+  pageExit: 140,
   md: 280,
   lg: 420,
 } as const;
@@ -51,9 +53,23 @@ export const motionVariants = {
     exit: { opacity: 0 },
   },
   slideUp: {
-    initial: { opacity: 0, y: 16 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -16 },
+    initial: { opacity: 0, y: 24 },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: toMotionSeconds(motionDurations.page),
+        ease: motionEasings.decel,
+      },
+    },
+    exit: {
+      opacity: 0,
+      y: -12,
+      transition: {
+        duration: toMotionSeconds(motionDurations.pageExit),
+        ease: motionEasings.accel,
+      },
+    },
   },
   slideDown: {
     initial: { opacity: 0, y: -16 },
@@ -84,12 +100,21 @@ export const motionTransitions = {
     ease: motionEasings.standard,
   },
   pageTransition: {
-    duration: toMotionSeconds(motionDurations.sm),
-    ease: motionEasings.standard,
+    duration: toMotionSeconds(motionDurations.page),
+    ease: motionEasings.decel,
+  },
+  pageExitTransition: {
+    duration: toMotionSeconds(motionDurations.pageExit),
+    ease: motionEasings.accel,
   },
   sharedElement: {
     duration: toMotionSeconds(motionDurations.md),
     ease: motionEasings.standard,
+  },
+  shimmer: {
+    duration: toMotionSeconds(motionDurations.lg),
+    ease: "linear",
+    repeat: Infinity,
   },
 } as const;
 
@@ -127,10 +152,9 @@ export const getMotionProps = (
 
     case "page":
       return {
-        initial: { opacity: 0, y: 16 },
-        animate: { opacity: 1, y: 0 },
-        exit: { opacity: 0, y: -16 },
-        transition: motionTransitions.pageTransition,
+        initial: motionVariants.slideUp.initial,
+        animate: motionVariants.slideUp.animate,
+        exit: motionVariants.slideUp.exit,
       };
 
     case "card":

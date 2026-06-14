@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
+import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { useCategories, useMovements, useSettings, useMovementMutations } from '@/hooks/useData'
-import { splitPreset as getSplitPreset, personalSharesFromPayer } from '@/lib/balance'
+import { getDisplayAmountForView, splitPreset as getSplitPreset, personalSharesFromPayer } from '@/lib/balance'
 import {
   formLabelWithName,
   sharePercentLabel,
@@ -18,7 +19,8 @@ import {
   splitDistributionLabel,
 } from '@/lib/movement-form-defaults'
 import { buildImportCategoryButtons } from '@/lib/import-display'
-import { formatCurrency, todayISO } from '@/lib/utils'
+import { formatMovementAmountLinesForView, getCurrencyConfig } from '@/lib/currency'
+import { formatCurrency, formatShortDate, todayISO } from '@/lib/utils'
 import {
   Button,
   Input,
@@ -33,7 +35,9 @@ import { CurrencyAmountInput } from '@/components/CurrencyAmountInput'
 import { ChoiceChip } from '@/components/ui/ChoiceChip'
 import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel'
 import { Card } from '@/components/ui/Card'
+import { movementLayoutId, MovementSummaryBlock } from '@/components/ui/MovementRow'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { SkeletonCard } from '@/components/skeletons/SkeletonCard'
 import { SPLIT_PRESETS } from '@/components/ImportShareControls'
 import { cn } from '@/lib/utils'
 import type { CurrencyCode, MovementFormData, MovementType, Payer } from '@/types'
@@ -49,6 +53,7 @@ export function MovementFormPage() {
   const navigate = useNavigate()
   const { membership } = useAuth()
   const persons = useCouplePersons()
+  const { mode: expenseViewMode } = useExpenseViewMode()
   const categories = useCategories() ?? []
   const movements = useMovements() ?? []
   const settings = useSettings()
@@ -64,6 +69,66 @@ export function MovementFormPage() {
   const [showAllCategories, setShowAllCategories] = useState(false)
   const initializedNewForm = useRef(false)
   const isEditing = Boolean(id)
+  const [loadingMovement, setLoadingMovement] = useState(
+    () => Boolean(id) && !movements.some((movement) => movement.id === id),
+  )
+  const myRole = persons.myRole ?? 'personA'
+  const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
+
+  const editMovement = useMemo(
+    () => (id ? movements.find((movement) => movement.id === id) : undefined),
+    [id, movements],
+  )
+
+  const editSummary = useMemo(() => {
+    if (!isEditing || !id) return null
+
+    const source = editMovement ?? {
+      type: form.type,
+      amount: form.amount,
+      currency: form.currency,
+      date: form.date,
+      description: form.description,
+      source: 'manual' as const,
+    }
+
+    if (!source.description && !editMovement) return null
+
+    const displayAmount = editMovement
+      ? getDisplayAmountForView(editMovement, myRole, currencyConfig, expenseViewMode)
+      : form.amount
+    const amountLines = editMovement
+      ? formatMovementAmountLinesForView(editMovement, currencyConfig, displayAmount)
+      : {
+          primary: formatCurrency(form.amount, form.currency, { visible: true }),
+          secondary: undefined,
+        }
+    const amountSign =
+      source.type === 'income' ? '+' : source.type === 'expense' ? '-' : ''
+
+    return {
+      description: source.description,
+      date: formatShortDate(source.date),
+      movementType: source.type,
+      amountPrimary: amountLines.primary,
+      amountSecondary: amountLines.secondary,
+      amountSign,
+      imported: editMovement?.source === 'imported',
+      layoutId: movementLayoutId(id),
+    }
+  }, [
+    isEditing,
+    id,
+    editMovement,
+    form.type,
+    form.amount,
+    form.currency,
+    form.date,
+    form.description,
+    myRole,
+    currencyConfig,
+    expenseViewMode,
+  ])
 
   const personAName = persons.personAName
   const personBName = persons.personBName
@@ -71,10 +136,22 @@ export function MovementFormPage() {
   const selectedTypeLabel = movementTypeLabels[form.type]
 
   useEffect(() => {
-    if (!id) return
+    if (!id) {
+      setLoadingMovement(false)
+      return
+    }
+
+    let cancelled = false
+    if (!editMovement) {
+      setLoadingMovement(true)
+    }
     setRepartoOpen(true)
     getMovement(id).then((m) => {
-      if (!m) return
+      if (cancelled) return
+      if (!m) {
+        setLoadingMovement(false)
+        return
+      }
       const paidBy = m.paidBy === 'both' ? 'personA' : m.paidBy
       const incomeShares = personalSharesFromPayer(paidBy)
       setForm({
@@ -89,8 +166,19 @@ export function MovementFormPage() {
         sharePersonB: m.type === 'income' ? incomeShares.sharePersonB : m.sharePersonB,
         isShared: m.type === 'income' ? false : m.isShared,
       })
+      setLoadingMovement(false)
     })
-  }, [id, getMovement])
+
+    return () => {
+      cancelled = true
+    }
+  }, [id, getMovement, editMovement])
+
+  useEffect(() => {
+    if (editMovement) {
+      setLoadingMovement(false)
+    }
+  }, [editMovement])
 
   useEffect(() => {
     if (id || initializedNewForm.current || !settings) return
@@ -313,6 +401,16 @@ export function MovementFormPage() {
           </div>
         }
       />
+
+      {loadingMovement ? (
+        <SkeletonCard />
+      ) : (
+        <>
+      {editSummary && (
+        <Card compact className="!p-3">
+          <MovementSummaryBlock {...editSummary} />
+        </Card>
+      )}
 
       <Card compact>
         <form onSubmit={handleSubmit} noValidate aria-describedby={formSummary ? 'movement-form-summary' : undefined}>
@@ -637,6 +735,8 @@ export function MovementFormPage() {
           </div>
         </form>
       </Card>
+        </>
+      )}
     </div>
   )
 }
