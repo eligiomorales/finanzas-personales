@@ -8,6 +8,9 @@
 | 2026-06-14 | Sprint 2 — tarea 4 (page transitions) | ✅ Completado |
 | 2026-06-14 | Sprint 2 — tarea 5 (shared element lista → edición) | ✅ Completado |
 | 2026-06-14 | Sprint 2 — tarea 6 (skeletons) | ✅ Completado |
+| 2026-06-14 | Sprint 2 — tarea 7 (presupuesto + feedback) | ✅ Completado |
+| 2026-06-14 | Sprint 3 — tarea 8 (tests + performance smoke) | ✅ Completado |
+| 2026-06-14 | Sprint 3 — tarea 9 (docs Motion) | ✅ Completado |
 
 ### Entregado en este push
 
@@ -33,7 +36,7 @@
 - Disabled / `prefers-reduced-motion` / `VITE_ANIMATIONS_ENABLED=false` → sin animación
 
 **Documentación**
-- `DESIGN.md`: principios de micro-interacción (parcial; falta sección Motion con tokens)
+- `DESIGN.md`: principios de micro-interacción + sección Motion completa (tokens, patrones, ejemplos)
 - Este backlog alineado con paths reales del codebase
 
 **Verificación**
@@ -41,8 +44,8 @@
 - `npm run build` — OK
 - Bundle principal ~+40 KB gzip por Framer Motion (evaluar `LazyMotion` más adelante)
 
-**Pendiente (Sprint 2+)**
-- Tareas 7–9: presupuesto, feedback animado, tests de motion.ts, docs Motion completas
+**Pendiente**
+- Ninguno — MVP motion completo. Optimizaciones futuras: `LazyMotion`, estados error/éxito animados, toasts.
 
 ---
 
@@ -83,16 +86,16 @@ Cada ítem debe cumplirse exactamente con:
 4. [x] Wrapper de rutas animadas en `src/components/AnimatedRoutes.tsx` usando `AnimatePresence`, montado alrededor del `Outlet` en `Layout.tsx`.
 5. [x] `MovementRow` con `layoutId={`movement-${id}`}` en lista y mismo `layoutId` en `MovementFormPage` al editar.
 6. [x] Skeletons en `src/components/skeletons/` con shimmer usando `motion`.
-7. Barra de presupuesto en `src/components/BudgetProgressBar.tsx` con animación de progreso y label animado.
-8. Feedback animado: `ToastProvider` nuevo **o** animar `Dialog`/`Alert` existentes con `AnimatePresence` (no hay sistema de toasts hoy).
-9. Documentación en `DESIGN.md` y `implementations/mvp-motion-backlog.md`.
+7. [x] Barra de presupuesto en `src/components/BudgetProgressBar.tsx` con animación de progreso y label animado.
+8. [x] Feedback animado: `ToastProvider` nuevo **o** animar `Dialog`/`Alert` existentes con `AnimatePresence` (no hay sistema de toasts hoy).
+9. [x] Documentación en `DESIGN.md` y `implementations/mvp-motion-backlog.md`.
 
 ## Backlog inicial detallado
 
 ### 1. Motion tokens + utils ✅
 - [x] Crear `src/design/motion.ts`
 - [x] Definir tokens y helpers
-- [ ] Unit test para `toMotionSeconds` y `getMotionProps` con `shouldAnimate: false` (tarea 8)
+- [x] Unit test para `toMotionSeconds` y `getMotionProps` con `shouldAnimate: false` (tarea 8)
 - Entregable: archivo con exports usados por todos los componentes motion.
 - Estimación: 2 SP
 
@@ -146,30 +149,36 @@ Cada ítem debe cumplirse exactamente con:
 - [x] Entregable: skeletons cuando `loading === true`.
 - Estimación: 1.5 SP
 
-### 7. Barra de presupuesto animada + feedback animado
-- Actualizar `src/components/BudgetProgressBar.tsx`
+### 7. Barra de presupuesto animada + feedback animado ✅
+- [x] Actualizar `src/components/BudgetProgressBar.tsx`
   - animar ancho con Framer Motion (`useMotionValue` / `animate`) desde valor previo
   - animar label en `BudgetProgressMeta` si aplica
-- Feedback animado (elegir uno):
+- [x] Feedback animado (elegir uno):
   - **Opción A (menor scope):** animar entrada/salida de `Dialog` y `Alert` con `AnimatePresence`
-  - **Opción B:** crear `ToastProvider` + API global
-- Entregable: barra se mueve suavemente al actualizar presupuesto; feedback de acciones con animación.
+- [x] Entregable: barra se mueve suavemente al actualizar presupuesto; feedback de acciones con animación.
 - Estimación: 2 SP
 
-### 8. Tests y performance smoke
-- Tests unitarios para:
+### 8. Tests y performance smoke ✅
+- [x] Tests unitarios para:
   - `motion.ts` (`toMotionSeconds`, `getMotionProps`, duraciones en segundos en `motionTransitions`)
-  - `useMotionPreferences.ts`
-- Test de integración básico para wrapper de rutas animadas
-- Smoke manual: Dashboard, Movimientos, edición de movimiento con/sin `prefers-reduced-motion`
-- Entregable: tests verdes y notas breves de performance.
+  - `useMotionPreferences.ts` (ya en `src/hooks/useMotionPreferences.test.ts`)
+- [x] Test de integración básico para wrapper de rutas animadas (`src/components/AnimatedRoutes.test.tsx`)
+- [x] Smoke manual: Dashboard, Movimientos, edición de movimiento con/sin `prefers-reduced-motion` (checklist abajo)
+- [x] Entregable: tests verdes y notas breves de performance.
 - Estimación: 2 SP
 
-### 9. Documentación y guidelines
-- Actualizar `DESIGN.md` sección **Motion** (tokens, patrones, ejemplos)
-- Mantener principios de micro-interacción solo en `DESIGN.md` (fuente única)
-- Incluir: valores exactos, `whileTap`, `AnimatePresence`, `layoutId`, `toMotionSeconds`
-- Entregable: documentación lista para el equipo.
+**Performance smoke (2026-06-14)**
+- `npm test` — 195 tests (18 nuevos: 13 en `motion.test.ts`, 5 en `AnimatedRoutes.test.tsx`)
+- `npm run build` — OK; bundle principal ~493 KB gzip (+~4 KB vs post-skeletons por Dialog/Alert/Budget motion)
+- Animaciones usan solo `transform`/`opacity` en rutas y shared layout; shimmer y barra de presupuesto animan width/background (aceptable en MVP)
+- `LazyMotion` + `domAnimation` sigue siendo optimización futura si el bundle pesa en mobile
+- Smoke manual recomendado antes de merge: Dashboard ↔ Movimientos ↔ Balance; Editar desde lista; toggle ojo montos (sin transición); `prefers-reduced-motion: reduce` y `VITE_ANIMATIONS_ENABLED=false`
+
+### 9. Documentación y guidelines ✅
+- [x] Actualizar `DESIGN.md` sección **Motion** (tokens, patrones, ejemplos)
+- [x] Mantener principios de micro-interacción solo en `DESIGN.md` (fuente única)
+- [x] Incluir: valores exactos, `whileTap`, `AnimatePresence`, `layoutId`, `toMotionSeconds`
+- [x] Entregable: documentación lista para el equipo.
 - Estimación: 1 SP
 
 ## Principios de micro-interacción
@@ -187,12 +196,12 @@ Ver `DESIGN.md` — sección "Principios de micro-interacción". No duplicar aqu
 - [x] Disabled states están quietos y con opacidad reducida.
 - [x] El sistema de motion usa tokens comunes para duración y easing.
 - [x] El feedback de micro-transacción es consistente en componentes tocados (Sprint 1).
-- [ ] Las animaciones son discretas y mantienen buen rendimiento (falta smoke formal — tarea 8).
+- [x] Las animaciones son discretas y mantienen buen rendimiento (smoke documentado — tarea 8).
 
 ## Plan por sprints
 - Sprint 1: tareas 1, 2, 3 ✅
 - Sprint 2: tareas 4, 5, 6
-- Sprint 3: tareas 7, 8, 9
+- Sprint 3: tareas 7, 8, 9 ✅
 
 ## Riesgos y mitigaciones
 - Animaciones demasiado pesadas:

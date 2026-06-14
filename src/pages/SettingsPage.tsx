@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { useCategories, useSettings, useDataMutations, useDatabaseStats } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useAuth } from '@/contexts/AuthContext'
@@ -257,30 +258,32 @@ export function SettingsPage() {
 
       <PageHeader title="Configuración" />
 
-      {backupReminder.neverExported && (
-        <Alert tone="warning" title="Todavía no exportaste un backup">
-          Tus datos viven solo en este navegador. Exportá un backup JSON para no perder movimientos si
-          cambiás de dispositivo o borrás el historial.
-          <div className="mt-3">
-            <Button type="button" variant="secondary" size="sm" onClick={handleExport}>
-              Exportar backup ahora
-            </Button>
-          </div>
-        </Alert>
-      )}
+      <AnimatePresence>
+        {backupReminder.neverExported && (
+          <Alert key="backup-never-exported" tone="warning" title="Todavía no exportaste un backup">
+            Tus datos viven solo en este navegador. Exportá un backup JSON para no perder movimientos si
+            cambiás de dispositivo o borrás el historial.
+            <div className="mt-3">
+              <Button type="button" variant="secondary" size="sm" onClick={handleExport}>
+                Exportar backup ahora
+              </Button>
+            </div>
+          </Alert>
+        )}
 
-      {!backupReminder.neverExported && backupReminder.overdue && (
-        <Alert tone="warning" title="Hace tiempo que no exportás un backup">
-          Pasaron {backupReminder.daysSince} días desde el último backup
-          {lastBackupAt ? ` (${formatDate(lastBackupAt.slice(0, 10))})` : ''}. Te recomendamos exportar
-          uno nuevo para tener una copia reciente.
-          <div className="mt-3">
-            <Button type="button" variant="secondary" size="sm" onClick={handleExport}>
-              Exportar backup ahora
-            </Button>
-          </div>
-        </Alert>
-      )}
+        {!backupReminder.neverExported && backupReminder.overdue && (
+          <Alert key="backup-overdue" tone="warning" title="Hace tiempo que no exportás un backup">
+            Pasaron {backupReminder.daysSince} días desde el último backup
+            {lastBackupAt ? ` (${formatDate(lastBackupAt.slice(0, 10))})` : ''}. Te recomendamos exportar
+            uno nuevo para tener una copia reciente.
+            <div className="mt-3">
+              <Button type="button" variant="secondary" size="sm" onClick={handleExport}>
+                Exportar backup ahora
+              </Button>
+            </div>
+          </Alert>
+        )}
+      </AnimatePresence>
 
       <SettingsSection
         title="Tipo de cambio"

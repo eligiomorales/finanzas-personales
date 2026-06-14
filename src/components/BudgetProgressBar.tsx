@@ -1,5 +1,9 @@
+import { useEffect } from 'react'
+import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
 import { formatInViewCurrency, type CurrencyConfig } from '@/lib/currency'
 import { budgetStatusColorClass, budgetStatusLabel } from '@/lib/budget'
+import { motionTransitions } from '@/design/motion'
+import { useMotionPreferences } from '@/hooks/useMotionPreferences'
 import type { BudgetProgressStatus } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -12,21 +16,44 @@ export function BudgetProgressBar({
   status: BudgetProgressStatus
   color?: string
 }) {
-  const width = status === 'unbudgeted' ? 0 : Math.min(percentUsed * 100, 100)
+  const { shouldAnimate } = useMotionPreferences()
+  const targetWidth = status === 'unbudgeted' ? 0 : Math.min(percentUsed * 100, 100)
   const useCategoryColor = status === 'ok' || status === 'unbudgeted'
+  const widthMotion = useMotionValue(targetWidth)
+  const widthStyle = useTransform(widthMotion, (value) => `${value}%`)
+
+  useEffect(() => {
+    if (!shouldAnimate) {
+      widthMotion.set(targetWidth)
+      return
+    }
+
+    const controls = animate(widthMotion, targetWidth, {
+      duration: motionTransitions.sharedElement.duration,
+      ease: motionTransitions.sharedElement.ease,
+    })
+
+    return () => controls.stop()
+  }, [targetWidth, shouldAnimate, widthMotion])
+
+  const barClassName = cn(
+    'h-full rounded-full',
+    !useCategoryColor && budgetStatusColorClass(status),
+  )
+  const barColorStyle = {
+    backgroundColor: useCategoryColor ? (color ?? '#3b82f6') : undefined,
+  }
 
   return (
     <div className="h-2 overflow-hidden rounded-full bg-surface-100">
-      <div
-        className={cn(
-          'h-full rounded-full transition-all',
-          !useCategoryColor && budgetStatusColorClass(status),
-        )}
-        style={{
-          width: `${width}%`,
-          backgroundColor: useCategoryColor ? (color ?? '#3b82f6') : undefined,
-        }}
-      />
+      {shouldAnimate ? (
+        <motion.div className={barClassName} style={{ width: widthStyle, ...barColorStyle }} />
+      ) : (
+        <div
+          className={barClassName}
+          style={{ width: `${targetWidth}%`, ...barColorStyle }}
+        />
+      )}
     </div>
   )
 }
@@ -44,13 +71,31 @@ export function BudgetProgressMeta({
   status: BudgetProgressStatus
   currencyConfig: CurrencyConfig
 }) {
+  const { shouldAnimate } = useMotionPreferences()
+
   if (budgeted <= 0) return null
+
+  const percentDisplay = Math.round(percentUsed * 100)
 
   return (
     <p className="text-xs text-stone-500">
       {formatInViewCurrency(spent, currencyConfig)} / {formatInViewCurrency(budgeted, currencyConfig)}
       {' · '}
-      {Math.round(percentUsed * 100)}% · {budgetStatusLabel(status)}
+      {shouldAnimate ? (
+        <motion.span
+          key={percentDisplay}
+          initial={{ opacity: 0.5, y: 2 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={motionTransitions.microInteraction}
+          className="inline-block tabular-nums"
+        >
+          {percentDisplay}%
+        </motion.span>
+      ) : (
+        `${percentDisplay}%`
+      )}
+      {' · '}
+      {budgetStatusLabel(status)}
     </p>
   )
 }
