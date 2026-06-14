@@ -1,5 +1,8 @@
 import { type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { motionTransitions } from '@/design/motion'
+import { useMotionPreferences } from '@/hooks/useMotionPreferences'
 import { cn } from '@/lib/utils'
 
 export type AlertTone = 'info' | 'warning' | 'success' | 'error'
@@ -82,14 +85,12 @@ export function Alert({
   action?: { label: string; onClick?: () => void; to?: string }
   className?: string
 }) {
+  const { shouldAnimate } = useMotionPreferences()
   const styles = toneStyles[tone]
   const role = tone === 'error' || tone === 'warning' ? 'alert' : 'status'
 
-  return (
-    <div
-      role={role}
-      className={cn('flex gap-3 rounded-xl border p-4', styles.container, className)}
-    >
+  const content = (
+    <>
       <AlertIcon tone={tone} />
       <div className="min-w-0 flex-1">
         {title && <p className={cn('font-semibold', styles.title)}>{title}</p>}
@@ -117,6 +118,30 @@ export function Alert({
           </div>
         )}
       </div>
-    </div>
+    </>
+  )
+
+  if (!shouldAnimate) {
+    return (
+      <div
+        role={role}
+        className={cn('flex gap-3 rounded-xl border p-4', styles.container, className)}
+      >
+        {content}
+      </div>
+    )
+  }
+
+  return (
+    <motion.div
+      role={role}
+      className={cn('flex gap-3 rounded-xl border p-4', styles.container, className)}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={motionTransitions.microInteraction}
+    >
+      {content}
+    </motion.div>
   )
 }

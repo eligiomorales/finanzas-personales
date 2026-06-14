@@ -1,5 +1,8 @@
 import { useEffect, useId, type ReactNode } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { motionTransitions } from '@/design/motion'
+import { useMotionPreferences } from '@/hooks/useMotionPreferences'
 import { cn } from '@/lib/utils'
 
 interface DialogProps {
@@ -25,12 +28,12 @@ export function Dialog({
   className,
   closeOnBackdrop = true,
 }: DialogProps) {
+  const { shouldAnimate } = useMotionPreferences()
   const generatedTitleId = useId()
   const generatedDescriptionId = useId()
   const resolvedTitleId = titleId ?? generatedTitleId
   const resolvedDescriptionId = descriptionId ?? generatedDescriptionId
   const trapRef = useFocusTrap(open)
-
   useEffect(() => {
     if (!open) return
 
@@ -42,41 +45,94 @@ export function Dialog({
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [open, onClose])
 
-  if (!open) return null
+  if (!shouldAnimate) {
+    if (!open) return null
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center md:p-4">
+        {closeOnBackdrop ? (
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            aria-label="Cerrar diálogo"
+            onClick={onClose}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+        )}
+        <div
+          ref={trapRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={resolvedTitleId}
+          aria-describedby={description ? resolvedDescriptionId : undefined}
+          className={cn(
+            'relative w-full max-w-md rounded-t-2xl border border-b-0 border-stone-200/80 bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-xl shadow-stone-300/20 md:rounded-2xl md:border-b md:pb-5',
+            className,
+          )}
+        >
+          <h3 id={resolvedTitleId} className="text-lg font-bold tracking-tight text-stone-900">
+            {title}
+          </h3>
+          {description && (
+            <p id={resolvedDescriptionId} className="mt-2 text-sm text-stone-600">
+              {description}
+            </p>
+          )}
+          <div className={description ? 'mt-4' : 'mt-3'}>{children}</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center md:p-4">
-      {closeOnBackdrop ? (
-        <button
-          type="button"
-          className="absolute inset-0 bg-black/40"
-          aria-label="Cerrar diálogo"
-          onClick={onClose}
-        />
-      ) : (
-        <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="dialog"
+          className="fixed inset-0 z-50 flex items-end justify-center md:items-center md:p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={motionTransitions.microInteraction}
+        >
+          {closeOnBackdrop ? (
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/40"
+              aria-label="Cerrar diálogo"
+              onClick={onClose}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+          )}
+          <motion.div
+            ref={trapRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={resolvedTitleId}
+            aria-describedby={description ? resolvedDescriptionId : undefined}
+            className={cn(
+              'relative w-full max-w-md rounded-t-2xl border border-b-0 border-stone-200/80 bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-xl shadow-stone-300/20 md:rounded-2xl md:border-b md:pb-5',
+              className,
+            )}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            transition={motionTransitions.pageTransition}
+          >
+            <h3 id={resolvedTitleId} className="text-lg font-bold tracking-tight text-stone-900">
+              {title}
+            </h3>
+            {description && (
+              <p id={resolvedDescriptionId} className="mt-2 text-sm text-stone-600">
+                {description}
+              </p>
+            )}
+            <div className={description ? 'mt-4' : 'mt-3'}>{children}</div>
+          </motion.div>
+        </motion.div>
       )}
-      <div
-        ref={trapRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={resolvedTitleId}
-        aria-describedby={description ? resolvedDescriptionId : undefined}
-        className={cn(
-          'relative w-full max-w-md rounded-t-2xl border border-b-0 border-stone-200/80 bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-xl shadow-stone-300/20 md:rounded-2xl md:border-b md:pb-5',
-          className,
-        )}
-      >
-        <h3 id={resolvedTitleId} className="text-lg font-bold tracking-tight text-stone-900">
-          {title}
-        </h3>
-        {description && (
-          <p id={resolvedDescriptionId} className="mt-2 text-sm text-stone-600">
-            {description}
-          </p>
-        )}
-        <div className={description ? 'mt-4' : 'mt-3'}>{children}</div>
-      </div>
-    </div>
+    </AnimatePresence>
   )
 }
