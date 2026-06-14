@@ -10,6 +10,53 @@ Inspiración visual: [Monarch](https://www.monarch.com/) (claridad, cards limpia
 4. **Consistencia** — nuevos controles van en `src/components/ui/`.
 5. **Accesibilidad** — contraste AA, focus visible, labels y roles correctos.
 
+## Principios de micro-interacción
+
+Cada micro-interacción debe seguir estos principios:
+
+- **Squash & Stretch**: presión del botón con compresión ligera; interruptores que terminan con “settle”.
+- **Anticipation**: hover y estados previos al clic que indican acción.
+- **Staging**: foco claro en la acción activa; un solo feedback dominante a la vez.
+- **Straight Ahead / Pose to Pose**: usar animaciones continuas para progreso y transiciones definidas para cambios de estado.
+- **Follow Through / Overlapping**: efectos que se prolongan y elementos que animan en solapamiento.
+- **Slow In / Slow Out**: entradas rápidas, salidas suaves; evitar animaciones lineales.
+- **Arc**: movimiento curvo en toggles y componentes circulares.
+- **Secondary Action**: iconos y badges responden al estado del elemento principal.
+- **Timing**: micro-interacciones 100–200 ms; cambios de estado 200–300 ms.
+- **Exaggeration**: efecto notable pero controlado.
+- **Solid Drawing**: comportamiento consistente de transformaciones.
+- **Appeal**: que la UI se sienta viva y responsiva sin distraer.
+
+### Checklist de micro-interacción
+
+- [x] Feedback inmediato en botones y controles (`Form`, `SegmentedControl`, `ChoiceChip`).
+- [x] Animaciones consistentes con tokens de timing y easing (`src/design/motion.ts`).
+- [ ] Estados de error y éxito claramente distinguibles.
+- [x] `prefers-reduced-motion` respetado en componentes con motion (Sprint 1).
+- [x] No se animan actualizaciones irrelevantes.
+- [x] Disabled states sin animación.
+- [x] Un solo efecto de feedback visible por interacción.
+- [x] Componentes compartidos usan los mismos patrones de motion (Sprint 1).
+- [ ] Interacciones pequeñas son agradables y discretas (validar en mobile).
+- [ ] Se prueba el comportamiento con y sin animación (smoke formal pendiente).
+
+## Motion (`src/design/motion.ts`)
+
+Sistema centralizado de animación. Detalle y backlog: `implementations/mvp-motion-backlog.md`.
+
+| Token / helper | Valor / uso |
+|----------------|-------------|
+| `motionDurations` | `xxs: 80`, `xs: 120`, `sm: 180`, `md: 280`, `lg: 420` (ms) |
+| `toMotionSeconds` | Convierte ms → s para Framer Motion |
+| `motionEasings.standard` | `[0.22, 1, 0.36, 1]` |
+| `getMotionProps('button')` | hover `y: -1`, tap `scale: 0.97` |
+| `getTapMotionProps` | tap only (segmented, chips) |
+| `fieldFocusStyle` | CSS transition border/shadow en inputs |
+
+**Preferencias:** `useMotionPreferences()` → `shouldAnimate`. Feature flag: `VITE_ANIMATIONS_ENABLED=false` en `.env.local`.
+
+**Patrones en uso (Sprint 1):** `motion.button`, `layoutId` en `SegmentedControl`, tokens en focus de campos.
+
 ## Tokens (`src/index.css`)
 
 | Token | Uso |

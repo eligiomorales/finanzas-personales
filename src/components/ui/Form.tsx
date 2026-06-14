@@ -1,13 +1,17 @@
 import {
-  type ButtonHTMLAttributes,
   type SelectHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
 } from 'react'
+import { motion, type HTMLMotionProps } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { focusRing, textMuted } from '@/components/ui/styles'
+import { fieldFocusStyle, getMotionProps } from '@/design/motion'
+import { useMotionPreferences } from '@/hooks/useMotionPreferences'
 
 export { focusRing }
+
+const MotionButton = motion.button
 
 export function describedBy(...ids: (string | false | undefined | null)[]): string | undefined {
   const value = ids.filter(Boolean).join(' ')
@@ -18,11 +22,15 @@ export function Button({
   variant = 'primary',
   size = 'md',
   className,
+  disabled,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & {
+}: HTMLMotionProps<'button'> & {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
   size?: 'xs' | 'sm' | 'md' | 'lg'
 }) {
+  const { shouldAnimate } = useMotionPreferences()
+  const buttonMotion = shouldAnimate && !disabled ? getMotionProps('button', true) : {}
+
   const variants = {
     primary: 'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-700',
     secondary: 'border border-stone-300 bg-white text-stone-700 hover:bg-surface-50',
@@ -37,7 +45,7 @@ export function Button({
   }
 
   return (
-    <button
+    <MotionButton
       className={cn(
         'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:opacity-50',
         focusRing,
@@ -45,6 +53,10 @@ export function Button({
         sizes[size],
         className,
       )}
+      disabled={disabled}
+      whileHover={buttonMotion.whileHover}
+      whileTap={buttonMotion.whileTap}
+      transition={buttonMotion.transition}
       {...props}
     />
   )
@@ -54,19 +66,24 @@ export function Input({
   className,
   invalid,
   type,
+  style,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }) {
+  const { shouldAnimate } = useMotionPreferences()
+
   return (
     <input
       type={type}
       aria-invalid={invalid || props['aria-invalid']}
       className={cn(
-        'w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none transition-colors',
+        'w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none',
+        'focus-visible:border-brand-500 focus-visible:shadow-[0_1px_2px_rgba(47,122,107,0.12)]',
         focusRing,
         invalid && 'border-red-400',
         type === 'date' && 'block min-w-0 max-w-full',
         className,
       )}
+      style={shouldAnimate ? { ...fieldFocusStyle, ...style } : style}
       {...props}
     />
   )
@@ -76,17 +93,22 @@ export function Select({
   className,
   children,
   invalid,
+  style,
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement> & { invalid?: boolean }) {
+  const { shouldAnimate } = useMotionPreferences()
+
   return (
     <select
       aria-invalid={invalid || props['aria-invalid']}
       className={cn(
         'w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none',
+        'focus-visible:border-brand-500 focus-visible:shadow-[0_1px_2px_rgba(47,122,107,0.12)]',
         focusRing,
         invalid && 'border-red-400',
         className,
       )}
+      style={shouldAnimate ? { ...fieldFocusStyle, ...style } : style}
       {...props}
     >
       {children}
