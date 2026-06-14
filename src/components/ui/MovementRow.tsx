@@ -1,10 +1,17 @@
 import { type ReactNode } from 'react'
+import { motion } from 'framer-motion'
 import { Badge, Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Form'
 import { ButtonLink } from '@/components/ui/TextLink'
 import { textMuted } from '@/components/ui/styles'
+import { getLayoutTransition } from '@/design/motion'
+import { useMotionPreferences } from '@/hooks/useMotionPreferences'
 import { cn, movementAmountColor, movementTypeColor, movementTypeLabel } from '@/lib/utils'
 import type { Movement } from '@/types'
+
+export function movementLayoutId(id: string) {
+  return `movement-${id}`
+}
 
 interface MovementAmountProps {
   type: Movement['type']
@@ -30,6 +37,69 @@ function MovementAmount({ type, sign = '', primary, secondary, size = 'md' }: Mo
       {secondary && <p className="text-xs tabular-nums text-stone-500">{secondary}</p>}
     </div>
   )
+}
+
+export interface MovementSummaryBlockProps {
+  description: string
+  date: string
+  movementType: Movement['type']
+  amountPrimary: string
+  amountSecondary?: string
+  amountSign?: string
+  imported?: boolean
+  layoutId?: string
+}
+
+export function MovementSummaryBlock({
+  description,
+  date,
+  movementType,
+  amountPrimary,
+  amountSecondary,
+  amountSign,
+  imported,
+  layoutId,
+}: MovementSummaryBlockProps) {
+  const { shouldAnimate } = useMotionPreferences()
+  const layoutTransition = getLayoutTransition(shouldAnimate)
+
+  const content = (
+    <div className="flex items-start justify-between gap-2.5">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-5">
+          <span className="text-stone-500">{date}</span>
+          <span
+            className={cn(
+              'rounded px-1.5 py-0.5 text-xs font-medium',
+              movementTypeColor(movementType),
+            )}
+          >
+            {movementTypeLabel(movementType)}
+          </span>
+          {imported && <Badge variant="info">Importado</Badge>}
+        </div>
+        <p className="mt-0.5 break-words text-sm font-medium leading-5 text-stone-800">
+          {description}
+        </p>
+      </div>
+      <MovementAmount
+        type={movementType}
+        sign={amountSign}
+        primary={amountPrimary}
+        secondary={amountSecondary}
+      />
+    </div>
+  )
+
+  if (layoutId && shouldAnimate) {
+    return (
+      <motion.div layoutId={layoutId} transition={layoutTransition}>
+        {content}
+      </motion.div>
+    )
+  }
+
+  return content
 }
 
 export function MovementList({ children, className }: { children: ReactNode; className?: string }) {
@@ -65,6 +135,7 @@ interface MovementRowDetailedProps {
   editTo?: string
   onDelete?: () => void
   deleting?: boolean
+  movementId?: string
   layout?: 'list' | 'card'
   className?: string
 }
@@ -104,37 +175,23 @@ export function MovementRow(props: MovementRowProps) {
     editTo,
     onDelete,
     deleting,
+    movementId,
     layout = 'list',
     className,
   } = props
 
   const row = (
     <div className={cn(layout === 'list' ? 'space-y-1.5 px-4 py-2.5' : 'space-y-1.5', className)}>
-      <div className="flex items-start justify-between gap-2.5">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-5">
-            <span className="text-stone-500">{date}</span>
-            <span
-              className={cn(
-                'rounded px-1.5 py-0.5 text-xs font-medium',
-                movementTypeColor(movementType),
-              )}
-            >
-              {movementTypeLabel(movementType)}
-            </span>
-            {imported && <Badge variant="info">Importado</Badge>}
-          </div>
-          <p className="mt-0.5 break-words text-sm font-medium leading-5 text-stone-800">
-            {description}
-          </p>
-        </div>
-        <MovementAmount
-          type={movementType}
-          sign={amountSign}
-          primary={amountPrimary}
-          secondary={amountSecondary}
-        />
-      </div>
+      <MovementSummaryBlock
+        description={description}
+        date={date}
+        movementType={movementType}
+        amountPrimary={amountPrimary}
+        amountSecondary={amountSecondary}
+        amountSign={amountSign}
+        imported={imported}
+        layoutId={movementId ? movementLayoutId(movementId) : undefined}
+      />
       {(categoryName || payerLabel || sharingLabel || editTo || onDelete) && (
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
           <div className={cn('flex min-w-0 flex-wrap gap-x-2 gap-y-0.5 text-xs leading-5', textMuted)}>

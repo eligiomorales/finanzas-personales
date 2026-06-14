@@ -1,4 +1,5 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
+import { AnimatedRoutes } from '@/components/AnimatedRoutes'
 import { Badge } from '@/components/ui/Card'
 import { useAmountsVisibility, useAmountsVisible } from '@/contexts/AmountsVisibilityContext'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
@@ -120,7 +121,9 @@ const navItems: { to: string; label: string; icon: NavIconName }[] = [
 function RoutedContent() {
   const amountsVisible = useAmountsVisible()
 
-  return <Outlet key={amountsVisible ? 'amounts-visible' : 'amounts-hidden'} />
+  return (
+    <AnimatedRoutes outletKey={amountsVisible ? 'amounts-visible' : 'amounts-hidden'} />
+  )
 }
 
 export function Layout() {
