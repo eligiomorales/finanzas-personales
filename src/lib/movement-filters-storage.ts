@@ -1,4 +1,5 @@
 import type { PeriodRange } from '@/components/PeriodFilter'
+import type { MovementDateRange } from '@/lib/repositories/types'
 import { currentMonthRange } from '@/lib/utils'
 import type {
   CurrencyCode,
@@ -94,6 +95,12 @@ export function withDefaultPeriod(filters: PersistedMovementFilters): PersistedM
     dateFrom: filters.dateFrom ?? month.from,
     dateTo: filters.dateTo ?? month.to,
   }
+}
+
+/** Date span used to fetch movements before in-memory filter/sort (remote list). */
+export function movementQueryDateRange(filters: MovementFilters): MovementDateRange {
+  const { dateFrom, dateTo } = withDefaultPeriod(toPersistedMovementFilters(filters))
+  return { dateFrom: dateFrom!, dateTo: dateTo! }
 }
 
 function readLegacyPeriod(): PeriodRange | null {

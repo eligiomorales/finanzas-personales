@@ -2,7 +2,7 @@
  * design-system: DESIGN.md · designed-as-app · enrichment: none
  * pre-emit critique: P5 H4 E5 S5 R5 V4 */
 import { useMemo, useState, useCallback, useEffect } from 'react'
-import { useMovements, useCategories, useSettings, useBudgets, useBudgetMutations } from '@/hooks/useData'
+import { useMovementsInRange, useCategories, useSettings, useBudgets, useBudgetMutations } from '@/hooks/useData'
 import { CurrencyAmountInput } from '@/components/CurrencyAmountInput'
 import { BudgetProgressBar } from '@/components/BudgetProgressBar'
 import { Card, EmptyState } from '@/components/ui/Card'
@@ -15,6 +15,7 @@ import {
   buildBudgetProgress,
   getBudgetAmountInView,
   getBudgetMonthKey,
+  getMonthDateRange,
   shiftBudgetMonth,
 } from '@/lib/budget'
 import { formatInViewCurrency, getCurrencyConfig } from '@/lib/currency'
@@ -107,11 +108,12 @@ function MonthNavigator({
 }
 
 export function BudgetPage({ embedded = false }: { embedded?: boolean }) {
-  const movements = useMovements() ?? []
   const categories = useCategories() ?? []
   const settings = useSettings()
   const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
   const [viewMonth, setViewMonth] = useState(() => getBudgetMonthKey(new Date()))
+  const viewMonthRange = useMemo(() => getMonthDateRange(viewMonth), [viewMonth])
+  const { movements } = useMovementsInRange(viewMonthRange)
   const budgets = useBudgets() ?? []
   const { upsertBudget, deleteBudget } = useBudgetMutations()
   const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null)

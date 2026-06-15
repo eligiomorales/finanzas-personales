@@ -1,7 +1,8 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench
  * design-system: DESIGN.md · designed-as-app · enrichment: none */
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useCategories, useImportMutations, useMovements, useSettings } from '@/hooks/useData'
+import { useCategories, useImportMutations, useMovementFormHints, useSettings } from '@/hooks/useData'
+import { useRepositories } from '@/contexts/DataContext'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { ImportBatchDefaultsCard } from '@/components/ImportBatchDefaultsCard'
 import { ImportReviewItemCard } from '@/components/ImportReviewItemCard'
@@ -9,7 +10,7 @@ import { buildDefaultImportShare } from '@/lib/couple/person-labels'
 import { isDuplicateMovement } from '@/lib/balance'
 import { filterImportReviewItems, type ImportReviewFilter, type ImportReviewItem } from '@/lib/import-display'
 import { getFrequentCategoryIds } from '@/lib/movement-form-defaults'
-import { cn, formatCurrency, generateId } from '@/lib/utils'
+import { cn, dateSpanFromIsoDates, formatCurrency, generateId } from '@/lib/utils'
 import {
   parseFile,
   applyColumnMapping,
@@ -29,7 +30,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { Stepper } from '@/components/ui/Stepper'
 import type { ImportShareValues } from '@/components/ImportShareControls'
 import { Button, Select, StatusMessage, LiveRegion } from '@/components/ui/Form'
-import type { AccountType, CurrencyCode } from '@/types'
+import type { AccountType, CurrencyCode, Movement } from '@/types'
 
 type Step = 'upload' | 'mapping' | 'review' | 'done'
 
@@ -94,7 +95,8 @@ function ImportFileTypeIcon({
 
 export function ImportPage() {
   const categories = useCategories() ?? []
-  const movements = useMovements() ?? []
+  const { movements: hintMovements } = useMovementFormHints()
+  const repos = useRepositories()
   const settings = useSettings()
   const persons = useCouplePersons()
   const { confirmImport } = useImportMutations()
@@ -129,11 +131,21 @@ export function ImportPage() {
 
   const defaultRate = settings?.defaultExchangeRateUsd ?? 1200
 
-  function buildPendingItems(rows: ParsedRow[], newImportId: string): ImportReviewItem[] {
+  async function loadDuplicateCandidates(rows: ParsedRow[]): Promise<Movement[]> {
+    const span = dateSpanFromIsoDates(rows.map((row) => row.date))
+    if (!span) return []
+    return repos.movements.listInRange({ dateFrom: span.from, dateTo: span.to })
+  }
+
+  function buildPendingItems(
+    rows: ParsedRow[],
+    newImportId: string,
+    duplicateCandidates: Movement[],
+  ): ImportReviewItem[] {
     const shareDefaults = buildDefaultImportShare(persons.myRole)
     return rows.map((row) => {
       const currency = row.currency
-      const duplicate = movements.find((m) =>
+      const duplicate = duplicateCandidates.find((m) =>
         isDuplicateMovement(m, {
           date: row.date,
           amount: row.amount,
@@ -200,7 +212,7 @@ export function ImportPage() {
           amount: 'Pesos',
           merchant: 'Comprobante',
         })
-        setPendingItems(buildPendingItems(result.rows, newImportId))
+        setPendingItems(buildPendingItems(result.rows, newImportId, await loadDuplicateCandidates(result.rows)))
         setStep('review')
         return
       }
@@ -232,7 +244,7 @@ export function ImportPage() {
     await processFile(file)
   }
 
-  function handleApplyMapping() {
+  async function handleApplyMapping() {
     if (!mapping.date || !mapping.description || !hasAmountMapping(mapping)) {
       setError('Debes mapear fecha, descripción y monto (o débito/crédito)')
       return
@@ -246,7 +258,8 @@ export function ImportPage() {
 
     const newImportId = generateId()
     setImportId(newImportId)
-    setPendingItems(buildPendingItems(rows, newImportId))
+    const duplicateCandidates = await loadDuplicateCandidates(rows)
+    setPendingItems(buildPendingItems(rows, newImportId, duplicateCandidates))
     setStep('review')
   }
 
@@ -362,8 +375,8 @@ export function ImportPage() {
   const duplicateCount = pendingItems.filter((p) => p.possibleDuplicate && p.status === 'pending').length
   const expenseCategories = categories.filter((c) => c.type === 'expense')
   const frequentCategoryIds = useMemo(
-    () => getFrequentCategoryIds(movements, 'expense', 6),
-    [movements],
+    () => getFrequentCategoryIds(hintMovements, 'expense', 6),
+    [hintMovements],
   )
   const visibleItems = useMemo(
     () => filterImportReviewItems(pendingItems, reviewFilter),

@@ -2,16 +2,19 @@ import { useCallback, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db/database'
 import { useDataContext, useRepositories } from '@/contexts/DataContext'
-import type { ConfirmImportInput } from '@/lib/repositories/types'
-import type { UpsertCategoryBudgetInput } from '@/lib/repositories/types'
-import type { CurrencyCode, MovementFilters, MovementFormData } from '@/types'
+import type { ConfirmImportInput, MovementDateRange, UpsertCategoryBudgetInput } from '@/lib/repositories/types'
+import type { CurrencyCode, MovementFilters, MovementFormData, Movement } from '@/types'
 import type { MovementSearchContext } from '@/lib/movement-search'
 import { updateMyDisplayName } from '@/lib/couple/persons'
 import { filterAllMovementsInMemory } from '@/lib/repositories/dexie-repositories'
+import { movementQueryDateRange } from '@/lib/movement-filters-storage'
 import { serializeMovementFilters } from '@/lib/movements-query'
 import { RECURRING_BUDGET_MONTH } from '@/lib/budget'
 import { queryKeys } from '@/lib/query/keys'
+import { rollingDaysRange } from '@/lib/utils'
 import { isInitialRemoteLoad, useRemoteQuery } from '@/hooks/useRemoteQuery'
+
+const MOVEMENT_FORM_HINTS_DAYS = 90
 
 function buildFilteredMovementsSearchContextKey(searchContext?: MovementSearchContext): string {
   if (!searchContext) return ''
@@ -49,12 +52,91 @@ export function useCategories() {
   return mode === 'local' ? (local ?? []) : (remote.data ?? [])
 }
 
-export function useMovements() {
+export function useMovementsQuery(options?: { enabled?: boolean }) {
+  const enabled = options?.enabled ?? true
   const { mode, repos, coupleId } = useDataContext()
-  const local = useLiveQuery(() => db.movements.orderBy('date').reverse().toArray(), [])
-  const remote = useRemoteQuery(queryKeys.movements(coupleId ?? 'local'), () => repos.movements.list())
 
-  return mode === 'local' ? (local ?? undefined) : remote.data
+  const local = useLiveQuery(
+    () => (enabled ? db.movements.orderBy('date').reverse().toArray() : []),
+    [enabled],
+  )
+
+  const remote = useRemoteQuery(
+    queryKeys.movements(coupleId ?? 'local'),
+    () => repos.movements.list(),
+    { enabled },
+  )
+
+  const movements = mode === 'local' ? (local ?? []) : (remote.data ?? [])
+
+  return {
+    movements,
+    isLoading:
+      enabled && (mode === 'remote' ? isInitialRemoteLoad(remote) : local === undefined),
+  }
+}
+
+export function useMovements(options?: { enabled?: boolean }): Movement[] | undefined {
+  const enabled = options?.enabled ?? true
+  const { movements, isLoading } = useMovementsQuery({ enabled })
+  if (!enabled) return []
+  if (isLoading && movements.length === 0) return undefined
+  return movements
+}
+
+type MovementDateRangeInput = MovementDateRange | { from: string; to: string } | undefined
+
+function normalizeMovementDateRange(range: MovementDateRangeInput): MovementDateRange | undefined {
+  if (!range) return undefined
+  if ('dateFrom' in range) return range
+  return { dateFrom: range.from, dateTo: range.to }
+}
+
+export function useMovementsInRange(range: MovementDateRangeInput) {
+  const normalized = normalizeMovementDateRange(range)
+  const { mode, repos, coupleId } = useDataContext()
+  const enabled = Boolean(normalized?.dateFrom && normalized?.dateTo)
+
+  const local = useLiveQuery(
+    () => (enabled && normalized ? repos.movements.listInRange(normalized) : []),
+    [normalized?.dateFrom, normalized?.dateTo, repos, enabled],
+  )
+
+  const remote = useRemoteQuery(
+    queryKeys.movementsInRange(coupleId ?? 'local', normalized?.dateFrom ?? '', normalized?.dateTo ?? ''),
+    () => repos.movements.listInRange(normalized!),
+    { enabled },
+  )
+
+  return {
+    movements: mode === 'local' ? (local ?? []) : (remote.data ?? []),
+    isLoading: mode === 'remote' && enabled && isInitialRemoteLoad(remote),
+  }
+}
+
+export function useMovementFormHints() {
+  const range = useMemo(() => rollingDaysRange(MOVEMENT_FORM_HINTS_DAYS), [])
+  return useMovementsInRange(range)
+}
+
+export function useMovement(id: string | undefined) {
+  const { mode, repos, coupleId } = useDataContext()
+  const enabled = Boolean(id)
+
+  const local = useLiveQuery(() => (enabled && id ? db.movements.get(id) : undefined), [id, enabled])
+
+  const remote = useRemoteQuery(
+    queryKeys.movementById(coupleId ?? 'local', id ?? ''),
+    () => repos.movements.getById(id!),
+    { enabled },
+  )
+
+  const movement = mode === 'local' ? local : remote.data
+
+  return {
+    movement,
+    isLoading: enabled && (mode === 'remote' ? isInitialRemoteLoad(remote) : local === undefined),
+  }
 }
 
 export function useFilteredMovements(
@@ -65,6 +147,7 @@ export function useFilteredMovements(
   const filtersKey = serializeMovementFilters(filters)
   const searchContextKey = buildFilteredMovementsSearchContextKey(searchContext)
   const queryKey = `${filtersKey}|${searchContextKey}`
+  const fetchRange = useMemo(() => movementQueryDateRange(filters), [filtersKey])
 
   const local = useLiveQuery(
     async () => {
@@ -74,8 +157,9 @@ export function useFilteredMovements(
     [queryKey, repos],
   )
 
-  const movementsQuery = useRemoteQuery(queryKeys.movements(coupleId ?? 'local'), () =>
-    repos.movements.list(),
+  const movementsQuery = useRemoteQuery(
+    queryKeys.movementsInRange(coupleId ?? 'local', fetchRange.dateFrom, fetchRange.dateTo),
+    () => repos.movements.listInRange(fetchRange),
   )
 
   const remoteFiltered = useMemo(() => {
@@ -155,15 +239,10 @@ export function useCoreDataLoading(): boolean {
 
   const settings = useRemoteQuery(queryKeys.settings(coupleId ?? 'local'), () => repos.settings.get())
   const categories = useRemoteQuery(queryKeys.categories(coupleId ?? 'local'), () => repos.categories.list())
-  const movements = useRemoteQuery(queryKeys.movements(coupleId ?? 'local'), () => repos.movements.list())
 
   if (mode !== 'remote') return false
 
-  return (
-    isInitialRemoteLoad(settings) ||
-    isInitialRemoteLoad(categories) ||
-    isInitialRemoteLoad(movements)
-  )
+  return isInitialRemoteLoad(settings) || isInitialRemoteLoad(categories)
 }
 
 export function useMovementMutations() {

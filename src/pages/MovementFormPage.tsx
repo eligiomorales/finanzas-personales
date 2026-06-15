@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
-import { useCategories, useMovements, useSettings, useMovementMutations } from '@/hooks/useData'
+import { useCategories, useMovement, useMovementFormHints, useSettings, useMovementMutations } from '@/hooks/useData'
 import { getDisplayAmountForView, splitPreset as getSplitPreset, personalSharesFromPayer } from '@/lib/balance'
 import {
   formLabelWithName,
@@ -55,11 +55,12 @@ export function MovementFormPage() {
   const persons = useCouplePersons()
   const { mode: expenseViewMode } = useExpenseViewMode()
   const categories = useCategories() ?? []
-  const movements = useMovements() ?? []
+  const { movements: hintMovements } = useMovementFormHints()
+  const { movement: editMovement, isLoading: loadingMovement } = useMovement(id)
   const settings = useSettings()
-  const { createMovement, updateMovement, getMovement } = useMovementMutations()
+  const { createMovement, updateMovement } = useMovementMutations()
   const [form, setForm] = useState<MovementFormData>(() =>
-    buildNewMovementDefaults({ movements, displayCurrency: settings?.displayCurrency }),
+    buildNewMovementDefaults({ movements: [], displayCurrency: settings?.displayCurrency }),
   )
   const [splitPreset, setSplitPreset] = useState('50-50')
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -68,17 +69,10 @@ export function MovementFormPage() {
   const [repartoOpen, setRepartoOpen] = useState(false)
   const [showAllCategories, setShowAllCategories] = useState(false)
   const initializedNewForm = useRef(false)
+  const hydratedEditId = useRef<string | null>(null)
   const isEditing = Boolean(id)
-  const [loadingMovement, setLoadingMovement] = useState(
-    () => Boolean(id) && !movements.some((movement) => movement.id === id),
-  )
   const myRole = persons.myRole ?? 'personA'
   const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
-
-  const editMovement = useMemo(
-    () => (id ? movements.find((movement) => movement.id === id) : undefined),
-    [id, movements],
-  )
 
   const editSummary = useMemo(() => {
     if (!isEditing || !id) return null
@@ -137,77 +131,58 @@ export function MovementFormPage() {
 
   useEffect(() => {
     if (!id) {
-      setLoadingMovement(false)
+      hydratedEditId.current = null
       return
     }
+    if (!editMovement || hydratedEditId.current === id) return
 
-    let cancelled = false
-    if (!editMovement) {
-      setLoadingMovement(true)
-    }
+    hydratedEditId.current = id
     setRepartoOpen(true)
-    getMovement(id).then((m) => {
-      if (cancelled) return
-      if (!m) {
-        setLoadingMovement(false)
-        return
-      }
-      const paidBy = m.paidBy === 'both' ? 'personA' : m.paidBy
-      const incomeShares = personalSharesFromPayer(paidBy)
-      setForm({
-        type: m.type,
-        amount: m.amount,
-        currency: m.currency ?? 'ARS',
-        date: m.date,
-        description: m.description,
-        categoryId: m.categoryId,
-        paidBy,
-        sharePersonA: m.type === 'income' ? incomeShares.sharePersonA : m.sharePersonA,
-        sharePersonB: m.type === 'income' ? incomeShares.sharePersonB : m.sharePersonB,
-        isShared: m.type === 'income' ? false : m.isShared,
-      })
-      setLoadingMovement(false)
+    const m = editMovement
+    const paidBy = m.paidBy === 'both' ? 'personA' : m.paidBy
+    const incomeShares = personalSharesFromPayer(paidBy)
+    setForm({
+      type: m.type,
+      amount: m.amount,
+      currency: m.currency ?? 'ARS',
+      date: m.date,
+      description: m.description,
+      categoryId: m.categoryId,
+      paidBy,
+      sharePersonA: m.type === 'income' ? incomeShares.sharePersonA : m.sharePersonA,
+      sharePersonB: m.type === 'income' ? incomeShares.sharePersonB : m.sharePersonB,
+      isShared: m.type === 'income' ? false : m.isShared,
     })
-
-    return () => {
-      cancelled = true
-    }
-  }, [id, getMovement, editMovement])
-
-  useEffect(() => {
-    if (editMovement) {
-      setLoadingMovement(false)
-    }
-  }, [editMovement])
+  }, [id, editMovement])
 
   useEffect(() => {
     if (id || initializedNewForm.current || !settings) return
     initializedNewForm.current = true
     setForm(
       buildNewMovementDefaults({
-        movements,
+        movements: hintMovements,
         displayCurrency: settings.displayCurrency,
         payerRole: membership?.role,
       }),
     )
-  }, [id, settings, membership, movements])
+  }, [id, settings, membership, hintMovements])
 
   useEffect(() => {
     if (id) return
     setForm((f) => {
       if (f.categoryId) return f
-      const categoryId = getDefaultCategoryId(movements, f.type)
+      const categoryId = getDefaultCategoryId(hintMovements, f.type)
       return categoryId ? { ...f, categoryId } : f
     })
-  }, [id, movements])
+  }, [id, hintMovements])
 
   const filteredCategories = categories.filter((c) =>
     form.type === 'settlement' ? true : c.type === (form.type === 'income' ? 'income' : 'expense'),
   )
 
   const frequentCategoryIds = useMemo(
-    () => getFrequentCategoryIds(movements, form.type, 3),
-    [movements, form.type],
+    () => getFrequentCategoryIds(hintMovements, form.type, 3),
+    [hintMovements, form.type],
   )
 
   const primaryCategories = useMemo(
@@ -230,9 +205,9 @@ export function MovementFormPage() {
   }, [filteredCategories, primaryCategories, showAllCategories])
 
   const topCategoryName = useMemo(() => {
-    const topId = getDefaultCategoryId(movements, form.type)
+    const topId = getDefaultCategoryId(hintMovements, form.type)
     return filteredCategories.find((c) => c.id === topId)?.name
-  }, [movements, form.type, filteredCategories])
+  }, [hintMovements, form.type, filteredCategories])
 
   function validate(): boolean {
     const errs: Record<string, string> = {}
@@ -301,7 +276,7 @@ export function MovementFormPage() {
     setForm((f) => {
       const paidBy = f.paidBy === 'both' ? 'personA' : f.paidBy
       const categoryId =
-        getDefaultCategoryId(movements, type) ??
+        getDefaultCategoryId(hintMovements, type) ??
         categories.find((c) => c.type === (type === 'income' ? 'income' : 'expense'))?.id ??
         null
 

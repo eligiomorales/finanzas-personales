@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
   readStoredMovementFilters,
   readStoredPeriod,
+  movementQueryDateRange,
   toPersistedMovementFilters,
   withDefaultPeriod,
   writeStoredMovementFilters,
@@ -165,6 +166,17 @@ describe('movement filters storage', () => {
 
   it('withDefaultPeriod fills missing dates', () => {
     expect(withDefaultPeriod({ type: 'expense' }).dateFrom).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('movementQueryDateRange resolves fetch span from filters', () => {
+    expect(
+      movementQueryDateRange({ dateFrom: '2026-05-01', dateTo: '2026-05-31', sortBy: 'amount', sortDir: 'desc' }),
+    ).toEqual({ dateFrom: '2026-05-01', dateTo: '2026-05-31' })
+
+    const range = movementQueryDateRange({ type: 'expense' })
+    expect(range.dateFrom).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(range.dateTo).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(range.dateFrom <= range.dateTo).toBe(true)
   })
 
   it('readStoredPeriod and writeStoredPeriod remain compatible', () => {

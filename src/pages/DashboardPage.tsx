@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useMovements, useCategories, useSettings, useBudgets, useCoreDataLoading } from '@/hooks/useData'
+import { useMovements, useMovementsInRange, useCategories, useSettings, useBudgets, useCoreDataLoading } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDataContext } from '@/contexts/DataContext'
@@ -16,10 +16,10 @@ import {
   movementVisibleInPersonalView,
 } from '@/lib/balance'
 import { buildPeriodComparison } from '@/lib/dashboard-insights'
-import { buildBudgetProgress, getBudgetMonthKey } from '@/lib/budget'
+import { buildBudgetProgress, getBudgetMonthKey, getMonthDateRange } from '@/lib/budget'
 import { getCurrencyConfig } from '@/lib/currency'
 import { formatPeriodHeaderTitle } from '@/lib/period-presets'
-import { filterMovements, previousPeriodForRange } from '@/lib/utils'
+import { previousPeriodForRange } from '@/lib/utils'
 import { Card, EmptyState } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { PeriodFilter } from '@/components/PeriodFilter'
@@ -32,14 +32,14 @@ import { SkeletonDashboard } from '@/components/skeletons/SkeletonDashboard'
 export function DashboardPage() {
   const { configured } = useAuth()
   const { mode } = useDataContext()
-  const isLoading = useCoreDataLoading()
-  const movements = useMovements() ?? []
+  const isCoreLoading = useCoreDataLoading()
+  const allMovements = useMovements() ?? []
   const categories = useCategories() ?? []
   const settings = useSettings()
   const persons = useCouplePersons()
   const { isPersonal, mode: expenseViewMode } = useExpenseViewMode()
   const onboarding = useOnboarding({
-    movementCount: movements.length,
+    movementCount: allMovements.length,
     persons,
     configured,
     mode,
@@ -48,23 +48,16 @@ export function DashboardPage() {
   const myRole = persons.myRole ?? 'personA'
   const { period, setPeriod } = usePeriod()
   const budgetMonth = useMemo(() => getBudgetMonthKey(period.from), [period.from])
+  const budgetMonthRange = useMemo(() => getMonthDateRange(budgetMonth), [budgetMonth])
   const budgets = useBudgets() ?? []
   const previousPeriod = useMemo(() => previousPeriodForRange(period), [period])
   const periodTitle = useMemo(() => formatPeriodHeaderTitle(period), [period])
 
-  const periodMovements = useMemo(
-    () => filterMovements(movements, { dateFrom: period.from, dateTo: period.to }),
-    [movements, period],
-  )
+  const { movements: periodMovements, isLoading: periodMovementsLoading } = useMovementsInRange(period)
+  const { movements: previousPeriodMovements } = useMovementsInRange(previousPeriod)
+  const { movements: budgetMonthMovements } = useMovementsInRange(budgetMonthRange)
 
-  const previousPeriodMovements = useMemo(
-    () =>
-      filterMovements(movements, {
-        dateFrom: previousPeriod.from,
-        dateTo: previousPeriod.to,
-      }),
-    [movements, previousPeriod],
-  )
+  const isLoading = isCoreLoading || periodMovementsLoading
 
   const summary = useMemo(() => {
     if (isPersonal) {
@@ -94,16 +87,16 @@ export function DashboardPage() {
     if (isPersonal) return null
     return buildBudgetProgress({
       budgets,
-      movements,
+      movements: budgetMonthMovements,
       categories,
       currencyConfig,
       yearMonth: budgetMonth,
     })
-  }, [isPersonal, budgets, movements, categories, currencyConfig, budgetMonth])
+  }, [isPersonal, budgets, budgetMonthMovements, categories, currencyConfig, budgetMonth])
 
   const coupleBalance = useMemo(
-    () => calculateCoupleBalance(movements, currencyConfig),
-    [movements, currencyConfig],
+    () => calculateCoupleBalance(allMovements, currencyConfig),
+    [allMovements, currencyConfig],
   )
 
   const personAName = persons.personAName

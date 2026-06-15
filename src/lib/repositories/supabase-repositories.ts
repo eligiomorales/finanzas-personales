@@ -11,6 +11,7 @@ import type {
   CategoryRepository,
   ConfirmImportInput,
   ImportRepository,
+  MovementDateRange,
   MovementRepository,
   Repositories,
   SettingsRepository,
@@ -132,6 +133,19 @@ export function createSupabaseRepositories(coupleId: string): Repositories {
         .from('movements')
         .select('*')
         .eq('couple_id', coupleId)
+        .order('date', { ascending: false })
+
+      if (error) throw error
+      return (data ?? []).map(rowToMovement)
+    },
+
+    async listInRange({ dateFrom, dateTo }: MovementDateRange) {
+      const { data, error } = await supabase
+        .from('movements')
+        .select('*')
+        .eq('couple_id', coupleId)
+        .gte('date', dateFrom)
+        .lte('date', dateTo)
         .order('date', { ascending: false })
 
       if (error) throw error

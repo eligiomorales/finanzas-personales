@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useMovements, useCategories, useSettings, useBudgets } from '@/hooks/useData'
+import { useMovementsInRange, useCategories, useSettings, useBudgets } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { usePeriod } from '@/contexts/MovementFiltersContext'
@@ -8,7 +8,7 @@ import {
   buildCategoryExpenseComparison,
   buildPeriodComparison,
 } from '@/lib/dashboard-insights'
-import { buildBudgetProgress, getBudgetMonthKey } from '@/lib/budget'
+import { buildBudgetProgress, getBudgetMonthKey, getMonthDateRange } from '@/lib/budget'
 import { BudgetProgressBar, BudgetProgressMeta } from '@/components/BudgetProgressBar'
 import { formatInViewCurrency, getCurrencyConfig } from '@/lib/currency'
 import { formatPeriodHeaderTitle } from '@/lib/period-presets'
@@ -25,7 +25,6 @@ const deltaColors = {
 }
 
 export function CategoriesPage() {
-  const movements = useMovements() ?? []
   const categories = useCategories() ?? []
   const settings = useSettings()
   const persons = useCouplePersons()
@@ -34,24 +33,23 @@ export function CategoriesPage() {
   const myRole = persons.myRole ?? 'personA'
   const { period, setPeriod } = usePeriod()
   const budgetMonth = useMemo(() => getBudgetMonthKey(period.from), [period.from])
+  const budgetMonthRange = useMemo(() => getMonthDateRange(budgetMonth), [budgetMonth])
   const budgets = useBudgets() ?? []
 
   const previousPeriod = useMemo(() => previousPeriodForRange(period), [period])
 
+  const { movements: periodMovementsRaw } = useMovementsInRange(period)
+  const { movements: previousPeriodMovementsRaw } = useMovementsInRange(previousPeriod)
+  const { movements: budgetMonthMovements } = useMovementsInRange(budgetMonthRange)
+
   const periodMovements = useMemo(
-    () => movements.filter((m) => m.date >= period.from && m.date <= period.to && m.type === 'expense'),
-    [movements, period],
+    () => periodMovementsRaw.filter((m) => m.type === 'expense'),
+    [periodMovementsRaw],
   )
 
   const previousPeriodMovements = useMemo(
-    () =>
-      movements.filter(
-        (m) =>
-          m.date >= previousPeriod.from &&
-          m.date <= previousPeriod.to &&
-          m.type === 'expense',
-      ),
-    [movements, previousPeriod],
+    () => previousPeriodMovementsRaw.filter((m) => m.type === 'expense'),
+    [previousPeriodMovementsRaw],
   )
 
   const summary = useMemo(() => {
@@ -87,12 +85,12 @@ export function CategoriesPage() {
     if (isPersonal) return null
     return buildBudgetProgress({
       budgets,
-      movements,
+      movements: budgetMonthMovements,
       categories,
       currencyConfig,
       yearMonth: budgetMonth,
     })
-  }, [isPersonal, budgets, movements, categories, currencyConfig, budgetMonth])
+  }, [isPersonal, budgets, budgetMonthMovements, categories, currencyConfig, budgetMonth])
 
   const budgetByCategory = useMemo(
     () => new Map(budgetSummary?.categories.map((c) => [c.categoryId, c]) ?? []),

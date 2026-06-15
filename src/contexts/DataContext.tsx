@@ -6,6 +6,7 @@ import { createSupabaseRepositories } from '@/lib/repositories/supabase-reposito
 import type { DataMode, Repositories } from '@/lib/repositories/types'
 import { createQueryClient } from '@/lib/query/client'
 import { queryKeys } from '@/lib/query/keys'
+import { currentMonthRange } from '@/lib/utils'
 
 interface DataContextValue {
   mode: DataMode
@@ -57,6 +58,7 @@ function RemoteDataSync({ coupleId, repos }: { coupleId: string; repos: Reposito
   }, [coupleId, repos, queryClient])
 
   useEffect(() => {
+    const { from, to } = currentMonthRange()
     void Promise.all([
       queryClient.prefetchQuery({
         queryKey: queryKeys.settings(coupleId),
@@ -67,8 +69,8 @@ function RemoteDataSync({ coupleId, repos }: { coupleId: string; repos: Reposito
         queryFn: () => repos.categories.list(),
       }),
       queryClient.prefetchQuery({
-        queryKey: queryKeys.movements(coupleId),
-        queryFn: () => repos.movements.list(),
+        queryKey: queryKeys.movementsInRange(coupleId, from, to),
+        queryFn: () => repos.movements.listInRange({ dateFrom: from, dateTo: to }),
       }),
       queryClient.prefetchQuery({
         queryKey: queryKeys.budgets(coupleId),
