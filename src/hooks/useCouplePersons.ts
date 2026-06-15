@@ -33,7 +33,7 @@ export function useCouplePersons(): CouplePersonsView & {
       settings
         ? { personAName: settings.personAName, personBName: settings.personBName }
         : undefined,
-    [settings],
+    [settings?.personAName, settings?.personBName],
   )
 
   const fallbackKey = settingsFallback
@@ -86,7 +86,26 @@ export function useCouplePersons(): CouplePersonsView & {
   const loading = mode === 'remote' && isInitialRemoteLoad(remoteQuery)
   const view = mode === 'remote' && remoteView ? remoteView : localView
 
-  return { ...view, loading, refresh }
+  return useMemo(
+    () => ({
+      myRole: view.myRole,
+      myName: view.myName,
+      partnerName: view.partnerName,
+      personAName: view.personAName,
+      personBName: view.personBName,
+      loading,
+      refresh,
+    }),
+    [
+      view.myRole,
+      view.myName,
+      view.partnerName,
+      view.personAName,
+      view.personBName,
+      loading,
+      refresh,
+    ],
+  )
 }
 
 export { EMPTY_VIEW as emptyCouplePersonsView }

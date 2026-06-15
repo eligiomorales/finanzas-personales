@@ -7,12 +7,12 @@ export function useRemoteQuery<T>(
   queryFn: () => Promise<T>,
   options?: { enabled?: boolean },
 ) {
-  const { mode } = useDataContext()
+  const { mode, coupleId } = useDataContext()
 
   return useQuery({
     queryKey,
     queryFn,
-    enabled: mode === 'remote' && (options?.enabled ?? true),
+    enabled: mode === 'remote' && !!coupleId && (options?.enabled ?? true),
     staleTime: REMOTE_STALE_TIME_MS,
     placeholderData: (previousData) => previousData,
   })

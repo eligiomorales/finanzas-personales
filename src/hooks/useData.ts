@@ -13,6 +13,26 @@ import { RECURRING_BUDGET_MONTH } from '@/lib/budget'
 import { queryKeys } from '@/lib/query/keys'
 import { isInitialRemoteLoad, useRemoteQuery } from '@/hooks/useRemoteQuery'
 
+function buildFilteredMovementsSearchContextKey(searchContext?: MovementSearchContext): string {
+  if (!searchContext) return ''
+  return JSON.stringify({
+    categories: searchContext.categories.map((c) => [c.id, c.name]),
+    persons: {
+      personAName: searchContext.persons.personAName,
+      personBName: searchContext.persons.personBName,
+      myRole: searchContext.persons.myRole,
+    },
+    amountView: searchContext.amountView
+      ? {
+          displayCurrency: searchContext.amountView.currencyConfig.displayCurrency,
+          exchangeRateUsd: searchContext.amountView.currencyConfig.exchangeRateUsd,
+          expenseViewMode: searchContext.amountView.expenseViewMode,
+          personalRole: searchContext.amountView.personalRole,
+        }
+      : undefined,
+  })
+}
+
 export function useSettings() {
   const { mode, repos, coupleId } = useDataContext()
   const local = useLiveQuery(() => db.settings.get('settings'), [])
@@ -41,26 +61,9 @@ export function useFilteredMovements(
   filters: MovementFilters,
   searchContext?: MovementSearchContext,
 ) {
-  const { mode, repos } = useDataContext()
+  const { mode, repos, coupleId } = useDataContext()
   const filtersKey = serializeMovementFilters(filters)
-  const searchContextKey = searchContext
-    ? JSON.stringify({
-        categories: searchContext.categories.map((c) => [c.id, c.name]),
-        persons: {
-          personAName: searchContext.persons.personAName,
-          personBName: searchContext.persons.personBName,
-          myRole: searchContext.persons.myRole,
-        },
-        amountView: searchContext.amountView
-          ? {
-              displayCurrency: searchContext.amountView.currencyConfig.displayCurrency,
-              exchangeRateUsd: searchContext.amountView.currencyConfig.exchangeRateUsd,
-              expenseViewMode: searchContext.amountView.expenseViewMode,
-              personalRole: searchContext.amountView.personalRole,
-            }
-          : undefined,
-      })
-    : ''
+  const searchContextKey = buildFilteredMovementsSearchContextKey(searchContext)
   const queryKey = `${filtersKey}|${searchContextKey}`
 
   const local = useLiveQuery(
@@ -71,16 +74,22 @@ export function useFilteredMovements(
     [queryKey, repos],
   )
 
-  const movements = useMovements()
+  const movementsQuery = useRemoteQuery(queryKeys.movements(coupleId ?? 'local'), () =>
+    repos.movements.list(),
+  )
+
   const remoteFiltered = useMemo(() => {
-    if (mode !== 'remote' || movements === undefined) return undefined
-    const result = filterAllMovementsInMemory(movements, filters, searchContext)
+    if (mode !== 'remote' || movementsQuery.data === undefined) return undefined
+    const result = filterAllMovementsInMemory(movementsQuery.data, filters, searchContext)
     return { ...result, queryKey }
-  }, [mode, movements, filters, searchContext, queryKey])
+  }, [mode, movementsQuery.data, filters, searchContextKey, queryKey, searchContext])
 
   return {
     query: mode === 'local' ? local : remoteFiltered,
     queryKey,
+    isLoading: mode === 'remote' && isInitialRemoteLoad(movementsQuery),
+    isError: mode === 'remote' && movementsQuery.isError,
+    error: movementsQuery.error,
   }
 }
 
@@ -120,19 +129,22 @@ export function useBudgets() {
 }
 
 export function useDatabaseStats() {
-  const { mode, repos } = useDataContext()
+  const { mode, repos, coupleId } = useDataContext()
   const local = useLiveQuery(() => repos.getStats(), [repos])
-  const movements = useMovements()
+  const movementsQuery = useRemoteQuery(queryKeys.movements(coupleId ?? 'local'), () =>
+    repos.movements.list(),
+  )
 
   const remoteStats = useMemo(() => {
-    if (mode !== 'remote' || movements === undefined) return undefined
+    if (mode !== 'remote' || movementsQuery.data === undefined) return undefined
+    const movements = movementsQuery.data
     return {
       total: movements.length,
       settlements: movements.filter((m) => m.type === 'settlement').length,
       expenses: movements.filter((m) => m.type === 'expense').length,
       incomes: movements.filter((m) => m.type === 'income').length,
     }
-  }, [mode, movements])
+  }, [mode, movementsQuery.data])
 
   return mode === 'local' ? local : remoteStats
 }
