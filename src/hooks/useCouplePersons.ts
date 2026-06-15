@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDataContext } from '@/contexts/DataContext'
 import {
@@ -7,6 +8,8 @@ import {
 } from '@/lib/couple/person-labels'
 import { fetchCouplePersons } from '@/lib/couple/persons'
 import { useSettings } from '@/hooks/useData'
+import { queryKeys } from '@/lib/query/keys'
+import { isInitialRemoteLoad, useRemoteQuery } from '@/hooks/useRemoteQuery'
 
 const EMPTY_VIEW: CouplePersonsView = {
   myRole: null,
@@ -23,8 +26,7 @@ export function useCouplePersons(): CouplePersonsView & {
   const { user, membership } = useAuth()
   const { mode, coupleId } = useDataContext()
   const settings = useSettings()
-  const [remoteView, setRemoteView] = useState<CouplePersonsView | null>(null)
-  const [loading, setLoading] = useState(mode === 'remote')
+  const queryClient = useQueryClient()
 
   const settingsFallback = useMemo(
     () =>
@@ -32,6 +34,16 @@ export function useCouplePersons(): CouplePersonsView & {
         ? { personAName: settings.personAName, personBName: settings.personBName }
         : undefined,
     [settings],
+  )
+
+  const fallbackKey = settingsFallback
+    ? `${settingsFallback.personAName}|${settingsFallback.personBName}`
+    : 'pending'
+
+  const remoteQuery = useRemoteQuery(
+    queryKeys.couplePersons(coupleId ?? 'local', user?.id ?? '', fallbackKey),
+    () => fetchCouplePersons(coupleId!, user?.id ?? null, settingsFallback),
+    { enabled: !!coupleId && !!settingsFallback },
   )
 
   const localView = useMemo(
@@ -48,38 +60,30 @@ export function useCouplePersons(): CouplePersonsView & {
   )
 
   const refresh = useCallback(async () => {
-    if (mode !== 'remote' || !coupleId) {
-      setRemoteView(null)
-      setLoading(false)
-      return
-    }
+    if (mode !== 'remote' || !coupleId) return
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.couplePersons(coupleId, user?.id ?? '', fallbackKey),
+    })
+  }, [mode, coupleId, user?.id, fallbackKey, queryClient])
 
-    setLoading(true)
-    try {
-      const view = await fetchCouplePersons(coupleId, user?.id ?? null, settingsFallback)
-      setRemoteView(view)
-    } catch (error) {
-      console.error('No se pudieron cargar los datos de la pareja:', error)
-      if (settingsFallback) {
-        setRemoteView(
-          buildCouplePersonsView({
-            members: membership
-              ? [{ role: membership.role, userId: user?.id ?? '', displayName: null, email: user?.email ?? '' }]
-              : [],
-            myUserId: user?.id ?? null,
-            fallback: settingsFallback,
-          }),
-        )
-      }
-    } finally {
-      setLoading(false)
-    }
-  }, [mode, coupleId, user?.id, user?.email, membership, settingsFallback])
+  const remoteView = remoteQuery.isError
+    ? buildCouplePersonsView({
+        members: membership
+          ? [
+              {
+                role: membership.role,
+                userId: user?.id ?? '',
+                displayName: null,
+                email: user?.email ?? '',
+              },
+            ]
+          : [],
+        myUserId: user?.id ?? null,
+        fallback: settingsFallback ?? EMPTY_VIEW,
+      })
+    : remoteQuery.data
 
-  useEffect(() => {
-    void refresh()
-  }, [refresh])
-
+  const loading = mode === 'remote' && isInitialRemoteLoad(remoteQuery)
   const view = mode === 'remote' && remoteView ? remoteView : localView
 
   return { ...view, loading, refresh }

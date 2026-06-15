@@ -1,25 +1,24 @@
 import { useState } from 'react'
-import { useMovements } from '@/hooks/useData'
-import { useCouplePersons } from '@/hooks/useCouplePersons'
-import { useAuth } from '@/contexts/AuthContext'
-import { useDataContext } from '@/contexts/DataContext'
-import { hasDefaultDisplayName } from '@/lib/couple/person-labels'
+import { hasDefaultDisplayName, type CouplePersonsView } from '@/lib/couple/person-labels'
+import type { DataMode } from '@/lib/repositories/types'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Form'
 import { ButtonLink, TextLink } from '@/components/ui/TextLink'
 
 const DISMISSED_KEY = 'finanzas-onboarding-dismissed'
 
-export function useOnboarding() {
-  const movements = useMovements()
-  const persons = useCouplePersons()
-  const { configured } = useAuth()
-  const { mode } = useDataContext()
+interface UseOnboardingParams {
+  movementCount: number
+  persons: CouplePersonsView
+  configured: boolean
+  mode: DataMode
+}
+
+export function useOnboarding({ movementCount, persons, configured, mode }: UseOnboardingParams) {
   const [dismissed, setDismissed] = useState(
     () => typeof window !== 'undefined' && localStorage.getItem(DISMISSED_KEY) === 'true',
   )
 
-  const movementCount = movements?.length ?? 0
   const needsNames =
     mode === 'remote' && configured
       ? hasDefaultDisplayName(persons.myName, persons.myRole)

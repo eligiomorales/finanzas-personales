@@ -249,13 +249,11 @@ export function BudgetPage({ embedded = false }: { embedded?: boolean }) {
       {embedded ? (
         <PageHeader
           title="Presupuesto"
-          subtitle={`Límites fijos · gastos compartidos de ${monthLabel}`}
           trailing={monthNavigator}
         />
       ) : (
         <PageHeader
           title="Presupuesto"
-          subtitle={`Límites fijos · gastos compartidos de ${monthLabel}`}
           trailing={monthNavigator}
         />
       )}

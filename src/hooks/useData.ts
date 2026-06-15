@@ -1,82 +1,40 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db/database'
 import { useDataContext, useRepositories } from '@/contexts/DataContext'
 import type { ConfirmImportInput } from '@/lib/repositories/types'
 import type { UpsertCategoryBudgetInput } from '@/lib/repositories/types'
-import type { CurrencyCode, Movement, MovementFilters, MovementFormData } from '@/types'
+import type { CurrencyCode, MovementFilters, MovementFormData } from '@/types'
 import type { MovementSearchContext } from '@/lib/movement-search'
 import { updateMyDisplayName } from '@/lib/couple/persons'
+import { filterAllMovementsInMemory } from '@/lib/repositories/dexie-repositories'
 import { serializeMovementFilters } from '@/lib/movements-query'
 import { RECURRING_BUDGET_MONTH } from '@/lib/budget'
+import { queryKeys } from '@/lib/query/keys'
+import { isInitialRemoteLoad, useRemoteQuery } from '@/hooks/useRemoteQuery'
 
 export function useSettings() {
-  const { mode, repos } = useDataContext()
+  const { mode, repos, coupleId } = useDataContext()
   const local = useLiveQuery(() => db.settings.get('settings'), [])
-  const [remote, setRemote] = useState<Awaited<ReturnType<typeof repos.settings.get>>>(undefined)
+  const remote = useRemoteQuery(queryKeys.settings(coupleId ?? 'local'), () => repos.settings.get())
 
-  useEffect(() => {
-    if (mode !== 'remote') return
-    let cancelled = false
-
-    async function load() {
-      const result = await repos.settings.get()
-      if (!cancelled) setRemote(result)
-    }
-
-    void load()
-    return repos.settings.subscribe(() => {
-      void load()
-    })
-  }, [mode, repos])
-
-  return mode === 'local' ? local : remote
+  return mode === 'local' ? local : remote.data
 }
 
 export function useCategories() {
-  const { mode, repos } = useDataContext()
+  const { mode, repos, coupleId } = useDataContext()
   const local = useLiveQuery(() => db.categories.toArray(), [])
-  const [remote, setRemote] = useState<Awaited<ReturnType<typeof repos.categories.list>>>([])
+  const remote = useRemoteQuery(queryKeys.categories(coupleId ?? 'local'), () => repos.categories.list())
 
-  useEffect(() => {
-    if (mode !== 'remote') return
-    let cancelled = false
-
-    async function load() {
-      const result = await repos.categories.list()
-      if (!cancelled) setRemote(result)
-    }
-
-    void load()
-    return repos.categories.subscribe(() => {
-      void load()
-    })
-  }, [mode, repos])
-
-  return mode === 'local' ? (local ?? []) : remote
+  return mode === 'local' ? (local ?? []) : (remote.data ?? [])
 }
 
 export function useMovements() {
-  const { mode, repos } = useDataContext()
+  const { mode, repos, coupleId } = useDataContext()
   const local = useLiveQuery(() => db.movements.orderBy('date').reverse().toArray(), [])
-  const [remote, setRemote] = useState<Movement[]>([])
+  const remote = useRemoteQuery(queryKeys.movements(coupleId ?? 'local'), () => repos.movements.list())
 
-  useEffect(() => {
-    if (mode !== 'remote') return
-    let cancelled = false
-
-    async function load() {
-      const result = await repos.movements.list()
-      if (!cancelled) setRemote(result)
-    }
-
-    void load()
-    return repos.movements.subscribe(() => {
-      void load()
-    })
-  }, [mode, repos])
-
-  return mode === 'local' ? (local ?? []) : remote
+  return mode === 'local' ? (local ?? undefined) : remote.data
 }
 
 export function useFilteredMovements(
@@ -113,57 +71,29 @@ export function useFilteredMovements(
     [queryKey, repos],
   )
 
-  const [remote, setRemote] = useState<
-    (Awaited<ReturnType<typeof repos.movements.queryFiltered>> & { queryKey: string }) | undefined
-  >(undefined)
-
-  useEffect(() => {
-    if (mode !== 'remote') return
-    let cancelled = false
-    setRemote(undefined)
-
-    async function load() {
-      const result = await repos.movements.queryFiltered(filters, searchContext)
-      if (!cancelled) setRemote({ ...result, queryKey })
-    }
-
-    void load()
-    return repos.movements.subscribe(() => {
-      void load()
-    })
-  }, [mode, repos, queryKey])
+  const movements = useMovements()
+  const remoteFiltered = useMemo(() => {
+    if (mode !== 'remote' || movements === undefined) return undefined
+    const result = filterAllMovementsInMemory(movements, filters, searchContext)
+    return { ...result, queryKey }
+  }, [mode, movements, filters, searchContext, queryKey])
 
   return {
-    query: mode === 'local' ? local : remote,
+    query: mode === 'local' ? local : remoteFiltered,
     queryKey,
   }
 }
 
 export function useImports() {
-  const { mode, repos } = useDataContext()
+  const { mode, repos, coupleId } = useDataContext()
   const local = useLiveQuery(() => db.imports.orderBy('importedAt').reverse().toArray(), [])
-  const [remote, setRemote] = useState<Awaited<ReturnType<typeof repos.imports.list>>>([])
+  const remote = useRemoteQuery(queryKeys.imports(coupleId ?? 'local'), () => repos.imports.list())
 
-  useEffect(() => {
-    if (mode !== 'remote') return
-    let cancelled = false
-
-    async function load() {
-      const result = await repos.imports.list()
-      if (!cancelled) setRemote(result)
-    }
-
-    void load()
-    return repos.imports.subscribe(() => {
-      void load()
-    })
-  }, [mode, repos])
-
-  return mode === 'local' ? (local ?? []) : remote
+  return mode === 'local' ? (local ?? []) : (remote.data ?? [])
 }
 
 export function usePendingImports(importId?: string) {
-  const { mode, repos } = useDataContext()
+  const { mode, repos, coupleId } = useDataContext()
   const local = useLiveQuery(
     () =>
       importId
@@ -171,73 +101,57 @@ export function usePendingImports(importId?: string) {
         : db.pendingImports.toArray(),
     [importId],
   )
-  const [remote, setRemote] = useState<Awaited<ReturnType<typeof repos.imports.listPending>>>([])
+  const remote = useRemoteQuery(queryKeys.pendingImports(coupleId ?? 'local', importId), () =>
+    repos.imports.listPending(importId),
+  )
 
-  useEffect(() => {
-    if (mode !== 'remote') return
-    let cancelled = false
-
-    async function load() {
-      const result = await repos.imports.listPending(importId)
-      if (!cancelled) setRemote(result)
-    }
-
-    void load()
-    return repos.imports.subscribe(() => {
-      void load()
-    })
-  }, [mode, repos, importId])
-
-  return mode === 'local' ? (local ?? []) : remote
+  return mode === 'local' ? (local ?? []) : (remote.data ?? [])
 }
 
 export function useBudgets() {
-  const { mode, repos } = useDataContext()
+  const { mode, repos, coupleId } = useDataContext()
   const local = useLiveQuery(
     () => db.categoryBudgets.where('yearMonth').equals(RECURRING_BUDGET_MONTH).toArray(),
     [],
   )
-  const [remote, setRemote] = useState<Awaited<ReturnType<typeof repos.budgets.listRecurring>>>([])
+  const remote = useRemoteQuery(queryKeys.budgets(coupleId ?? 'local'), () => repos.budgets.listRecurring())
 
-  useEffect(() => {
-    if (mode !== 'remote') return
-    let cancelled = false
-
-    async function load() {
-      const result = await repos.budgets.listRecurring()
-      if (!cancelled) setRemote(result)
-    }
-
-    void load()
-    return repos.budgets.subscribe(() => {
-      void load()
-    })
-  }, [mode, repos])
-
-  return mode === 'local' ? (local ?? []) : remote
+  return mode === 'local' ? (local ?? []) : (remote.data ?? [])
 }
 
 export function useDatabaseStats() {
   const { mode, repos } = useDataContext()
   const local = useLiveQuery(() => repos.getStats(), [repos])
-  const [remote, setRemote] = useState<Awaited<ReturnType<typeof repos.getStats>> | undefined>(undefined)
+  const movements = useMovements()
 
-  useEffect(() => {
-    if (mode !== 'remote') return
-    let cancelled = false
-
-    async function load() {
-      const result = await repos.getStats()
-      if (!cancelled) setRemote(result)
+  const remoteStats = useMemo(() => {
+    if (mode !== 'remote' || movements === undefined) return undefined
+    return {
+      total: movements.length,
+      settlements: movements.filter((m) => m.type === 'settlement').length,
+      expenses: movements.filter((m) => m.type === 'expense').length,
+      incomes: movements.filter((m) => m.type === 'income').length,
     }
+  }, [mode, movements])
 
-    void load()
-    return repos.movements.subscribe(() => {
-      void load()
-    })
-  }, [mode, repos])
+  return mode === 'local' ? local : remoteStats
+}
 
-  return mode === 'local' ? local : remote
+/** True while core remote resources are loading for the first time (no cached data yet). */
+export function useCoreDataLoading(): boolean {
+  const { mode, repos, coupleId } = useDataContext()
+
+  const settings = useRemoteQuery(queryKeys.settings(coupleId ?? 'local'), () => repos.settings.get())
+  const categories = useRemoteQuery(queryKeys.categories(coupleId ?? 'local'), () => repos.categories.list())
+  const movements = useRemoteQuery(queryKeys.movements(coupleId ?? 'local'), () => repos.movements.list())
+
+  if (mode !== 'remote') return false
+
+  return (
+    isInitialRemoteLoad(settings) ||
+    isInitialRemoteLoad(categories) ||
+    isInitialRemoteLoad(movements)
+  )
 }
 
 export function useMovementMutations() {
