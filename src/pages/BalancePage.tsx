@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react'
 import { useMovements, useSettings, useDataMutations } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
-import { calculateCoupleBalance } from '@/lib/balance'
+import {
+  calculateCoupleBalanceForScope,
+} from '@/lib/balance'
 import {
   displayLabelForRole,
   formLabelWithName,
@@ -58,14 +60,21 @@ export function BalancePage() {
   const [settlementDate, setSettlementDate] = useState(todayISO())
   const [saving, setSaving] = useState(false)
 
+  const allMovements = movements ?? []
+
   const scopedMovements = useMemo(
     () => movementsForScope(movements, scope, customPeriod),
     [movements, scope, customPeriod],
   )
 
   const balance = useMemo(
-    () => calculateCoupleBalance(scopedMovements, currencyConfig),
-    [scopedMovements, currencyConfig],
+    () =>
+      calculateCoupleBalanceForScope(
+        scope === 'all' ? allMovements : scopedMovements,
+        currencyConfig,
+        scope === 'all' ? 'all' : 'period',
+      ),
+    [allMovements, scopedMovements, scope, currencyConfig],
   )
 
   const personAName = persons.personAName
@@ -116,8 +125,9 @@ export function BalancePage() {
           'Las liquidaciones reducen la deuda pendiente acumulada.',
         ]
       : [
-          'Incluye solo gastos compartidos y liquidaciones del período seleccionado.',
-          'Para ver la deuda total sin filtro de fecha, usá el alcance Histórico.',
+          'Incluye gastos compartidos y liquidaciones del período seleccionado.',
+          'Pagó y debía asumir reflejan solo gastos compartidos; las liquidaciones ajustan la deuda del período.',
+          'Para ver la deuda acumulada sin filtro de fecha, usá el alcance Histórico.',
         ]
 
   return (
@@ -230,7 +240,10 @@ export function BalancePage() {
             <li>
               · <strong>Diferencia:</strong> pagó menos lo que debía asumir; la deuda neta sale de comparar ambas personas.
             </li>
-            <li>· Las liquidaciones registradas reducen la deuda pendiente en el período.</li>
+            <li>
+              · Las liquidaciones reducen la deuda del alcance seleccionado; en Histórico también
+              ajustan pagó y diferencia.
+            </li>
             <li>· Los montos en USD se convierten con la cotización global de Ajustes.</li>
           </ul>
         </details>
