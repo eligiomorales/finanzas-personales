@@ -1,5 +1,4 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { PageHeader } from '@/components/ui/PageHeader'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
 const tabs = [
@@ -20,7 +19,6 @@ export function AnalisisPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Análisis" />
       <SegmentedControl
         aria-label="Sección de análisis"
         options={[...tabs]}

@@ -122,7 +122,7 @@ export function BalancePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Balance entre personas" />
+      <PageHeader title="Balance" />
 
       <BalanceScopeSelector
         scope={scope}

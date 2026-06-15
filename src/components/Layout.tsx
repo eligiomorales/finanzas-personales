@@ -3,6 +3,7 @@ import { AnimatedRoutes } from '@/components/AnimatedRoutes'
 import { Badge } from '@/components/ui/Card'
 import { useAmountsVisibility, useAmountsVisible } from '@/contexts/AmountsVisibilityContext'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
+import { LayoutHeaderProvider, useLayoutHeaderContext } from '@/contexts/LayoutHeaderContext'
 import { cn } from '@/lib/utils'
 import { focusRing } from '@/components/ui/styles'
 
@@ -126,26 +127,46 @@ function RoutedContent() {
   )
 }
 
-export function Layout() {
+function AppChrome() {
   const location = useLocation()
   const { isPersonal } = useExpenseViewMode()
   const { visible: amountsVisible, toggle: toggleAmountsVisibility } = useAmountsVisibility()
+  const { active: header } = useLayoutHeaderContext()
   const isFormPage = location.pathname.includes('/nuevo') || location.pathname.includes('/editar')
   const hideFab = isFormPage || location.pathname.includes('/analisis/presupuesto')
+  const showPersonalBadge =
+    isPersonal &&
+    !location.pathname.includes('/analisis/presupuesto') &&
+    !location.pathname.startsWith('/balance') &&
+    !location.pathname.startsWith('/importar')
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col bg-surface-50 md:max-w-2xl lg:max-w-4xl">
-      <header className="sticky top-0 z-10 border-b border-stone-200/80 bg-white/85 px-4 py-3 backdrop-blur-md">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="flex items-center gap-2 text-lg font-bold tracking-tight text-stone-900">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-              FP
-            </span>
-            Finanzas Pareja
-            {isPersonal && !location.pathname.includes('/analisis/presupuesto') && (
-              <Badge variant="info">Personal</Badge>
+      <header className="sticky top-0 z-10 bg-surface-50 px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-end gap-2">
+            <img src="/duo-wordmark.svg" alt="duo" className="h-10 w-auto shrink-0" />
+            {header.leading && <div className="mb-2.5">{header.leading}</div>}
+            {(header.title || header.subtitle) && (
+              <div className="mb-[7px] min-w-0">
+                {header.title && (
+                  <div className="flex items-baseline gap-1.5">
+                    <h1 className="truncate text-sm font-medium leading-none text-stone-600">
+                      {header.title}
+                    </h1>
+                    {showPersonalBadge && (
+                      <Badge variant="info">Personal</Badge>
+                    )}
+                  </div>
+                )}
+                {header.subtitle && (
+                  <p className="mt-0.5 truncate text-xs leading-none text-stone-500">
+                    {header.subtitle}
+                  </p>
+                )}
+              </div>
             )}
-          </h1>
+          </div>
           {!isFormPage && (
             <div className="flex shrink-0 items-center gap-1">
               <button
@@ -181,9 +202,14 @@ export function Layout() {
             </div>
           )}
         </div>
+        {header.toolbar && (
+          <div className="mt-2 flex items-center justify-end gap-2 overflow-x-auto pb-0.5">
+            {header.toolbar}
+          </div>
+        )}
       </header>
 
-      <main className="flex-1 overflow-y-auto px-4 py-4 pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))]">
+      <main className="flex-1 overflow-y-auto px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] pt-2">
         <RoutedContent />
       </main>
 
@@ -232,5 +258,13 @@ export function Layout() {
         </NavLink>
       )}
     </div>
+  )
+}
+
+export function Layout() {
+  return (
+    <LayoutHeaderProvider>
+      <AppChrome />
+    </LayoutHeaderProvider>
   )
 }

@@ -397,7 +397,7 @@ export function ImportPage() {
 
   return (
     <div className="mx-auto min-w-0 max-w-2xl space-y-6">
-      <PageHeader title="Importar resumen" />
+      <PageHeader title="Importar" />
 
       <Stepper steps={[...IMPORT_STEPS]} currentStepId={step} completedStepIds={completedStepIds} />
 

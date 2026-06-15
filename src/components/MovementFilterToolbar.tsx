@@ -213,26 +213,14 @@ export function MovementFilterToolbar({
 
   return (
     <div className="space-y-3" id="movements-filter-toolbar">
-      <PageHeader
-        title={periodTitle}
-        trailing={
-          <PeriodFilter
-            period={period}
-            onChange={setPeriod}
-            idPrefix="movements-period"
-            variant="dates"
-            datesLabelOnly
-          />
-        }
-      >
-        <div className="min-w-0 overflow-x-auto pb-0.5">
-          <PeriodFilter
-            period={period}
-            onChange={setPeriod}
-            idPrefix="movements-period"
-            variant="presets"
-          />
-        </div>
+      <PageHeader title={periodTitle}>
+        <PeriodFilter
+          period={period}
+          onChange={setPeriod}
+          idPrefix="movements-period"
+          variant="full"
+          datesLabelOnly
+        />
       </PageHeader>
 
       <div className="space-y-2 rounded-xl border border-stone-200/80 bg-white p-2 shadow-sm shadow-stone-200/40">

@@ -79,10 +79,8 @@ export function PeriodFilter({
   }
 
   return (
-    <div className="flex items-center gap-2" role="group" aria-label="Período">
-      <div className="min-w-0 flex-1 overflow-x-auto pb-0.5">
-        <PeriodPresets period={period} compact className="flex-nowrap" onChange={onChange} />
-      </div>
+    <div className="flex flex-nowrap items-center gap-2" role="group" aria-label="Período">
+      <PeriodPresets period={period} compact className="flex-nowrap" onChange={onChange} />
       <PeriodDatesFacet
         period={period}
         onChange={onChange}
