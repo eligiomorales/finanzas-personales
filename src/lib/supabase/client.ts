@@ -15,7 +15,13 @@ export function getSupabaseClient(): SupabaseClient<Database> {
     throw new Error('Supabase no está configurado. Agregá VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.')
   }
   if (!client) {
-    client = createClient<Database>(url, anonKey)
+    client = createClient<Database>(url, anonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    })
   }
   return client
 }

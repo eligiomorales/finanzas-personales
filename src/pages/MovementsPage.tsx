@@ -52,13 +52,17 @@ export function MovementsPage() {
     [categories, persons, currencyConfig, expenseViewMode, myRole],
   )
 
-  const { query, queryKey } = useFilteredMovements(effectiveFilters, searchContext)
+  const { query, queryKey, isLoading: isRemoteLoading, isError, error } = useFilteredMovements(
+    effectiveFilters,
+    searchContext,
+  )
   const queryMatchesCurrentView = query?.queryKey === queryKey
   const allMovements = queryMatchesCurrentView ? (query?.items ?? []) : []
   const total = queryMatchesCurrentView ? (query?.total ?? 0) : 0
   const movements = allMovements.slice(0, visibleCount)
   const hasMore = visibleCount < total
-  const isLoading = query === undefined || !queryMatchesCurrentView
+  const isLoading =
+    isRemoteLoading || (query === undefined && !isError && !queryMatchesCurrentView)
 
   const activeFilterChips = useMemo(
     () =>
@@ -135,10 +139,19 @@ export function MovementsPage() {
       </p>
       <LiveRegion>{isLoading ? 'Cargando movimientos' : ''}</LiveRegion>
 
-      {!isLoading && total === 0 ? (
+      {!isLoading && !isError && total === 0 ? (
         <EmptyState
           title="No hay movimientos"
           description="Ajusta los filtros o registra un nuevo movimiento"
+        />
+      ) : isError ? (
+        <EmptyState
+          title="No se pudieron cargar los movimientos"
+          description={
+            error instanceof Error
+              ? error.message
+              : 'Revisá tu conexión e intentá de nuevo.'
+          }
         />
       ) : isLoading ? (
         <SkeletonList count={5} />
