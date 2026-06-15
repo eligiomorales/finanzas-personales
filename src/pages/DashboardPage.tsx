@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
-import { useMovements, useCategories, useSettings, useBudgets } from '@/hooks/useData'
+import { useMovements, useCategories, useSettings, useBudgets, useCoreDataLoading } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
+import { useAuth } from '@/contexts/AuthContext'
+import { useDataContext } from '@/contexts/DataContext'
 import {
   OnboardingBanner,
   useOnboarding,
@@ -25,14 +27,23 @@ import { DashboardSummaryBento } from '@/components/DashboardSummaryBento'
 import { DashboardCompensationRow } from '@/components/DashboardCompensationRow'
 import { DashboardCategoryBreakdown } from '@/components/DashboardCategoryBreakdown'
 import { DashboardMovementList } from '@/components/DashboardMovementList'
+import { SkeletonDashboard } from '@/components/skeletons/SkeletonDashboard'
 
 export function DashboardPage() {
+  const { configured } = useAuth()
+  const { mode } = useDataContext()
+  const isLoading = useCoreDataLoading()
   const movements = useMovements() ?? []
   const categories = useCategories() ?? []
   const settings = useSettings()
   const persons = useCouplePersons()
   const { isPersonal, mode: expenseViewMode } = useExpenseViewMode()
-  const onboarding = useOnboarding()
+  const onboarding = useOnboarding({
+    movementCount: movements.length,
+    persons,
+    configured,
+    mode,
+  })
   const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
   const myRole = persons.myRole ?? 'personA'
   const { period, setPeriod } = usePeriod()
@@ -129,7 +140,9 @@ export function DashboardPage() {
         />
       </PageHeader>
 
-      {hasMovements ? (
+      {isLoading ? (
+        <SkeletonDashboard />
+      ) : hasMovements ? (
         <>
           <DashboardSummaryBento
             netBalance={summary.netBalance}
