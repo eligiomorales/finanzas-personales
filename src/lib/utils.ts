@@ -53,6 +53,21 @@ export function currentMonthRange(referenceDate = new Date()): { from: string; t
   }
 }
 
+/** Inclusive rolling window ending on referenceDate (e.g. 90 → last 90 calendar days). */
+export function rollingDaysRange(days: number, referenceDate = new Date()): { from: string; to: string } {
+  const safeDays = Math.max(1, days)
+  return {
+    from: format(subDays(referenceDate, safeDays - 1), 'yyyy-MM-dd'),
+    to: format(referenceDate, 'yyyy-MM-dd'),
+  }
+}
+
+export function dateSpanFromIsoDates(dates: string[]): { from: string; to: string } | undefined {
+  if (dates.length === 0) return undefined
+  const sorted = [...dates].sort()
+  return { from: sorted[0]!, to: sorted[sorted.length - 1]! }
+}
+
 export function previousMonthRange(referenceDate = new Date()): { from: string; to: string } {
   const previous = subMonths(referenceDate, 1)
   return {

@@ -17,6 +17,7 @@ import type {
   ConfirmImportInput,
   DatabaseStats,
   ImportRepository,
+  MovementDateRange,
   MovementRepository,
   Repositories,
   SettingsRepository,
@@ -34,6 +35,14 @@ function noopSubscribe(_callback: () => void): () => void {
 class DexieMovementRepository implements MovementRepository {
   async list(): Promise<Movement[]> {
     return db.movements.orderBy('date').reverse().toArray()
+  }
+
+  async listInRange({ dateFrom, dateTo }: MovementDateRange): Promise<Movement[]> {
+    return db.movements
+      .where('date')
+      .between(dateFrom, dateTo, true, true)
+      .reverse()
+      .toArray()
   }
 
   async getById(id: string): Promise<Movement | undefined> {

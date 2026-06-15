@@ -41,8 +41,14 @@ export interface MovementsFilteredResult {
   total: number
 }
 
+export interface MovementDateRange {
+  dateFrom: string
+  dateTo: string
+}
+
 export interface MovementRepository {
   list(): Promise<Movement[]>
+  listInRange(range: MovementDateRange): Promise<Movement[]>
   getById(id: string): Promise<Movement | undefined>
   queryFiltered(
     filters: MovementFilters,

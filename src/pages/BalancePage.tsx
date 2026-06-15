@@ -1,24 +1,17 @@
 import { useState, useMemo } from 'react'
-import { useMovements, useSettings, useDataMutations } from '@/hooks/useData'
+import { useMovementsInRange, useMovementsQuery, useSettings, useDataMutations } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
-import {
-  calculateCoupleBalanceForScope,
-} from '@/lib/balance'
-import {
-  displayLabelForRole,
-  formLabelWithName,
-} from '@/lib/couple/person-labels'
+import { calculateCoupleBalanceForScope } from '@/lib/balance'
+import { displayLabelForRole, formLabelWithName } from '@/lib/couple/person-labels'
 import { formatInViewCurrency, getCurrencyConfig, SUPPORTED_CURRENCIES } from '@/lib/currency'
-import { currentMonthRange, filterMovements, todayISO } from '@/lib/utils'
-import type { CurrencyCode, Movement } from '@/types'
+import { currentMonthRange, todayISO } from '@/lib/utils'
+import type { CurrencyCode } from '@/types'
 import { Card } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Dialog } from '@/components/ui/Dialog'
-import {
-  BalanceScopeSelector,
-  type BalanceScope,
-} from '@/components/BalanceScopeSelector'
+import { BalanceScopeSelector, type BalanceScope } from '@/components/BalanceScopeSelector'
 import type { PeriodRange } from '@/components/PeriodFilter'
+import { SkeletonCard } from '@/components/skeletons/SkeletonCard'
 import {
   Button,
   Input,
@@ -29,27 +22,12 @@ import {
   describedBy,
 } from '@/components/ui/Form'
 
-function movementsForScope(
-  movements: Movement[] | undefined,
-  scope: BalanceScope,
-  customPeriod: PeriodRange,
-) {
-  const all = movements ?? []
-  if (scope === 'all') return all
-  if (scope === 'current_month') {
-    const { from, to } = currentMonthRange()
-    return filterMovements(all, { dateFrom: from, dateTo: to })
-  }
-  return filterMovements(all, { dateFrom: customPeriod.from, dateTo: customPeriod.to })
-}
-
 export function BalancePage() {
-  const movements = useMovements()
   const settings = useSettings()
   const persons = useCouplePersons()
   const { createSettlement } = useDataMutations()
   const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
-  const [scope, setScope] = useState<BalanceScope>('all')
+  const [scope, setScope] = useState<BalanceScope>('current_month')
   const [customPeriod, setCustomPeriod] = useState<PeriodRange>(() => currentMonthRange())
   const [showSettlement, setShowSettlement] = useState(false)
   const [settlementAmount, setSettlementAmount] = useState(0)
@@ -60,21 +38,26 @@ export function BalancePage() {
   const [settlementDate, setSettlementDate] = useState(todayISO())
   const [saving, setSaving] = useState(false)
 
-  const allMovements = movements ?? []
+  const periodRange = useMemo((): PeriodRange | undefined => {
+    if (scope === 'all') return undefined
+    if (scope === 'current_month') return currentMonthRange()
+    return customPeriod
+  }, [scope, customPeriod])
 
-  const scopedMovements = useMemo(
-    () => movementsForScope(movements, scope, customPeriod),
-    [movements, scope, customPeriod],
-  )
+  const { movements: periodMovements, isLoading: periodLoading } = useMovementsInRange(periodRange)
+  const { movements: allMovements, isLoading: allLoading } = useMovementsQuery({ enabled: scope === 'all' })
+
+  const balanceMovements = scope === 'all' ? allMovements : periodMovements
+  const isLoading = scope === 'all' ? allLoading : periodLoading
 
   const balance = useMemo(
     () =>
       calculateCoupleBalanceForScope(
-        scope === 'all' ? allMovements : scopedMovements,
+        balanceMovements,
         currencyConfig,
         scope === 'all' ? 'all' : 'period',
       ),
-    [allMovements, scopedMovements, scope, currencyConfig],
+    [balanceMovements, scope, currencyConfig],
   )
 
   const personAName = persons.personAName
@@ -141,78 +124,91 @@ export function BalancePage() {
         onCustomPeriodChange={setCustomPeriod}
       />
 
-      {balance.owedBy !== 'balanced' && (
-        <Card
-          className={
-            viewerOwes ? 'border-red-200 bg-red-50' : 'border-emerald-200 bg-emerald-50'
-          }
-        >
-          <p
-            className={`text-center text-lg font-semibold ${
-              viewerOwes ? 'text-red-700' : 'text-emerald-700'
-            }`}
-          >
-            {displayLabelForRole(balance.owedBy, persons, { preferYo: true })} debe{' '}
-            {formatInViewCurrency(balance.owedAmount, currencyConfig)} a{' '}
-            {displayLabelForRole(
-              balance.owedBy === 'personA' ? 'personB' : 'personA',
-              persons,
-              { preferYo: true },
-            )}
-          </p>
-          <div className="mt-3 flex justify-center">
-            <Button onClick={openSettlementForm}>Registrar liquidación</Button>
-          </div>
-        </Card>
-      )}
-
-      {balance.owedBy === 'balanced' && (
-        <Card className="border-emerald-200 bg-emerald-50">
-          <p className="text-center font-semibold text-emerald-700">Están saldados</p>
-        </Card>
-      )}
-
-      <Card>
-        <h3 className="mb-4 font-semibold">Detalle por persona</h3>
-        <div className="space-y-3">
-          {(['personA', 'personB'] as const).map((role) => {
-            const data = role === 'personA' ? balance.personA : balance.personB
-            const diff = data.difference
-            return (
-              <div key={role} className="rounded-lg bg-surface-50 p-3">
-                <p className="mb-2 font-medium text-stone-800">
-                  {displayLabelForRole(role, persons, { preferYo: true })}
-                </p>
-                <div className="space-y-1 text-sm">
-                  <div className="flex items-baseline justify-between gap-4">
-                    <span className="shrink-0 text-stone-500">Pagó</span>
-                    <span className="truncate text-right font-semibold tabular-nums">
-                      {formatInViewCurrency(data.paid, currencyConfig)}
-                    </span>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-4">
-                    <span className="shrink-0 text-stone-500">Debía asumir</span>
-                    <span className="truncate text-right font-semibold tabular-nums">
-                      {formatInViewCurrency(data.assumed, currencyConfig)}
-                    </span>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-4 border-t border-stone-200 pt-1">
-                    <span className="shrink-0 text-stone-500">Diferencia</span>
-                    <span
-                      className={`truncate text-right font-semibold tabular-nums ${
-                        diff > 0 ? 'text-emerald-700' : diff < 0 ? 'text-red-700' : 'text-stone-600'
-                      }`}
-                    >
-                      {diff >= 0 ? '+' : ''}
-                      {formatInViewCurrency(diff, currencyConfig)}
-                    </span>
-                  </div>
-                </div>
+      {isLoading ? (
+        <>
+          <SkeletonCard />
+          <SkeletonCard />
+        </>
+      ) : (
+        <>
+          {balance.owedBy !== 'balanced' && (
+            <Card
+              className={
+                viewerOwes ? 'border-red-200 bg-red-50' : 'border-emerald-200 bg-emerald-50'
+              }
+            >
+              <p
+                className={`text-center text-lg font-semibold ${
+                  viewerOwes ? 'text-red-700' : 'text-emerald-700'
+                }`}
+              >
+                {displayLabelForRole(balance.owedBy, persons, { preferYo: true })} debe{' '}
+                {formatInViewCurrency(balance.owedAmount, currencyConfig)} a{' '}
+                {displayLabelForRole(
+                  balance.owedBy === 'personA' ? 'personB' : 'personA',
+                  persons,
+                  { preferYo: true },
+                )}
+              </p>
+              <div className="mt-3 flex justify-center">
+                <Button onClick={openSettlementForm}>Registrar liquidación</Button>
               </div>
-            )
-          })}
-        </div>
-      </Card>
+            </Card>
+          )}
+
+          {balance.owedBy === 'balanced' && (
+            <Card className="border-emerald-200 bg-emerald-50">
+              <p className="text-center font-semibold text-emerald-700">Están saldados</p>
+            </Card>
+          )}
+
+          <Card>
+            <h3 className="mb-4 font-semibold">Detalle por persona</h3>
+            <div className="space-y-3">
+              {(['personA', 'personB'] as const).map((role) => {
+                const data = role === 'personA' ? balance.personA : balance.personB
+                const diff = data.difference
+                return (
+                  <div key={role} className="rounded-lg bg-surface-50 p-3">
+                    <p className="mb-2 font-medium text-stone-800">
+                      {displayLabelForRole(role, persons, { preferYo: true })}
+                    </p>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex items-baseline justify-between gap-4">
+                        <span className="shrink-0 text-stone-500">Pagó</span>
+                        <span className="truncate text-right font-semibold tabular-nums">
+                          {formatInViewCurrency(data.paid, currencyConfig)}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-4">
+                        <span className="shrink-0 text-stone-500">Debía asumir</span>
+                        <span className="truncate text-right font-semibold tabular-nums">
+                          {formatInViewCurrency(data.assumed, currencyConfig)}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-4 border-t border-stone-200 pt-1">
+                        <span className="shrink-0 text-stone-500">Diferencia</span>
+                        <span
+                          className={`truncate text-right font-semibold tabular-nums ${
+                            diff > 0
+                              ? 'text-emerald-700'
+                              : diff < 0
+                                ? 'text-red-700'
+                                : 'text-stone-600'
+                          }`}
+                        >
+                          {diff >= 0 ? '+' : ''}
+                          {formatInViewCurrency(diff, currencyConfig)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
+        </>
+      )}
 
       <Card className="!p-0 overflow-hidden">
         <details className="group">
@@ -235,10 +231,12 @@ export function BalancePage() {
               · <strong>Pagó:</strong> suma de gastos compartidos que cada uno abonó directamente.
             </li>
             <li>
-              · <strong>Debía asumir:</strong> parte que le correspondía según el reparto acordado en cada gasto.
+              · <strong>Debía asumir:</strong> parte que le correspondía según el reparto acordado en
+              cada gasto.
             </li>
             <li>
-              · <strong>Diferencia:</strong> pagó menos lo que debía asumir; la deuda neta sale de comparar ambas personas.
+              · <strong>Diferencia:</strong> pagó menos lo que debía asumir; la deuda neta sale de
+              comparar ambas personas.
             </li>
             <li>
               · Las liquidaciones reducen la deuda del alcance seleccionado; en Histórico también

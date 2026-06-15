@@ -45,6 +45,7 @@ describe('exportDatabaseFromRepositories', () => {
     const repos: Repositories = {
       movements: {
         list: async () => [movement],
+        listInRange: async () => [movement],
         getById: async () => movement,
         queryFiltered: async () => ({ items: [movement], total: 1 }),
         queryUpToPage: async () => ({ items: [movement], total: 1, page: 1, pageSize: 50, hasMore: false }),
