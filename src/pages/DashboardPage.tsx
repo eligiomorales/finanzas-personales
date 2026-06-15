@@ -102,8 +102,8 @@ export function DashboardPage() {
   }, [isPersonal, budgets, movements, categories, currencyConfig, budgetMonth])
 
   const coupleBalance = useMemo(
-    () => calculateCoupleBalance(periodMovements, currencyConfig),
-    [periodMovements, currencyConfig],
+    () => calculateCoupleBalance(movements, currencyConfig),
+    [movements, currencyConfig],
   )
 
   const personAName = persons.personAName
