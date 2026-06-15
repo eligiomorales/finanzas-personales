@@ -42,11 +42,8 @@ export function LoginPage() {
     <PageShell>
       <Card className="w-full max-w-md space-y-6 p-6">
         <div>
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white">
-            FP
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-stone-900">Finanzas Pareja</h1>
-          <p className="mt-1 text-sm text-stone-600">
+          <img src="/duo-wordmark.svg" alt="duo" className="mb-3 h-9 w-auto" />
+          <p className="text-sm text-stone-600">
             {mode === 'login' ? 'Iniciá sesión para sincronizar datos' : 'Creá tu cuenta para empezar'}
           </p>
         </div>

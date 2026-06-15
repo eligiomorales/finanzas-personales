@@ -247,12 +247,11 @@ export function BudgetPage({ embedded = false }: { embedded?: boolean }) {
   return (
     <div className={cn('min-w-0 space-y-6', !embedded && 'mx-auto max-w-2xl')}>
       {embedded ? (
-        <div className="flex items-center justify-between gap-3 border-b border-stone-200/80 pb-3">
-          <p className="min-w-0 text-xs text-stone-500">
-            Límites fijos · gastos compartidos de {monthLabel}
-          </p>
-          {monthNavigator}
-        </div>
+        <PageHeader
+          title="Presupuesto"
+          subtitle={`Límites fijos · gastos compartidos de ${monthLabel}`}
+          trailing={monthNavigator}
+        />
       ) : (
         <PageHeader
           title="Presupuesto"

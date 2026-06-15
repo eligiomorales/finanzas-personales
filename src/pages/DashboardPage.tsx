@@ -119,23 +119,13 @@ export function DashboardPage() {
         />
       )}
 
-      <PageHeader
-        title={periodTitle}
-        trailing={
-          <PeriodFilter
-            period={period}
-            onChange={setPeriod}
-            idPrefix="dashboard-period"
-            variant="dates"
-            datesLabelOnly
-          />
-        }
-      >
+      <PageHeader title={periodTitle}>
         <PeriodFilter
           period={period}
           onChange={setPeriod}
           idPrefix="dashboard-period"
-          variant="presets"
+          variant="full"
+          datesLabelOnly
         />
       </PageHeader>
 

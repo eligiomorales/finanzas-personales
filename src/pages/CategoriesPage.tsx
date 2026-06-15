@@ -105,23 +105,13 @@ export function CategoriesPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        title={periodTitle}
-        trailing={
-          <PeriodFilter
-            period={period}
-            onChange={setPeriod}
-            idPrefix="categories-period"
-            variant="dates"
-            datesLabelOnly
-          />
-        }
-      >
+      <PageHeader title={periodTitle}>
         <PeriodFilter
           period={period}
           onChange={setPeriod}
           idPrefix="categories-period"
-          variant="presets"
+          variant="full"
+          datesLabelOnly
         />
       </PageHeader>
 

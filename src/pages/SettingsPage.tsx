@@ -668,7 +668,7 @@ export function SettingsPage() {
       </CollapsiblePanel>
 
       <p className="pb-2 text-center text-xs text-stone-400">
-        Finanzas Pareja v0.2 — {syncSubtitle}
+        duo v0.2 — {syncSubtitle}
       </p>
     </div>
   )
