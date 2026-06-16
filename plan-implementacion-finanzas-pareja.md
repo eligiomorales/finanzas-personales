@@ -152,5 +152,5 @@ flowchart TD
 | Fase 4.1 — Identidad por cuenta (perfiles, Yo/Mi pareja, migración 005) | Completado (local + prod) |
 | Presupuestos, metas, offline-first | **Próxima sesión de código** |
 
-Detalle técnico, checklist y prompt siguiente sesión: `siguiente-sesion-implementacion.md`. Deploy y URL: `README.md`.
+Estado vivo y prompt siguiente sesión: `NEXT.md` · historial: `docs/history/CHANGELOG.md`. Deploy y URL: `README.md`.
 

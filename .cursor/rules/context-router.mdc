@@ -1,0 +1,27 @@
+---
+description: Mapa de contexto del repo. Qué documento leer según la tarea antes de actuar.
+alwaysApply: true
+---
+
+# Context router
+
+Antes de implementar, leé el documento correcto según la tarea. Detalle en `AGENTS.md`.
+
+| Necesito… | Leer |
+|-----------|------|
+| Estado actual / qué sigue | `NEXT.md` |
+| Cómo trabajamos (flujo) | `PLAYBOOK.md` |
+| Por qué se decidió algo | `docs/decisions/` |
+| Producto / setup | `README.md` |
+| Diseño y motion | `docs/DESIGN.md` |
+| Deploy / migraciones | `docs/deploy.md` |
+| Deuda técnica | `backlog/` |
+| Mercado / competencia | `docs/research/` |
+| Historial de fases | `docs/history/CHANGELOG.md` |
+
+Reglas:
+
+1. Una sesión = un objetivo. Completar `templates/feature-brief.md` antes de codear.
+2. Validar con `npm run ci` antes de proponer merge.
+3. Al cerrar: actualizar `NEXT.md`; si una fase terminó, mover su detalle a `docs/history/CHANGELOG.md`.
+4. Decisión con tradeoff real → nuevo ADR en `docs/decisions/` (append-only).

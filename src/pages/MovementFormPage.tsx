@@ -1,3 +1,6 @@
+/* Hallmark · component: movement-form-card · genre: modern-minimal · macrostructure: Workbench
+ * design-system: DESIGN.md · designed-as-app · enrichment: none
+ * pre-emit critique: P5 H5 E5 S5 R5 V4 */
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -12,10 +15,8 @@ import {
 import { SUPPORTED_CURRENCIES } from '@/lib/currency'
 import {
   buildNewMovementDefaults,
-  getDefaultCategoryId,
   getFrequentCategoryIds,
   payerFieldLabel,
-  repartoSummary,
   splitDistributionLabel,
 } from '@/lib/movement-form-defaults'
 import { buildImportCategoryButtons } from '@/lib/import-display'
@@ -24,7 +25,6 @@ import { formatCurrency, formatShortDate, todayISO } from '@/lib/utils'
 import {
   Button,
   Input,
-  Select,
   Label,
   FormGroup,
   FieldError,
@@ -32,9 +32,9 @@ import {
   describedBy,
 } from '@/components/ui/Form'
 import { CurrencyAmountInput } from '@/components/CurrencyAmountInput'
-import { ChoiceChip } from '@/components/ui/ChoiceChip'
-import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel'
+import { ChoiceChip, ChoiceChipGroup } from '@/components/ui/ChoiceChip'
 import { Card } from '@/components/ui/Card'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { movementLayoutId, MovementSummaryBlock } from '@/components/ui/MovementRow'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { SkeletonCard } from '@/components/skeletons/SkeletonCard'
@@ -47,6 +47,11 @@ const movementTypeLabels: Record<MovementType, string> = {
   income: 'Ingreso',
   settlement: 'Liquidación',
 }
+
+const MOVEMENT_TYPE_OPTIONS = (['expense', 'income', 'settlement'] as const).map((type) => ({
+  value: type,
+  label: movementTypeLabels[type],
+}))
 
 export function MovementFormPage() {
   const { id } = useParams()
@@ -66,7 +71,6 @@ export function MovementFormPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formSummary, setFormSummary] = useState('')
   const [saving, setSaving] = useState(false)
-  const [repartoOpen, setRepartoOpen] = useState(false)
   const [showAllCategories, setShowAllCategories] = useState(false)
   const initializedNewForm = useRef(false)
   const hydratedEditId = useRef<string | null>(null)
@@ -137,7 +141,6 @@ export function MovementFormPage() {
     if (!editMovement || hydratedEditId.current === id) return
 
     hydratedEditId.current = id
-    setRepartoOpen(true)
     const m = editMovement
     const paidBy = m.paidBy === 'both' ? 'personA' : m.paidBy
     const incomeShares = personalSharesFromPayer(paidBy)
@@ -167,15 +170,6 @@ export function MovementFormPage() {
     )
   }, [id, settings, membership, hintMovements])
 
-  useEffect(() => {
-    if (id) return
-    setForm((f) => {
-      if (f.categoryId) return f
-      const categoryId = getDefaultCategoryId(hintMovements, f.type)
-      return categoryId ? { ...f, categoryId } : f
-    })
-  }, [id, hintMovements])
-
   const filteredCategories = categories.filter((c) =>
     form.type === 'settlement' ? true : c.type === (form.type === 'income' ? 'income' : 'expense'),
   )
@@ -203,11 +197,6 @@ export function MovementFormPage() {
     const extra = filteredCategories.filter((c) => !seen.has(c.id))
     return [...primaryCategories, ...extra]
   }, [filteredCategories, primaryCategories, showAllCategories])
-
-  const topCategoryName = useMemo(() => {
-    const topId = getDefaultCategoryId(hintMovements, form.type)
-    return filteredCategories.find((c) => c.id === topId)?.name
-  }, [hintMovements, form.type, filteredCategories])
 
   function validate(): boolean {
     const errs: Record<string, string> = {}
@@ -275,16 +264,12 @@ export function MovementFormPage() {
     setShowAllCategories(false)
     setForm((f) => {
       const paidBy = f.paidBy === 'both' ? 'personA' : f.paidBy
-      const categoryId =
-        getDefaultCategoryId(hintMovements, type) ??
-        categories.find((c) => c.type === (type === 'income' ? 'income' : 'expense'))?.id ??
-        null
 
       if (type === 'income') {
         return {
           ...f,
           type,
-          categoryId,
+          categoryId: null,
           paidBy,
           isShared: false,
           ...personalSharesFromPayer(paidBy),
@@ -294,7 +279,7 @@ export function MovementFormPage() {
       return {
         ...f,
         type,
-        categoryId,
+        categoryId: null,
         paidBy,
         isShared: type === 'settlement' ? true : f.isShared,
       }
@@ -336,14 +321,20 @@ export function MovementFormPage() {
   }
 
   const previewText = repartoPreviewText()
-  const summaryText = repartoSummary(form, formLabel, splitPreset, SPLIT_PRESETS)
   const dateLabel = form.date === todayISO() ? 'Hoy' : form.date
 
+  const payerOptions = useMemo(
+    () => [
+      { value: 'personA' as const, label: personAName },
+      { value: 'personB' as const, label: personBName },
+    ],
+    [personAName, personBName],
+  )
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <PageHeader
         title={isEditing ? 'Editar' : selectedTypeLabel}
-        className="pb-3"
         leading={
           <button
             type="button"
@@ -354,27 +345,13 @@ export function MovementFormPage() {
             ←
           </button>
         }
-        trailing={
-          <div>
-            <span id="movement-type-label" className="sr-only">
-              Tipo de movimiento
-            </span>
-            <div className="flex gap-1.5" role="radiogroup" aria-labelledby="movement-type-label">
-              {(['expense', 'income', 'settlement'] as MovementType[]).map((t) => (
-                <ChoiceChip
-                  key={t}
-                  role="radio"
-                  selected={form.type === t}
-                  size="sm"
-                  shape="pill"
-                  onClick={() => handleTypeChange(t)}
-                >
-                  {movementTypeLabels[t]}
-                </ChoiceChip>
-              ))}
-            </div>
-          </div>
-        }
+      />
+
+      <SegmentedControl
+        aria-label="Tipo de movimiento"
+        options={MOVEMENT_TYPE_OPTIONS}
+        value={form.type}
+        onChange={(type) => handleTypeChange(type as MovementType)}
       />
 
       {loadingMovement ? (
@@ -387,243 +364,190 @@ export function MovementFormPage() {
         </Card>
       )}
 
-      <Card compact>
-        <form onSubmit={handleSubmit} noValidate aria-describedby={formSummary ? 'movement-form-summary' : undefined}>
+      <div>
+        <CurrencyAmountInput
+          id="amount"
+          currency={form.currency}
+          value={form.amount}
+          size="hero"
+          variant="bare"
+          invalid={Boolean(errors.amount)}
+          autoFocus={!isEditing}
+          aria-describedby={describedBy(errors.amount && 'amount-error')}
+          onChange={(amount) => setForm({ ...form, amount })}
+          trailing={
+            <SegmentedControl
+              options={SUPPORTED_CURRENCIES.map((c) => ({ value: c, label: c }))}
+              value={form.currency}
+              onChange={handleCurrencyChange}
+              aria-label="Moneda"
+              size="sm"
+              fullWidth={false}
+              className="shrink-0"
+            />
+          }
+        />
+        {errors.amount && <FieldError id="amount-error">{errors.amount}</FieldError>}
+      </div>
+
+      <Card compact className="min-w-0 overflow-x-clip">
+        <form onSubmit={handleSubmit} noValidate className="space-y-5" aria-describedby={formSummary ? 'movement-form-summary' : undefined}>
           <LiveRegion politeness="assertive">{formSummary}</LiveRegion>
           {formSummary && <FieldError id="movement-form-summary">{formSummary}</FieldError>}
 
-          <FormGroup className="mb-3">
-            <Label htmlFor="amount">Monto</Label>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="col-span-2">
-                <CurrencyAmountInput
-                  id="amount"
-                  currency={form.currency}
-                  value={form.amount}
-                  invalid={Boolean(errors.amount)}
-                  autoFocus={!isEditing}
-                  aria-describedby={describedBy(errors.amount && 'amount-error')}
-                  onChange={(amount) => setForm({ ...form, amount })}
-                />
-              </div>
-              <Select
-                id="currency"
-                value={form.currency}
-                onChange={(e) => handleCurrencyChange(e.target.value as CurrencyCode)}
-                aria-label="Moneda"
-                className="py-3"
-              >
-                {SUPPORTED_CURRENCIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            {errors.amount && <FieldError id="amount-error">{errors.amount}</FieldError>}
-          </FormGroup>
+          <FormGroup className="!mb-0">
+              <Label htmlFor="description">Concepto</Label>
+              <Input
+                id="description"
+                value={form.description}
+                invalid={Boolean(errors.description)}
+                aria-describedby={describedBy(errors.description && 'description-error')}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder={form.type === 'income' ? 'Ej: Sueldo de junio...' : 'Ej: Supermercado, cena...'}
+              />
+              {errors.description && <FieldError id="description-error">{errors.description}</FieldError>}
+            </FormGroup>
 
-          <FormGroup className="mb-3">
-            <Label htmlFor="description">Concepto</Label>
-            <Input
-              id="description"
-              value={form.description}
-              invalid={Boolean(errors.description)}
-              aria-describedby={describedBy(errors.description && 'description-error')}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder={form.type === 'income' ? 'Ej: Sueldo de junio...' : 'Ej: Supermercado, cena...'}
-            />
-            {errors.description && <FieldError id="description-error">{errors.description}</FieldError>}
-          </FormGroup>
-
-          {form.type !== 'settlement' && (
-            <FormGroup className="mb-3">
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <span id="category-label" className="block text-sm font-medium text-stone-700">
-                  Categoría
-                </span>
-                {topCategoryName && form.date === todayISO() && (
-                  <span className="text-xs text-stone-500">Más usada: {topCategoryName}</span>
-                )}
-              </div>
-              {form.type === 'income' ? (
-                <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="category-label">
-                  {filteredCategories.map((category) => (
-                    <ChoiceChip
-                      key={category.id}
-                      role="radio"
-                      selected={form.categoryId === category.id}
-                      className="w-full"
-                      onClick={() => setForm({ ...form, categoryId: category.id })}
-                    >
-                      {category.name}
-                    </ChoiceChip>
-                  ))}
-                </div>
-              ) : (
-                <>
-                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="category-label">
-                    {categoryOptions.map((category) => (
+            {form.type !== 'settlement' && (
+              <div>
+                {form.type === 'income' ? (
+                  <ChoiceChipGroup
+                    label="Categoría"
+                    labelId="category-label"
+                    role="radiogroup"
+                    className="grid grid-cols-2 gap-2"
+                  >
+                    {filteredCategories.map((category) => (
                       <ChoiceChip
                         key={category.id}
                         role="radio"
-                        shape="pill"
-                        size="sm"
                         selected={form.categoryId === category.id}
-                        onClick={() => {
-                          setForm({ ...form, categoryId: category.id })
-                          setShowAllCategories(false)
-                        }}
+                        className="w-full"
+                        onClick={() => setForm({ ...form, categoryId: category.id })}
                       >
                         {category.name}
                       </ChoiceChip>
                     ))}
-                    {filteredCategories.length > primaryCategories.length && (
-                      <ChoiceChip
-                        shape="pill"
-                        size="sm"
-                        aria-expanded={showAllCategories}
-                        onClick={() => setShowAllCategories((open) => !open)}
-                      >
-                        {showAllCategories ? 'Ver menos' : 'Ver todas'}
-                      </ChoiceChip>
-                    )}
-                  </div>
-                </>
-              )}
-              {errors.categoryId && <FieldError id="category-error">{errors.categoryId}</FieldError>}
-            </FormGroup>
-          )}
-
-          {form.type === 'income' && (
-            <FormGroup className="mb-3">
-              <span id="recipient-label" className="mb-1 block text-sm font-medium text-stone-700">
-                {payerFieldLabel('income')}
-              </span>
-              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="recipient-label">
-                {(
-                  [
-                    { value: 'personA' as const, label: formLabel('personA') },
-                    { value: 'personB' as const, label: formLabel('personB') },
-                  ] as const
-                ).map(({ value, label }) => (
-                  <ChoiceChip
-                    key={value}
-                    role="radio"
-                    selected={form.paidBy === value}
-                    className="w-full"
-                    onClick={() => handlePaidByChange(value)}
-                  >
-                    {label}
-                  </ChoiceChip>
-                ))}
-              </div>
-            </FormGroup>
-          )}
-
-          {form.type !== 'income' && (
-            <FormGroup className="!mb-3">
-              <CollapsiblePanel
-                title="Reparto"
-                summary={summaryText}
-                open={repartoOpen}
-                onOpenChange={setRepartoOpen}
-                panelId="reparto-section"
-                compact
-                contentClassName="space-y-3 bg-white"
-              >
-                <FormGroup className="!mb-0">
-                  <span id="paid-by-label" className="mb-2 block text-sm font-medium text-stone-700">
-                    {payerFieldLabel(form.type)}
-                  </span>
-                  <div className="space-y-2">
-                    <div
-                      className="grid min-w-0 grid-cols-2 gap-2"
-                      role="radiogroup"
-                      aria-labelledby="paid-by-label"
-                    >
-                      {(
-                        [
-                          { value: 'personA' as const, label: formLabel('personA') },
-                          { value: 'personB' as const, label: formLabel('personB') },
-                        ] as const
-                      ).map(({ value, label }) => (
+                  </ChoiceChipGroup>
+                ) : (
+                  <>
+                    <span id="category-label" className="mb-1.5 block text-sm font-medium text-stone-700">
+                      Categoría
+                    </span>
+                    <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="category-label">
+                      {categoryOptions.map((category) => (
                         <ChoiceChip
-                          key={value}
+                          key={category.id}
                           role="radio"
-                          selected={form.paidBy === value}
-                          className="w-full"
-                          onClick={() => handlePaidByChange(value)}
+                          shape="pill"
+                          size="sm"
+                          selected={form.categoryId === category.id}
+                          className="inline-flex items-center gap-1.5"
+                          onClick={() => {
+                            setForm({ ...form, categoryId: category.id })
+                            setShowAllCategories(false)
+                          }}
                         >
-                          {label}
+                          {category.color && (
+                            <span
+                              className="h-2 w-2 shrink-0 rounded-full"
+                              style={{ backgroundColor: category.color }}
+                              aria-hidden="true"
+                            />
+                          )}
+                          {category.name}
                         </ChoiceChip>
                       ))}
-                    </div>
-
-                    {form.type !== 'settlement' && (
-                      <div className="flex items-center gap-3 rounded-lg border border-stone-200 bg-surface-50 px-3 py-2">
-                        <div className="min-w-0 flex-1">
-                          <Label htmlFor="is-shared" className="!mb-0 text-sm font-medium text-stone-700">
-                            Compartido
-                          </Label>
-                          <p id="is-shared-hint" className="mt-0.5 text-xs text-stone-500">
-                            Define cuánto asume cada persona.
-                          </p>
-                        </div>
-                        <button
-                          id="is-shared"
-                          type="button"
-                          role="switch"
-                          aria-checked={form.isShared}
-                          aria-describedby="is-shared-hint"
-                          onClick={() => handleSharedChange(!form.isShared)}
-                          className={cn(
-                            'relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                            form.isShared ? 'bg-brand-600' : 'bg-stone-300',
-                          )}
+                      {filteredCategories.length > primaryCategories.length && (
+                        <ChoiceChip
+                          shape="pill"
+                          size="sm"
+                          aria-expanded={showAllCategories}
+                          onClick={() => setShowAllCategories((open) => !open)}
                         >
-                          <span
-                            className={cn(
-                              'absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform',
-                              form.isShared ? 'left-[22px]' : 'left-0.5',
-                            )}
-                          />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                          {showAllCategories ? 'Ver menos' : 'Ver todas'}
+                        </ChoiceChip>
+                      )}
+                    </div>
+                  </>
+                )}
+                {errors.categoryId && <FieldError id="category-error">{errors.categoryId}</FieldError>}
+              </div>
+            )}
+
+            {form.type === 'income' && (
+              <FormGroup className="!mb-0">
+                <Label className="mb-1.5">{payerFieldLabel('income')}</Label>
+                <SegmentedControl
+                  aria-label={payerFieldLabel('income')}
+                  options={payerOptions}
+                  value={form.paidBy === 'personB' ? 'personB' : 'personA'}
+                  onChange={(value) => handlePaidByChange(value)}
+                  size="sm"
+                />
+              </FormGroup>
+            )}
+
+            {form.type !== 'income' && (
+              <div className="space-y-4">
+                <FormGroup className="!mb-0">
+                  <Label className="mb-1.5">{payerFieldLabel(form.type)}</Label>
+                  <SegmentedControl
+                    aria-label={payerFieldLabel(form.type)}
+                    options={payerOptions}
+                    value={form.paidBy === 'personB' ? 'personB' : 'personA'}
+                    onChange={(value) => handlePaidByChange(value)}
+                    size="sm"
+                  />
                 </FormGroup>
 
                 {form.type !== 'settlement' && (
                   <>
+                    <div className="flex items-center justify-between gap-3 pt-1">
+                      <Label htmlFor="is-shared" className="!mb-0">
+                        Compartido
+                      </Label>
+                      <button
+                        id="is-shared"
+                        type="button"
+                        role="switch"
+                        aria-checked={form.isShared}
+                        onClick={() => handleSharedChange(!form.isShared)}
+                        className={cn(
+                          'relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
+                          form.isShared ? 'bg-brand-600' : 'bg-stone-300',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform',
+                            form.isShared ? 'left-[22px]' : 'left-0.5',
+                          )}
+                        />
+                      </button>
+                    </div>
+
                     {form.isShared && (
                       <>
-                        <FormGroup className="!mb-0">
-                          <span
-                            id="split-preset-label"
-                            className="mb-1 block text-sm font-medium text-stone-700"
-                          >
-                            {splitDistributionLabel(form.type)}
-                          </span>
-                          <div
-                            className="flex flex-wrap gap-1.5"
-                            role="radiogroup"
-                            aria-labelledby="split-preset-label"
-                          >
-                            {SPLIT_PRESETS.map((preset) => (
-                              <ChoiceChip
-                                key={preset.value}
-                                role="radio"
-                                size="sm"
-                                shape="pill"
-                                selected={splitPreset === preset.value}
-                                onClick={() => handleSplitPreset(preset.value)}
-                              >
-                                {preset.label}
-                              </ChoiceChip>
-                            ))}
-                          </div>
-                        </FormGroup>
+                        <ChoiceChipGroup
+                          label={splitDistributionLabel(form.type)}
+                          labelId="split-preset-label"
+                          role="radiogroup"
+                          className="flex flex-wrap gap-1.5"
+                        >
+                          {SPLIT_PRESETS.map((preset) => (
+                            <ChoiceChip
+                              key={preset.value}
+                              role="radio"
+                              size="sm"
+                              shape="pill"
+                              selected={splitPreset === preset.value}
+                              onClick={() => handleSplitPreset(preset.value)}
+                            >
+                              {preset.label}
+                            </ChoiceChip>
+                          ))}
+                        </ChoiceChipGroup>
 
                         {splitPreset === 'custom' && (
                           <div className="grid grid-cols-2 gap-3">
@@ -672,42 +596,42 @@ export function MovementFormPage() {
                 )}
 
                 {previewText && (
-                  <p id="reparto-preview" className="rounded-lg bg-surface-50 px-3 py-2 text-xs text-stone-600">
+                  <p id="reparto-preview" className="text-xs text-stone-500">
                     {previewText}
                   </p>
                 )}
-              </CollapsiblePanel>
+              </div>
+            )}
+
+            <FormGroup className="!mb-0">
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <Label htmlFor="date" className="!mb-0">
+                  Fecha
+                </Label>
+                <span className="text-xs text-stone-500">{dateLabel}</span>
+              </div>
+              <div className="min-w-0 max-w-full overflow-hidden rounded-lg border border-stone-300 bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
+                <Input
+                  id="date"
+                  type="date"
+                  value={form.date}
+                  invalid={Boolean(errors.date)}
+                  aria-describedby={describedBy(errors.date && 'date-error')}
+                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  className="w-full min-w-0 max-w-full border-0 px-2 shadow-none focus-visible:border-transparent focus-visible:shadow-none"
+                />
+              </div>
+              {errors.date && <FieldError id="date-error">{errors.date}</FieldError>}
             </FormGroup>
-          )}
 
-          <FormGroup className="mb-3">
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <Label htmlFor="date" className="!mb-0">
-                Fecha
-              </Label>
-              <span className="text-xs text-stone-500">{dateLabel}</span>
+            <div className="flex gap-2 border-t border-stone-200/80 pt-4">
+              <Button type="submit" disabled={saving} className="min-w-0 flex-1" aria-live="polite">
+                {saving ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Registrar'}
+              </Button>
+              <Button type="button" variant="secondary" disabled={saving} onClick={() => navigate(-1)} className="shrink-0">
+                Cancelar
+              </Button>
             </div>
-            <div className="w-full min-w-0 overflow-hidden">
-              <Input
-                id="date"
-                type="date"
-                value={form.date}
-                invalid={Boolean(errors.date)}
-                aria-describedby={describedBy(errors.date && 'date-error')}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
-              />
-            </div>
-            {errors.date && <FieldError id="date-error">{errors.date}</FieldError>}
-          </FormGroup>
-
-          <div className="mt-4 flex gap-2">
-            <Button type="submit" disabled={saving} className="flex-1" aria-live="polite">
-              {saving ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Registrar'}
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => navigate(-1)}>
-              Cancelar
-            </Button>
-          </div>
         </form>
       </Card>
         </>

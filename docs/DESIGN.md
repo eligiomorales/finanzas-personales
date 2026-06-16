@@ -42,7 +42,7 @@ Cada micro-interacción debe seguir estos principios:
 
 ## Motion (`src/design/motion.ts`)
 
-Sistema centralizado de animación con **Framer Motion**. Backlog de implementación: `implementations/mvp-motion-backlog.md`.
+Sistema centralizado de animación con **Framer Motion**. Backlog de implementación: `backlog/motion.md`.
 
 ### Preferencias y feature flag
 
