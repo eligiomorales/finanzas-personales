@@ -70,7 +70,7 @@ export function buildNewMovementDefaults(params: {
     currency: params.displayCurrency ?? 'ARS',
     date: todayISO(),
     description: '',
-    categoryId: getDefaultCategoryId(params.movements, 'expense'),
+    categoryId: null,
     paidBy: params.payerRole ?? 'personA',
     sharePersonA: 50,
     sharePersonB: 50,

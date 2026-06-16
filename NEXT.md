@@ -1,0 +1,46 @@
+# NEXT — Estado actual
+
+> Estado vivo del proyecto. **Corto a propósito** (máx. una pantalla). Cuando una fase termina, su detalle se muda a `docs/history/CHANGELOG.md`; este archivo solo dice *dónde estoy y qué sigue*.
+
+**Prod:** https://finanzas-personales-ebon.vercel.app · Vercel + Supabase · migraciones `001`–`007` aplicadas
+**Rama de trabajo:** `redesign/budget-category` (verificar con `git status`)
+**Última fase cerrada:** Fase 5 — UI Overhaul (ver CHANGELOG)
+
+---
+
+## En curso
+
+- (nada activo / anotar la feature de la sesión)
+
+## Siguiente (1–3, priorizado)
+
+1. Reglas de categorización persistentes (MVP)
+2. Gastos recurrentes manuales
+3. Metas compartidas simples
+
+## Bloqueos / riesgos activos
+
+- **RLS en prod:** revisar políticas antes de uso con datos reales; nunca `service_role` en el frontend.
+- **`couple_settings.person_a/b_name`:** columnas legacy; fuente de verdad real = `profiles` + `couple_members`.
+
+## Fuera de alcance (vigente)
+
+Integraciones bancarias automáticas · IA real · permisos por rol · grupos > 2 personas · conflictos offline complejos · modo oscuro (salvo decisión explícita) · copiar marca/layout de Monarch.
+
+---
+
+## Cómo retomar una sesión
+
+1. El agente lee `PLAYBOOK.md` + este archivo + `AGENTS.md`.
+2. Completar `templates/feature-brief.md` para la feature elegida.
+3. Pedir **Explore + Plan** antes de implementar.
+4. Al cerrar: `npm run ci` + actualizar este archivo (sección Capture del brief).
+
+## Prompt mínimo
+
+```text
+Quiero continuar Finanzas Pareja.
+Lee AGENTS.md, PLAYBOOK.md, NEXT.md y el brief adjunto.
+Objetivo (una sola cosa): [...]
+Explore + Plan primero. Al final: npm run ci + actualizar NEXT.md.
+```

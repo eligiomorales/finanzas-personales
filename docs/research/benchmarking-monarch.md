@@ -384,7 +384,7 @@ La ruta recomendada no es copiar Monarch entero. El mejor ROI está en llevar el
 - Resultados públicos de búsqueda sobre Flex Budgeting y Group Budgeting de Monarch.
 - `README.md`
 - `plan-implementacion-finanzas-pareja.md`
-- `siguiente-sesion-implementacion.md`
+- `NEXT.md` · `docs/history/CHANGELOG.md`
 - Plan V1: `.cursor/plans/presupuestos_colaborativos_d6b9cd86.plan.md`
 - Migraciones: `supabase/migrations/006_category_budgets.sql`, `supabase/migrations/007_recurring_budgets.sql`
 - Código revisado: `src/types/index.ts`, `src/lib/budget.ts`, `src/pages/BudgetPage.tsx`, `src/pages/DashboardPage.tsx`, `src/pages/CategoriesPage.tsx`, `src/pages/MovementsPage.tsx`, `src/pages/ImportPage.tsx`, `src/pages/BalancePage.tsx`, `src/lib/import.ts`

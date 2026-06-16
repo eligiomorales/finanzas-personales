@@ -33,12 +33,24 @@ body {
 
 /* iOS Safari: native date inputs ignore w-full and overflow their container */
 input[type="date"] {
+  display: block;
   min-width: 0;
   max-width: 100%;
+  width: 100%;
   box-sizing: border-box;
+  -webkit-min-logical-width: 0;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 input[type="date"]::-webkit-date-and-time-value {
   min-width: 0;
-  text-align: left;
+  max-width: 100%;
+  text-align: start;
+  margin: 0;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  margin-inline-start: auto;
+  padding: 0;
 }

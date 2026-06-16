@@ -4,7 +4,7 @@ Guía para probar cambios en local y publicarlos en producción.
 
 **Producción:** [https://finanzas-personales-ebon.vercel.app](https://finanzas-personales-ebon.vercel.app)
 
-**Estado actual:** migraciones `001`–`005` aplicadas en Supabase prod; frontend publicado en Vercel.
+**Estado actual:** migraciones `001`–`007` aplicadas en Supabase prod; frontend publicado en Vercel.
 
 ## Requisitos previos
 
@@ -232,5 +232,3 @@ Para pruebas destructivas:
 | Rewrites SPA               | `vercel.json`                                       |
 | Migraciones SQL            | `supabase/migrations/`                              |
 | Variables de ejemplo       | `.env.example`                                      |
-
-

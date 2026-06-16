@@ -80,7 +80,7 @@ export function Input({
         'focus-visible:border-brand-500 focus-visible:shadow-[0_1px_2px_rgba(47,122,107,0.12)]',
         focusRing,
         invalid && 'border-red-400',
-        type === 'date' && 'block min-w-0 max-w-full',
+        type === 'date' && 'box-border block min-w-0 max-w-full appearance-none px-2',
         className,
       )}
       style={shouldAnimate ? { ...fieldFocusStyle, ...style } : style}

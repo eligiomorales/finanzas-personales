@@ -1,5 +1,13 @@
 [
   {
+    "date": "2026-06-16",
+    "macrostructure": "Workbench",
+    "theme": "DESIGN.md (brand sage/teal)",
+    "enrichment": "none",
+    "scope": "component",
+    "brief": "MovementFormPage · form card · Hallmark redesign"
+  },
+  {
     "date": "2026-06-14",
     "macrostructure": "Workbench",
     "theme": "DESIGN.md (brand sage/teal)",

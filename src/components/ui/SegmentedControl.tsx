@@ -55,7 +55,7 @@ export function SegmentedControl<T extends string>({
             className={cn(
               'relative rounded-md font-medium',
               focusRing,
-              fullWidth && 'flex-1',
+              fullWidth && 'flex-1 min-w-0',
               size === 'sm' ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm',
               selected ? 'text-brand-700' : 'text-stone-600 hover:text-stone-800',
             )}
@@ -73,7 +73,7 @@ export function SegmentedControl<T extends string>({
               ) : (
                 <span className="absolute inset-0 rounded-md bg-white shadow-sm" aria-hidden="true" />
               ))}
-            <span className="relative">{option.label}</span>
+            <span className="relative truncate">{option.label}</span>
           </MotionButton>
         )
       })}

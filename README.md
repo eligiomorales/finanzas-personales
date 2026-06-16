@@ -9,12 +9,12 @@ Aplicación web responsive para gestionar las finanzas de una pareja, con sincro
 | Auth, pareja, movimientos/categorías/settings/importaciones en Supabase | Metas compartidas, gastos recurrentes |
 | Identidad por cuenta: nombres desde perfiles, UI Yo/Mi pareja | Tests de integración contra Supabase (opcional) |
 | Presupuestos por categoría (mensual y recurrente); migraciones `006`/`007` en prod | Offline-first con cola de sync |
-| UI overhaul (`DESIGN.md`): tokens, componentes compartidos, pantallas migradas | |
-| Motion Sprint 1: tokens, microinteracciones, `prefers-reduced-motion` (ver `implementations/mvp-motion-backlog.md`) | Motion Sprint 2+: rutas, skeletons, presupuesto animado |
+| UI overhaul (`docs/DESIGN.md`): tokens, componentes compartidos, pantallas migradas | |
+| Motion Sprint 1: tokens, microinteracciones, `prefers-reduced-motion` (ver `backlog/motion.md`) | Motion Sprint 2+: rutas, skeletons, presupuesto animado |
 | Deploy en Vercel (`npm run deploy`); realtime entre navegadores | |
 | Códigos de invitación (expiración, revocación, regeneración) | |
 
-Detalle: `siguiente-sesion-implementacion.md`. Flujo local → deploy: `flujo-desarrollo-deploy.md`.
+Estado vivo: `NEXT.md` · historial: `docs/history/CHANGELOG.md`. Mapa de docs: `AGENTS.md`. Flujo local → deploy: `docs/deploy.md`. Flujo solo-founder + AI: `PLAYBOOK.md` · brief de feature: `templates/feature-brief.md`.
 
 ## Git y GitHub
 
@@ -72,7 +72,7 @@ Sin `.env.local` la app arranca en **modo local** (IndexedDB + datos de ejemplo)
 
 **Probar en el celular (misma Wi‑Fi):** `npm run dev -- --host` → abrir la URL `Network` (ej. `http://192.168.x.x:5173`).
 
-**Animaciones:** opcional `VITE_ANIMATIONS_ENABLED=false` en `.env.local` para desactivarlas. Backlog: `implementations/mvp-motion-backlog.md`.
+**Animaciones:** opcional `VITE_ANIMATIONS_ENABLED=false` en `.env.local` para desactivarlas. Backlog: `backlog/motion.md`.
 
 ## Scripts
 
@@ -153,7 +153,7 @@ Las parejas creadas antes de la migración `004` conservan su código sin vencim
 
 **Deploy:** `npm run deploy` — sube variables de `.env.local` y publica en Vercel.
 
-Guía completa (desarrollo local, validación, deploy, migraciones, preview): **`flujo-desarrollo-deploy.md`**.
+Guía completa (desarrollo local, validación, deploy, migraciones, preview): **`docs/deploy.md`**.
 
 ## Próximas iteraciones
 
@@ -161,6 +161,6 @@ Guía completa (desarrollo local, validación, deploy, migraciones, preview): **
 2. Offline-first con cola de sync.
 3. Tests de integración contra Supabase (opcional).
 
-Guía de diseño vigente: `DESIGN.md`.
+Guía de diseño vigente: `docs/DESIGN.md`.
 
-Estado completo y prompt para la próxima sesión: `siguiente-sesion-implementacion.md`.
+Estado vivo y prompt para la próxima sesión: `NEXT.md`. Historial de fases: `docs/history/CHANGELOG.md`.
