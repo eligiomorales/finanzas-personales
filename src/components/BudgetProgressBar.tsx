@@ -58,6 +58,33 @@ export function BudgetProgressBar({
   )
 }
 
+export function BudgetMeter({
+  spent,
+  limit,
+  percentUsed,
+  status,
+  color,
+  currencyConfig,
+}: {
+  spent: number
+  limit: number
+  percentUsed: number
+  status: BudgetProgressStatus
+  color?: string
+  currencyConfig: CurrencyConfig
+}) {
+  return (
+    <div className="mt-2">
+      <BudgetProgressBar percentUsed={percentUsed} status={status} color={color} />
+      <p className="mt-1 text-right text-xs tabular-nums text-stone-500">
+        {formatInViewCurrency(spent, currencyConfig)}
+        {' / '}
+        {formatInViewCurrency(limit, currencyConfig)}
+      </p>
+    </div>
+  )
+}
+
 export function BudgetProgressMeta({
   spent,
   budgeted,

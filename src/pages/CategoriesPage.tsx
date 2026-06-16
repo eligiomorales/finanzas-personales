@@ -9,19 +9,120 @@ import {
   buildPeriodComparison,
 } from '@/lib/dashboard-insights'
 import { buildBudgetProgress, getBudgetMonthKey, getMonthDateRange } from '@/lib/budget'
-import { BudgetProgressBar, BudgetProgressMeta } from '@/components/BudgetProgressBar'
+import { BudgetMeter } from '@/components/BudgetProgressBar'
+import { CategoryAvatar } from '@/components/CategoryAvatar'
 import { formatInViewCurrency, getCurrencyConfig } from '@/lib/currency'
 import { formatPeriodHeaderTitle } from '@/lib/period-presets'
 import { previousPeriodForRange, cn } from '@/lib/utils'
-import { Card, EmptyState, StatCard } from '@/components/ui/Card'
+import { Card, EmptyState } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { SectionHeader } from '@/components/ui/SectionHeader'
 import { TextLink } from '@/components/ui/TextLink'
 import { PeriodFilter } from '@/components/PeriodFilter'
+import { deltaColors } from '@/components/ui/MetricCard'
+import type { BudgetProgressStatus, CategoryBudgetProgress } from '@/types'
+import type { CategoryExpenseWithDelta } from '@/lib/dashboard-insights'
+import type { CurrencyConfig } from '@/lib/currency'
 
-const deltaColors = {
-  positive: 'text-emerald-700',
-  negative: 'text-red-700',
-  neutral: 'text-stone-500',
+function overallBudgetStatus(
+  totalBudgeted: number,
+  totalSpent: number,
+  totalRemaining: number,
+): BudgetProgressStatus {
+  if (totalBudgeted <= 0) return 'unbudgeted'
+  if (totalRemaining < 0) return 'over'
+  if (totalSpent / totalBudgeted >= 0.85) return 'near'
+  return 'ok'
+}
+
+function percentStatusColorClass(status: BudgetProgressStatus): string {
+  switch (status) {
+    case 'near':
+      return 'text-amber-600'
+    case 'over':
+      return 'text-red-600'
+    case 'ok':
+      return 'text-emerald-600'
+    default:
+      return 'text-stone-600'
+  }
+}
+
+function CategoryExpenseCard({
+  cat,
+  sharePercent,
+  currencyConfig,
+  budgetProgress,
+  showBudget,
+}: {
+  cat: CategoryExpenseWithDelta
+  sharePercent: number
+  currencyConfig: CurrencyConfig
+  budgetProgress?: CategoryBudgetProgress
+  showBudget: boolean
+}) {
+  return (
+    <Card compact>
+      <div className="flex items-start gap-3">
+        <CategoryAvatar name={cat.categoryName} color={cat.color} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="min-w-0 flex-1 truncate text-sm font-semibold text-stone-800">
+              {cat.categoryName}
+            </p>
+            <span className="shrink-0 text-sm font-bold tabular-nums text-stone-600">
+              {sharePercent.toFixed(1)}%
+            </span>
+          </div>
+
+          <p className="mt-1 text-sm font-semibold tabular-nums text-stone-900">
+            {formatInViewCurrency(cat.total, currencyConfig)}
+          </p>
+
+          {showBudget && budgetProgress ? (
+            <>
+              <BudgetMeter
+                spent={budgetProgress.spent}
+                limit={budgetProgress.budgeted}
+                percentUsed={budgetProgress.percentUsed}
+                status={budgetProgress.status}
+                color={cat.color}
+                currencyConfig={currencyConfig}
+              />
+              {cat.delta && (
+                <p className={cn('mt-1 text-right text-xs font-medium', deltaColors[cat.delta.tone])}>
+                  {cat.delta.text}
+                </p>
+              )}
+            </>
+          ) : (
+            <div className="mt-2">
+              <div className="h-2 overflow-hidden rounded-full bg-surface-100">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${Math.min(sharePercent, 100)}%`,
+                    backgroundColor: cat.color ?? '#3b82f6',
+                  }}
+                />
+              </div>
+              <p className="mt-1 text-right text-xs text-stone-500">
+                {sharePercent.toFixed(1)}% del total
+                {cat.delta && (
+                  <>
+                    {' · '}
+                    <span className={cn('font-medium', deltaColors[cat.delta.tone])}>
+                      {cat.delta.text}
+                    </span>
+                  </>
+                )}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+  )
 }
 
 export function CategoriesPage() {
@@ -97,7 +198,17 @@ export function CategoriesPage() {
     [budgetSummary],
   )
 
-  const maxTotal = categoriesWithDelta[0]?.total ?? 1
+  const budgetOverallStatus = budgetSummary
+    ? overallBudgetStatus(
+        budgetSummary.totalBudgeted,
+        budgetSummary.totalSpent,
+        budgetSummary.totalRemaining,
+      )
+    : 'unbudgeted'
+  const budgetOverallPercent =
+    budgetSummary && budgetSummary.totalBudgeted > 0
+      ? budgetSummary.totalSpent / budgetSummary.totalBudgeted
+      : 0
 
   const periodTitle = useMemo(() => formatPeriodHeaderTitle(period), [period])
 
@@ -113,28 +224,57 @@ export function CategoriesPage() {
         />
       </PageHeader>
 
-      <StatCard
-        label={isPersonal ? 'Mis gastos del período' : 'Total gastos del período'}
-        value={formatInViewCurrency(summary.totalExpenses, currencyConfig)}
-        variant="expense"
-        delta={comparison.expenses ?? undefined}
-      />
+      <div className="space-y-2">
+        <SectionHeader label={isPersonal ? 'Mis gastos del período' : 'Total gastos del período'}>
+          {comparison.expenses && (
+            <span className={cn('text-sm font-bold', deltaColors[comparison.expenses.tone])}>
+              {comparison.expenses.text}
+            </span>
+          )}
+        </SectionHeader>
+        <Card compact>
+          <p className="text-sm font-semibold tabular-nums text-stone-900">
+            {formatInViewCurrency(summary.totalExpenses, currencyConfig)}
+          </p>
+        </Card>
+      </div>
 
       {!isPersonal && (budgetSummary?.totalBudgeted ?? 0) > 0 && (
-        <Card compact className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-              Presupuesto compartido
+        <div className="space-y-2">
+          <SectionHeader label="Presupuesto compartido">
+            <div className="flex shrink-0 items-center gap-2">
+              <span
+                className={cn(
+                  'text-sm font-bold tabular-nums',
+                  percentStatusColorClass(budgetOverallStatus),
+                )}
+              >
+                {Math.round(budgetOverallPercent * 100)}%
+              </span>
+              <TextLink to="/analisis/presupuesto" className="text-xs">
+                Editar →
+              </TextLink>
+            </div>
+          </SectionHeader>
+          <Card compact>
+            <p
+              className={cn(
+                'text-sm font-semibold tabular-nums',
+                budgetSummary!.totalRemaining >= 0 ? 'text-emerald-700' : 'text-red-700',
+              )}
+            >
+              {formatInViewCurrency(Math.abs(budgetSummary!.totalRemaining), currencyConfig)}{' '}
+              {budgetSummary!.totalRemaining >= 0 ? 'disponible' : 'excedido'}
             </p>
-            <p className="text-sm text-stone-700">
-              {formatInViewCurrency(budgetSummary!.totalSpent, currencyConfig)} de{' '}
-              {formatInViewCurrency(budgetSummary!.totalBudgeted, currencyConfig)}
-            </p>
-          </div>
-          <TextLink to="/analisis/presupuesto" className="text-sm">
-            Editar →
-          </TextLink>
-        </Card>
+            <BudgetMeter
+              spent={budgetSummary!.totalSpent}
+              limit={budgetSummary!.totalBudgeted}
+              percentUsed={budgetOverallPercent}
+              status={budgetOverallStatus}
+              currencyConfig={currencyConfig}
+            />
+          </Card>
+        </div>
       )}
 
       {categoriesWithDelta.length === 0 ? (
@@ -143,67 +283,26 @@ export function CategoriesPage() {
           description="Registra gastos con categoría para ver el análisis"
         />
       ) : (
-        <div className="space-y-3">
-          {categoriesWithDelta.map((cat) => {
-            const pct = summary.totalExpenses > 0 ? (cat.total / summary.totalExpenses) * 100 : 0
-            const barWidth = (cat.total / maxTotal) * 100
-            const budgetProgress = budgetByCategory.get(cat.categoryId)
-            const showBudget = !isPersonal && budgetProgress && budgetProgress.budgeted > 0
-            return (
-              <Card key={cat.categoryId}>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2">
-                    {cat.color && (
-                      <span
-                        className="h-3 w-3 shrink-0 rounded-full"
-                        style={{ backgroundColor: cat.color }}
-                      />
-                    )}
-                    <span className="truncate font-medium text-stone-800">{cat.categoryName}</span>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="font-bold tabular-nums text-stone-900">
-                      {formatInViewCurrency(cat.total, currencyConfig)}
-                    </p>
-                    <p className="text-xs text-stone-500">{pct.toFixed(1)}% del total</p>
-                    {cat.delta && (
-                      <p className={cn('text-xs font-medium', deltaColors[cat.delta.tone])}>
-                        {cat.delta.text}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {showBudget && budgetProgress ? (
-                  <>
-                    <BudgetProgressBar
-                      percentUsed={budgetProgress.percentUsed}
-                      status={budgetProgress.status}
-                      color={cat.color}
-                    />
-                    <div className="mt-1">
-                      <BudgetProgressMeta
-                        spent={budgetProgress.spent}
-                        budgeted={budgetProgress.budgeted}
-                        percentUsed={budgetProgress.percentUsed}
-                        status={budgetProgress.status}
-                        currencyConfig={currencyConfig}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="h-2 overflow-hidden rounded-full bg-surface-100">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${barWidth}%`,
-                        backgroundColor: cat.color ?? '#3b82f6',
-                      }}
-                    />
-                  </div>
-                )}
-              </Card>
-            )
-          })}
+        <div className="space-y-2">
+          <SectionHeader label="Por categoría" />
+          <div className="space-y-3">
+            {categoriesWithDelta.map((cat) => {
+              const sharePercent =
+                summary.totalExpenses > 0 ? (cat.total / summary.totalExpenses) * 100 : 0
+              const budgetProgress = budgetByCategory.get(cat.categoryId)
+              const showBudget = !isPersonal && budgetProgress != null && budgetProgress.budgeted > 0
+              return (
+                <CategoryExpenseCard
+                  key={cat.categoryId}
+                  cat={cat}
+                  sharePercent={sharePercent}
+                  currencyConfig={currencyConfig}
+                  budgetProgress={budgetProgress}
+                  showBudget={showBudget}
+                />
+              )
+            })}
+          </div>
         </div>
       )}
     </div>

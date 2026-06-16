@@ -1,10 +1,11 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench
  * design-system: DESIGN.md · designed-as-app · enrichment: none
  * pre-emit critique: P5 H4 E5 S5 R5 V4 */
-import { useMemo, useState, useCallback, useEffect } from 'react'
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import { useMovementsInRange, useCategories, useSettings, useBudgets, useBudgetMutations } from '@/hooks/useData'
 import { CurrencyAmountInput } from '@/components/CurrencyAmountInput'
-import { BudgetProgressBar } from '@/components/BudgetProgressBar'
+import { BudgetMeter } from '@/components/BudgetProgressBar'
+import { CategoryAvatar } from '@/components/CategoryAvatar'
 import { Card, EmptyState } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
 import { ChoiceChip, ChoiceChipGroup } from '@/components/ui/ChoiceChip'
@@ -44,29 +45,6 @@ function percentStatusColorClass(status: BudgetProgressStatus): string {
     default:
       return 'text-stone-600'
   }
-}
-
-function categoryInitials(name: string): string {
-  const trimmed = name.trim()
-  return trimmed ? trimmed.charAt(0).toUpperCase() : '?'
-}
-
-function CategoryAvatar({ name, color }: { name: string; color?: string }) {
-  const initials = categoryInitials(name)
-  const hasColor = Boolean(color)
-
-  return (
-    <span
-      className={cn(
-        'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold',
-        hasColor ? 'text-white' : 'bg-surface-100 text-brand-700',
-      )}
-      style={hasColor ? { backgroundColor: color } : undefined}
-      aria-hidden="true"
-    >
-      {initials}
-    </span>
-  )
 }
 
 function MonthNavigator({
@@ -273,31 +251,24 @@ export function BudgetPage({ embedded = false }: { embedded?: boolean }) {
             </span>
           )}
         </SectionHeader>
-        <Card compact className="space-y-2">
+        <Card compact>
           {summary.totalBudgeted > 0 ? (
             <>
-              <p className="text-xs text-stone-500">
-                <span className="font-medium tabular-nums text-stone-700">
-                  {formatInViewCurrency(summary.totalSpent, currencyConfig)}
-                </span>
-                {' gastado de '}
-                <span className="font-medium tabular-nums text-stone-700">
-                  {formatInViewCurrency(summary.totalBudgeted, currencyConfig)}
-                </span>
-                {' · '}
-                <span
-                  className={cn(
-                    'font-medium tabular-nums',
-                    summary.totalRemaining >= 0 ? 'text-emerald-700' : 'text-red-700',
-                  )}
-                >
-                  {formatInViewCurrency(Math.abs(summary.totalRemaining), currencyConfig)}{' '}
-                  {summary.totalRemaining >= 0 ? 'disponible' : 'excedido'}
-                </span>
+              <p
+                className={cn(
+                  'text-sm font-semibold tabular-nums',
+                  summary.totalRemaining >= 0 ? 'text-emerald-700' : 'text-red-700',
+                )}
+              >
+                {formatInViewCurrency(Math.abs(summary.totalRemaining), currencyConfig)}{' '}
+                {summary.totalRemaining >= 0 ? 'disponible' : 'excedido'}
               </p>
-              <BudgetProgressBar
+              <BudgetMeter
+                spent={summary.totalSpent}
+                limit={summary.totalBudgeted}
                 percentUsed={overallPercent}
                 status={overallStatus}
+                currencyConfig={currencyConfig}
               />
             </>
           ) : (
@@ -422,84 +393,114 @@ function BudgetCategoryCard({
   onStartEdit: () => void
   onRemove: () => void
 }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
   const hasLimit = displayLimit > 0
   const spent = progress?.spent ?? 0
   const remaining = hasLimit ? displayLimit - spent : 0
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const handlePointerDown = (event: MouseEvent) => {
+      if (menuRef.current?.contains(event.target as Node)) return
+      setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [menuOpen])
 
   return (
     <Card compact>
       <div className="flex items-start gap-3">
         <CategoryAvatar name={categoryName} color={color} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-stone-800">{categoryName}</p>
-            </div>
-            {hasLimit && progress && (
-              <span
-                className={cn(
-                  'shrink-0 text-base font-bold tabular-nums',
-                  percentStatusColorClass(progress.status),
-                )}
-              >
-                {Math.round(progress.percentUsed * 100)}%
-              </span>
-            )}
-          </div>
-
-          {hasLimit && (
-            <div className="mt-3 space-y-2">
-              <p className="text-xs text-stone-500">
-                <span className="font-medium tabular-nums text-stone-700">
-                  {formatInViewCurrency(spent, currencyConfig)}
-                </span>
-                {' gastado de '}
-                <span className="font-medium tabular-nums text-stone-700">
-                  {formatInViewCurrency(displayLimit, currencyConfig)}
-                </span>
-                {' · '}
+          <div className="flex items-center gap-2">
+            <p className="min-w-0 flex-1 truncate text-sm font-semibold text-stone-800">
+              {categoryName}
+            </p>
+            <div className="flex shrink-0 items-center gap-0.5">
+              {hasLimit && progress && (
                 <span
                   className={cn(
-                    'font-medium tabular-nums',
-                    remaining >= 0 ? 'text-emerald-700' : 'text-red-700',
+                    'text-sm font-bold tabular-nums',
+                    percentStatusColorClass(progress.status),
                   )}
                 >
-                  {formatInViewCurrency(Math.abs(remaining), currencyConfig)}{' '}
-                  {remaining >= 0 ? 'disponible' : 'excedido'}
+                  {Math.round(progress.percentUsed * 100)}%
                 </span>
-              </p>
+              )}
+              <div ref={menuRef} className="relative">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => setMenuOpen((open) => !open)}
+                  aria-label="Más opciones"
+                  aria-expanded={menuOpen}
+                  aria-haspopup="menu"
+                  className="h-7 w-7 shrink-0 px-0 text-stone-500"
+                >
+                  ⋯
+                </Button>
+                {menuOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-full z-10 mt-1 min-w-[8.5rem] rounded-lg border border-stone-200 bg-white py-1 shadow-md shadow-stone-200/50"
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onStartEdit()
+                      }}
+                      className="flex w-full px-3 py-2 text-left text-sm text-stone-700 hover:bg-surface-50"
+                    >
+                      Editar límite
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={saving}
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onRemove()
+                      }}
+                      className="flex w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
+          {hasLimit ? (
+            <>
+              <p
+                className={cn(
+                  'mt-1 text-sm font-semibold tabular-nums',
+                  remaining >= 0 ? 'text-emerald-700' : 'text-red-700',
+                )}
+              >
+                {formatInViewCurrency(Math.abs(remaining), currencyConfig)}{' '}
+                {remaining >= 0 ? 'disponible' : 'excedido'}
+              </p>
               {progress && (
-                <BudgetProgressBar
+                <BudgetMeter
+                  spent={spent}
+                  limit={displayLimit}
                   percentUsed={progress.percentUsed}
                   status={progress.status}
                   color={color}
+                  currencyConfig={currencyConfig}
                 />
               )}
-            </div>
+            </>
+          ) : (
+            <p className="mt-1 text-xs text-stone-500">Sin límite definido</p>
           )}
-
-          <div className="mt-3 flex gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={onStartEdit}
-              className="min-w-0 flex-1"
-            >
-              Editar límite
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onRemove}
-              disabled={saving}
-              className="shrink-0 text-red-600 hover:bg-red-50 hover:text-red-700"
-            >
-              Quitar
-            </Button>
-          </div>
         </div>
       </div>
     </Card>
