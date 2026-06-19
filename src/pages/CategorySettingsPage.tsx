@@ -97,7 +97,7 @@ export function CategorySettingsPage() {
           <button
             type="button"
             onClick={() => navigate('/configuracion')}
-            className="mt-0.5 rounded-lg text-stone-500 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-stone-600 hover:text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
             aria-label="Volver a configuración"
           >
             ←

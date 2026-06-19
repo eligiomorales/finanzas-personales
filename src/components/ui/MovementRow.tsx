@@ -1,9 +1,9 @@
 import { type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { CategoryAvatar } from '@/components/CategoryAvatar'
 import { Badge, Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Form'
-import { ButtonLink } from '@/components/ui/TextLink'
-import { textMuted } from '@/components/ui/styles'
+import { focusRing, textMuted } from '@/components/ui/styles'
 import { getLayoutTransition } from '@/design/motion'
 import { useMotionPreferences } from '@/hooks/useMotionPreferences'
 import { cn, movementAmountColor, movementTypeColor, movementTypeLabel } from '@/lib/utils'
@@ -120,27 +120,24 @@ interface MovementRowCompactProps {
   className?: string
 }
 
-interface MovementRowDetailedProps {
-  variant?: 'detailed'
+interface MovementRowGroupedCardProps {
+  variant: 'grouped-card'
+  to: string
+  movementId?: string
+  categoryName: string
+  categoryColor?: string
   description: string
-  date: string
+  payerLabel?: string
+  hidePayerPill?: boolean
   movementType: Movement['type']
   amountPrimary: string
   amountSecondary?: string
   amountSign?: string
-  categoryName?: string
-  payerLabel?: string
-  sharingLabel?: string
-  imported?: boolean
-  editTo?: string
-  onDelete?: () => void
-  deleting?: boolean
-  movementId?: string
-  layout?: 'list' | 'card'
+  isShared?: boolean
   className?: string
 }
 
-export type MovementRowProps = MovementRowCompactProps | MovementRowDetailedProps
+export type MovementRowProps = MovementRowCompactProps | MovementRowGroupedCardProps
 
 export function MovementRow(props: MovementRowProps) {
   if (props.variant === 'compact') {
@@ -162,82 +159,80 @@ export function MovementRow(props: MovementRowProps) {
   }
 
   const {
+    to,
+    movementId,
+    categoryName,
+    categoryColor,
     description,
-    date,
+    payerLabel,
+    hidePayerPill,
     movementType,
     amountPrimary,
     amountSecondary,
     amountSign,
-    categoryName,
-    payerLabel,
-    sharingLabel,
-    imported,
-    editTo,
-    onDelete,
-    deleting,
-    movementId,
-    layout = 'list',
+    isShared,
     className,
   } = props
 
-  const row = (
-    <div className={cn(layout === 'list' ? 'space-y-1.5 px-4 py-2.5' : 'space-y-1.5', className)}>
-      <MovementSummaryBlock
-        description={description}
-        date={date}
-        movementType={movementType}
-        amountPrimary={amountPrimary}
-        amountSecondary={amountSecondary}
-        amountSign={amountSign}
-        imported={imported}
-        layoutId={movementId ? movementLayoutId(movementId) : undefined}
-      />
-      {(categoryName || payerLabel || sharingLabel || editTo || onDelete) && (
-        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
-          <div className={cn('flex min-w-0 flex-wrap gap-x-2 gap-y-0.5 text-xs leading-5', textMuted)}>
-            {categoryName && <span>{categoryName}</span>}
-            {payerLabel && (
-              <span>
-                {categoryName ? '· ' : ''}
-                Pagó: {payerLabel}
-              </span>
+  const { shouldAnimate } = useMotionPreferences()
+  const layoutTransition = getLayoutTransition(shouldAnimate)
+  const showPayerPill = Boolean(payerLabel) && !hidePayerPill
+
+  const card = (
+    <Card compact className={cn('!p-3 transition-colors hover:bg-surface-50', className)}>
+      <div className="flex min-h-12 items-center gap-3">
+        <CategoryAvatar name={categoryName} color={categoryColor} />
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="truncate text-sm font-semibold text-stone-800">{categoryName}</p>
+            {showPayerPill && (
+              <Badge variant="default">
+                <span className="max-w-[8rem] truncate" title={payerLabel}>
+                  {payerLabel}
+                </span>
+              </Badge>
             )}
-            {sharingLabel && (
-              <span>
-                {(categoryName || payerLabel) ? '· ' : ''}
-                {sharingLabel}
-              </span>
+            {isShared !== undefined && (
+              <Badge variant={isShared ? 'info' : 'default'}>
+                {isShared ? 'Compartido' : 'Personal'}
+              </Badge>
             )}
           </div>
-          {(editTo || onDelete) && (
-            <div className="ml-auto flex shrink-0 gap-0.5">
-              {editTo && (
-                <ButtonLink to={editTo} size="xs" variant="ghost">
-                  Editar
-                </ButtonLink>
-              )}
-              {onDelete && (
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  className="text-red-700"
-                  disabled={deleting}
-                  aria-busy={deleting}
-                  onClick={onDelete}
-                >
-                  Eliminar
-                </Button>
-              )}
-            </div>
-          )}
+          <p className={cn('mt-0.5 truncate text-xs', textMuted)}>{description}</p>
         </div>
-      )}
-    </div>
+        <MovementAmount
+          type={movementType}
+          sign={amountSign}
+          primary={amountPrimary}
+          secondary={amountSecondary}
+        />
+      </div>
+    </Card>
   )
 
-  if (layout === 'card') {
-    return <Card className="!p-3">{row}</Card>
+  const linkLabel = `${categoryName}, ${description}, ${amountSign}${amountPrimary}`
+
+  if (movementId && shouldAnimate) {
+    return (
+      <Link
+        to={to}
+        aria-label={`Editar movimiento: ${linkLabel}`}
+        className={cn('block rounded-xl', focusRing)}
+      >
+        <motion.div layoutId={movementLayoutId(movementId)} transition={layoutTransition}>
+          {card}
+        </motion.div>
+      </Link>
+    )
   }
 
-  return row
+  return (
+    <Link
+      to={to}
+      aria-label={`Editar movimiento: ${linkLabel}`}
+      className={cn('block rounded-xl', focusRing)}
+    >
+      {card}
+    </Link>
+  )
 }

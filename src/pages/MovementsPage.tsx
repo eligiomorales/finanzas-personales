@@ -1,18 +1,18 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useFilteredMovements, useCategories, useSettings, useMovementMutations } from '@/hooks/useData'
+import { useFilteredMovements, useCategories, useSettings } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { useMovementFilters } from '@/contexts/MovementFiltersContext'
-import { useConfirmDialog } from '@/hooks/useConfirmDialog'
-import { currentMonthRange, formatShortDate } from '@/lib/utils'
+import { currentMonthRange } from '@/lib/utils'
 import { buildMovementFilterChips, removeMovementFilterChip } from '@/lib/movement-filter-chips'
+import { groupMovementsByDate } from '@/lib/movements-grouping'
 import { MovementFilterToolbar } from '@/components/MovementFilterToolbar'
-import { payerDisplayLabel } from '@/lib/couple/person-labels'
+import { payerListLabel } from '@/lib/couple/person-labels'
 import { getDisplayAmountForView } from '@/lib/balance'
 import { formatMovementAmountLinesForView, getCurrencyConfig } from '@/lib/currency'
 import { MOVEMENTS_PAGE_SIZE } from '@/lib/movements-query'
 import { EmptyState } from '@/components/ui/Card'
-import { MovementList, MovementRow } from '@/components/ui/MovementRow'
+import { MovementRow } from '@/components/ui/MovementRow'
 import { SkeletonList } from '@/components/skeletons/SkeletonList'
 import { Button, LiveRegion } from '@/components/ui/Form'
 import type { MovementFilters } from '@/types'
@@ -23,10 +23,7 @@ export function MovementsPage() {
   const persons = useCouplePersons()
   const { isPersonal, mode: expenseViewMode } = useExpenseViewMode()
   const { filters, listFilters, setFilters, setPeriod, clearFilters } = useMovementFilters()
-  const { deleteMovement } = useMovementMutations()
-  const { confirm, dialog } = useConfirmDialog()
   const [visibleCount, setVisibleCount] = useState(MOVEMENTS_PAGE_SIZE)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
   const myRole = persons.myRole ?? 'personA'
 
   const effectiveFilters = useMemo(
@@ -60,6 +57,7 @@ export function MovementsPage() {
   const allMovements = queryMatchesCurrentView ? (query?.items ?? []) : []
   const total = queryMatchesCurrentView ? (query?.total ?? 0) : 0
   const movements = allMovements.slice(0, visibleCount)
+  const movementGroups = useMemo(() => groupMovementsByDate(movements), [movements])
   const hasMore = visibleCount < total
   const isLoading =
     isRemoteLoading || (query === undefined && !isError && !queryMatchesCurrentView)
@@ -102,24 +100,8 @@ export function MovementsPage() {
     setVisibleCount(MOVEMENTS_PAGE_SIZE)
   }, [queryKey])
 
-  async function handleDelete(id: string) {
-    const confirmed = await confirm({
-      title: 'Eliminar movimiento',
-      description: 'Esta acción no se puede deshacer. ¿Querés eliminar este movimiento?',
-      confirmLabel: 'Eliminar',
-      cancelLabel: 'Cancelar',
-      variant: 'danger',
-    })
-    if (!confirmed) return
-    setDeletingId(id)
-    await deleteMovement(id)
-    setDeletingId(null)
-  }
-
   return (
     <div className="space-y-4">
-      {dialog}
-
       <MovementFilterToolbar
         filters={listFilters}
         onChange={updateListFilters}
@@ -130,12 +112,12 @@ export function MovementsPage() {
         onClearFilters={resetFilters}
       />
 
-      <p className="text-sm text-stone-500" aria-live="polite">
+      <p className="sr-only" aria-live="polite">
         {isLoading
           ? 'Cargando movimientos...'
           : total === 0
             ? '0 movimiento(s)'
-            : `Mostrando ${movements.length} de ${total} movimiento(s)`}
+            : `${movements.length} de ${total} movimiento(s)`}
       </p>
       <LiveRegion>{isLoading ? 'Cargando movimientos' : ''}</LiveRegion>
 
@@ -154,36 +136,52 @@ export function MovementsPage() {
           }
         />
       ) : isLoading ? (
-        <SkeletonList count={5} />
+        <SkeletonList count={5} grouped />
       ) : (
         <>
-          <MovementList>
-            {movements.map((m) => {
-              const cat = categories.find((c) => c.id === m.categoryId)
-              const displayAmount = getDisplayAmountForView(m, myRole, currencyConfig, expenseViewMode)
-              const amountLines = formatMovementAmountLinesForView(m, currencyConfig, displayAmount)
-              const amountSign = m.type === 'income' ? '+' : m.type === 'expense' ? '-' : ''
-              return (
-                <MovementRow
-                  key={m.id}
-                  movementId={m.id}
-                  description={m.description}
-                  date={formatShortDate(m.date)}
-                  movementType={m.type}
-                  amountPrimary={amountLines.primary}
-                  amountSecondary={amountLines.secondary}
-                  amountSign={amountSign}
-                  categoryName={cat?.name}
-                  payerLabel={payerDisplayLabel(m.paidBy, persons)}
-                  sharingLabel={m.isShared ? `${m.sharePersonA}/${m.sharePersonB}` : 'Personal'}
-                  imported={m.source === 'imported'}
-                  editTo={`/movimientos/editar/${m.id}`}
-                  onDelete={() => handleDelete(m.id)}
-                  deleting={deletingId === m.id}
-                />
-              )
-            })}
-          </MovementList>
+          <div className="space-y-5">
+            {movementGroups.map((group) => (
+              <section key={group.dateKey} aria-labelledby={`movements-date-${group.dateKey}`}>
+                <h2
+                  id={`movements-date-${group.dateKey}`}
+                  className="mb-2 text-sm font-medium text-stone-600"
+                >
+                  {group.label}
+                </h2>
+                <div className="space-y-2">
+                  {group.movements.map((m) => {
+                    const cat = categories.find((c) => c.id === m.categoryId)
+                    const categoryName = cat?.name ?? 'Sin categoría'
+                    const payerLabel = payerListLabel(m.paidBy, persons)
+                    const displayAmount = getDisplayAmountForView(m, myRole, currencyConfig, expenseViewMode)
+                    const amountLines = formatMovementAmountLinesForView(m, currencyConfig, displayAmount)
+                    const amountSign = m.type === 'income' ? '+' : m.type === 'expense' ? '-' : ''
+                    const hidePayerPill =
+                      isPersonal && m.paidBy !== 'both' && m.paidBy === myRole
+
+                    return (
+                      <MovementRow
+                        key={m.id}
+                        variant="grouped-card"
+                        to={`/movimientos/editar/${m.id}`}
+                        movementId={m.id}
+                        categoryName={categoryName}
+                        categoryColor={cat?.color}
+                        description={m.description}
+                        payerLabel={payerLabel}
+                        hidePayerPill={hidePayerPill}
+                        movementType={m.type}
+                        amountPrimary={amountLines.primary}
+                        amountSecondary={amountLines.secondary}
+                        amountSign={amountSign}
+                        isShared={m.isShared}
+                      />
+                    )
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
 
           {hasMore && (
             <Button

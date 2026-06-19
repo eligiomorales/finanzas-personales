@@ -4,7 +4,7 @@
 
 **Prod:** https://finanzas-personales-ebon.vercel.app · Vercel + Supabase · migraciones `001`–`007` aplicadas
 **Rama de trabajo:** `redesign/budget-category` (verificar con `git status`)
-**Última fase cerrada:** Fase 5 — UI Overhaul (ver CHANGELOG)
+**Última fase cerrada:** Hallmark polish formulario movimiento (sesión 2026-06-19)
 
 ---
 
@@ -44,3 +44,11 @@ Lee AGENTS.md, PLAYBOOK.md, NEXT.md y el brief adjunto.
 Objetivo (una sola cosa): [...]
 Explore + Plan primero. Al final: npm run ci + actualizar NEXT.md.
 ```
+
+## Capture — sesión 2026-06-19 (MovementForm Hallmark)
+
+**Entregado:** polish visual del formulario de movimiento — header back+title alineados y más prominentes (`Layout.tsx`); monto hero con padding lateral sutil; categorías rápidas = 2 frecuentes + "Ver todas"; reparto = 50/50, 60/40 y Personalizado; toggle Compartido separado del pagador con label junto al switch; eliminado preview de reparto. `npm run ci` verde (209 tests).
+
+**Archivos clave:** `MovementFormPage.tsx`, `Layout.tsx`, `CategorySettingsPage.tsx` (botón volver consistente).
+
+**Aprendizaje:** agrupar `leading` + título en `items-center` resuelve desalineación sin hacks de margin-bottom; menos chips visibles = menos ruido sin perder acceso vía "Ver todas" / "Personalizado".

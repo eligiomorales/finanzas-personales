@@ -92,6 +92,18 @@ export function displayLabelForRole(
   return name
 }
 
+/** Etiqueta para listas: nombres reales (sin Yo / Mi pareja) */
+export function payerListLabel(paidBy: Payer, view: CouplePersonsView): string {
+  switch (paidBy) {
+    case 'personA':
+      return displayLabelForRole('personA', view)
+    case 'personB':
+      return displayLabelForRole('personB', view)
+    case 'both':
+      return 'Ambos'
+  }
+}
+
 export function payerDisplayLabel(paidBy: Payer, view: CouplePersonsView): string {
   switch (paidBy) {
     case 'personA':
