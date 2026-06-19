@@ -2,9 +2,9 @@
 
 > Estado vivo del proyecto. **Corto a propósito** (máx. una pantalla). Cuando una fase termina, su detalle se muda a `docs/history/CHANGELOG.md`; este archivo solo dice *dónde estoy y qué sigue*.
 
-**Prod:** https://finanzas-personales-ebon.vercel.app · Vercel + Supabase · migraciones `001`–`007` aplicadas
+**Prod:** https://finanzas-personales-ebon.vercel.app · Vercel + Supabase · migraciones `001`–`008` (aplicar `008` en prod)
 **Rama de trabajo:** `redesign/budget-category` (verificar con `git status`)
-**Última fase cerrada:** Hallmark polish formulario movimiento (sesión 2026-06-19)
+**Última fase cerrada:** Inferir reglas desde historial (sesión 2026-06-19)
 
 ---
 
@@ -14,14 +14,15 @@
 
 ## Siguiente (1–3, priorizado)
 
-1. Reglas de categorización persistentes (MVP)
-2. Gastos recurrentes manuales
-3. Metas compartidas simples
+1. Gastos recurrentes manuales
+2. Metas compartidas simples
+3. Estado de revisión de movimientos
 
 ## Bloqueos / riesgos activos
 
 - **RLS en prod:** revisar políticas antes de uso con datos reales; nunca `service_role` en el frontend.
 - **`couple_settings.person_a/b_name`:** columnas legacy; fuente de verdad real = `profiles` + `couple_members`.
+- **Migración `008_category_rules.sql`:** aplicar en Supabase SQL Editor antes de usar reglas en prod.
 
 ## Fuera de alcance (vigente)
 
@@ -45,10 +46,10 @@ Objetivo (una sola cosa): [...]
 Explore + Plan primero. Al final: npm run ci + actualizar NEXT.md.
 ```
 
-## Capture — sesión 2026-06-19 (MovementForm Hallmark)
+## Capture — sesión 2026-06-19 (Inferir reglas desde historial)
 
-**Entregado:** polish visual del formulario de movimiento — header back+title alineados y más prominentes (`Layout.tsx`); monto hero con padding lateral sutil; categorías rápidas = 2 frecuentes + "Ver todas"; reparto = 50/50, 60/40 y Personalizado; toggle Compartido separado del pagador con label junto al switch; eliminado preview de reparto. `npm run ci` verde (209 tests).
+**Entregado:** `inferRulesFromHistory()` en `infer-rules.ts` — tokeniza descripciones de gastos categorizados, filtra por dominancia (≥80%, ≥2 usos), descarta reglas existentes y keywords hardcodeadas redundantes; botón "Sugerir desde historial" + preview con checkboxes en `CategorySettingsPage`; guardado batch vía `addRule`. `npm run ci` verde (219 tests).
 
-**Archivos clave:** `MovementFormPage.tsx`, `Layout.tsx`, `CategorySettingsPage.tsx` (botón volver consistente).
+**Archivos clave:** `infer-rules.ts`, `infer-rules.test.ts`, `CategorySettingsPage.tsx`.
 
-**Aprendizaje:** agrupar `leading` + título en `items-center` resuelve desalineación sin hacks de margin-bottom; menos chips visibles = menos ruido sin perder acceso vía "Ver todas" / "Personalizado".
+**Aprendizaje:** inferencia 100% front sobre movimientos ya cargados; preview con confirmación evita reglas basura sin necesitar back ni RPC.

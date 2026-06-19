@@ -9,6 +9,7 @@ import {
 } from '@/lib/repositories/import-confirm'
 import type {
   CategoryRepository,
+  CategoryRulesRepository,
   ConfirmImportInput,
   ImportRepository,
   MovementDateRange,
@@ -21,10 +22,12 @@ import type {
 import { MOVEMENTS_PAGE_SIZE } from '@/lib/movements-query'
 import { generateId } from '@/lib/utils'
 import { RECURRING_BUDGET_MONTH } from '@/lib/budget'
+import { normalizeRuleKeyword } from '@/lib/category-rules'
 import type {
   AppSettings,
   Category,
   CategoryBudget,
+  CategoryRule,
   CurrencyCode,
   ImportRecord,
   Movement,
@@ -116,6 +119,20 @@ function rowToBudget(row: {
     scope: row.scope,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  }
+}
+
+function rowToCategoryRule(row: {
+  id: string
+  keyword: string
+  category_id: string
+  created_at: string
+}): CategoryRule {
+  return {
+    id: row.id,
+    keyword: row.keyword,
+    categoryId: row.category_id,
+    createdAt: row.created_at,
   }
 }
 
@@ -595,12 +612,87 @@ export function createSupabaseRepositories(coupleId: string): Repositories {
     },
   }
 
+  const categoryRules: CategoryRulesRepository = {
+    async list() {
+      const { data, error } = await supabase
+        .from('category_rules')
+        .select('*')
+        .eq('couple_id', coupleId)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return (data ?? []).map(rowToCategoryRule)
+    },
+
+    async add(keyword: string, categoryId: string) {
+      const normalized = normalizeRuleKeyword(keyword)
+      if (!normalized) throw new Error('La palabra clave no puede estar vacía.')
+      const now = new Date().toISOString()
+
+      const { data: existing, error: findError } = await supabase
+        .from('category_rules')
+        .select('*')
+        .eq('couple_id', coupleId)
+        .eq('keyword', normalized)
+        .maybeSingle()
+
+      if (findError) throw findError
+
+      if (existing) {
+        const { data, error } = await supabase
+          .from('category_rules')
+          .update({ category_id: categoryId, created_at: now })
+          .eq('couple_id', coupleId)
+          .eq('id', existing.id)
+          .select('*')
+          .single()
+
+        if (error) throw error
+        return rowToCategoryRule(data)
+      }
+
+      const id = generateId()
+      const { data, error } = await supabase
+        .from('category_rules')
+        .insert({
+          id,
+          couple_id: coupleId,
+          keyword: normalized,
+          category_id: categoryId,
+          created_at: now,
+        })
+        .select('*')
+        .single()
+
+      if (error) throw error
+      return rowToCategoryRule(data)
+    },
+
+    async delete(id: string) {
+      const { error } = await supabase
+        .from('category_rules')
+        .delete()
+        .eq('couple_id', coupleId)
+        .eq('id', id)
+
+      if (error) throw error
+    },
+
+    subscribe(callback) {
+      return subscribeToPostgresChanges(supabase, `category-rules-${coupleId}`, {
+        table: 'category_rules',
+        filter: `couple_id=eq.${coupleId}`,
+      }, callback)
+    },
+  }
+
   return {
     movements,
     categories,
     settings,
     imports,
     budgets,
+    categoryRules,
     async getStats() {
       const all = await movements.list()
       return {

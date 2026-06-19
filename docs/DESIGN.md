@@ -61,10 +61,12 @@ const { prefersReducedMotion, motionEnabled, shouldAnimate } = useMotionPreferen
 |-------|-----|-----|
 | `xxs` | 80 | — |
 | `xs` | 120 | Micro-interacciones, focus CSS |
+| `fast` | 150 | Respuestas táctiles rápidas |
 | `sm` | 180 | — |
+| `normal` | 200 | Transiciones generales |
 | `page` | 220 | Entrada de página (`slideUp`) |
 | `pageExit` | 140 | Salida de página |
-| `md` | 280 | Shared layout, barra de presupuesto |
+| `slow`/`md` | 280 | Shared layout, barra de presupuesto, blur entrances |
 | `lg` | 420 | Shimmer de skeletons |
 
 Framer Motion usa **segundos**. Siempre convertir:
@@ -79,10 +81,14 @@ toMotionSeconds(motionDurations.xs)  // 0.12
 
 | Token | Valor | Uso |
 |-------|-------|-----|
-| `standard` | `[0.22, 1, 0.36, 1]` | Botones, chips, shared element |
+| `standard` | `[0.22, 1, 0.36, 1]` | Default para casi todo (botones, chips, shared element) |
+| `out` | `[0.17, 1, 0.32, 1]` | Entradas decorativas |
 | `decel` | `[0, 0, 0.2, 1]` | Entrada de página |
 | `accel` | `[0.4, 0, 0.2, 1]` | Salida de página |
-| `spring` | `[0.34, 1.56, 0.64, 1]` | Toggles (reserva) |
+| `inOut` | `[0.66, 0, 0.34, 1]` | Movimientos simétricos |
+| `spring` | `[0.35, 1.55, 0.65, 1]` | Badges, pops, overshoot |
+
+**Regla:** Nunca usar `ease`, `ease-in-out` ni `linear` como default. Siempre referenciar un token.
 
 ### Transiciones (`motionTransitions`, duration ya en segundos)
 
@@ -98,9 +104,9 @@ toMotionSeconds(motionDurations.xs)  // 0.12
 
 | Helper | Comportamiento |
 |--------|----------------|
-| `getMotionProps('button', shouldAnimate)` | `whileHover: { y: -1 }`, `whileTap: { scale: 0.97 }` |
+| `getMotionProps('button', shouldAnimate)` | `whileHover: { y: -1 }`, `whileTap: { scale: 0.98 }` |
 | `getMotionProps('page', shouldAnimate)` | variantes `slideUp` |
-| `getTapMotionProps(shouldAnimate)` | solo `whileTap: { scale: 0.97 }` (segmented, chips) |
+| `getTapMotionProps(shouldAnimate)` | solo `whileTap: { scale: 0.98 }` (segmented, chips) |
 | `getLayoutTransition(shouldAnimate)` | `sharedElement` o `{ duration: 0 }` |
 | `fieldFocusStyle` | CSS transition border/shadow (120 ms) |
 
@@ -115,7 +121,7 @@ const motion = shouldAnimate && !disabled ? getMotionProps('button', true) : {}
 <MotionButton whileHover={motion.whileHover} whileTap={motion.whileTap} transition={motion.transition} />
 ```
 
-Valores estándar: hover `y: -1`, tap `scale: 0.97`. Disabled → sin props motion.
+Valores estándar: hover `y: -1`, tap `scale: 0.98`. Disabled → sin props motion.
 
 **Transiciones de página (`AnimatePresence`)**
 
@@ -190,6 +196,80 @@ Ver `SegmentedControl.tsx`.
 | Presupuesto | `BudgetProgressBar.tsx` |
 | Modales / alertas | `Dialog.tsx`, `Alert.tsx` |
 
+### Variante `blurIn` (entradas premium)
+
+Nunca usar un fade puro. Las entradas combinan opacity + rise + blur:
+
+```tsx
+// motionVariants.blurIn
+initial: { opacity: 0, y: 6, filter: "blur(2px)" }
+animate: { opacity: 1, y: 0, filter: "blur(0px)" }  // 280ms, standard
+exit:    { opacity: 0, y: -4, filter: "blur(2px)" }
+```
+
+Usar para cards, tooltips, y elementos que "enfocan" al aparecer. Para entradas de página seguir usando `slideUp`.
+
+### Sombras — layered, nunca single
+
+Tokens en `src/index.css`:
+
+```css
+--shadow-card:
+  0 1px 2px rgba(0,0,0,0.05),
+  0 2px 4px rgba(0,0,0,0.02),
+  0 0 0 0.5px rgba(0,0,0,0.08);    /* hairline ring, no border */
+
+--shadow-elevated:
+  0 4px 8px rgba(0,0,0,0.02),
+  0 8px 12px rgba(0,0,0,0.02),
+  0 2px 4px rgba(0,0,0,0.02),
+  0 1px 2px rgba(0,0,0,0.04),
+  0 0 0 0.5px rgba(0,0,0,0.08);
+```
+
+Principios:
+- **Hairline ring** reemplaza border: define borde con luz, no con stroke de 1px.
+- Opacidades 2%–8%. Sombras pesadas se ven baratas.
+- Stack de múltiples blurs a diferentes tamaños: contacto (tight) + ambient (wide).
+- Animar el stack completo en hover (`transition: box-shadow`).
+
+### Física para draggables
+
+Cualquier elemento draggable usa física real:
+- Tracking de velocidad (smoothed) para que flicks tengan peso.
+- Momentum en release: coast to stop, no snap.
+- Soft boundaries: stretch leve en bordes, spring back.
+
+Para contadores animados/números en vivo, usar spring interpolation, no duración fija.
+
+### Snap points (haptics virtuales)
+
+Cuando un draggable tiene valores significativos (meses, presets):
+- Pull-in zone chica, release zone más grande (traba y resiste).
+- Flash/pulse en el label al catchear para micro-feedback.
+
+### Reveal de altura
+
+Usar `grid-template-rows: 0fr → 1fr` para expand/collapse. Nunca `max-height: 9999px`.
+
+```css
+.reveal { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--duration) var(--ease); }
+.reveal[data-open="true"] { grid-template-rows: 1fr; }
+.reveal > * { overflow: hidden; }
+```
+
+Para elementos que se mueven entre containers: FLIP (First-Last-Invert-Play).
+
+### State-driven design
+
+Un componente es un sistema de estados, no una imagen. Siempre considerar:
+**idle → hover → pressed → focus → disabled → loading → success → error**
+
+Micro-interacciones descubiertas en build (no en Figma):
+- Números que ruedan dígito a dígito, no hard-cut.
+- Labels que shimmer (light sweep suave, ~2s loop) mientras cargan — no spinners genéricos.
+- Íconos que cross-fade + scale entre estados (play ↔ pause).
+
 ### Al agregar motion nuevo
 
 1. Leer duración/easing de tokens — no hardcodear ms en componentes
@@ -197,6 +277,7 @@ Ver `SegmentedControl.tsx`.
 3. Preferir `transform` y `opacity`; evitar animar layout salvo `layoutId` explícito
 4. Añadir test en `motion.test.ts` si es helper reusable
 5. Verificar con `prefers-reduced-motion: reduce` y `VITE_ANIMATIONS_ENABLED=false`
+6. Sombras solo desde tokens `--shadow-card` / `--shadow-elevated`; no inventar one-offs
 
 ## Tokens (`src/index.css`)
 

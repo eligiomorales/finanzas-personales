@@ -253,6 +253,28 @@ export interface Database {
         }
         Relationships: EmptyRelationships
       }
+      category_rules: {
+        Row: {
+          id: string
+          couple_id: string
+          keyword: string
+          category_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          couple_id: string
+          keyword: string
+          category_id: string
+          created_at?: string
+        }
+        Update: {
+          keyword?: string
+          category_id?: string
+          created_at?: string
+        }
+        Relationships: EmptyRelationships
+      }
     }
     Views: Record<string, never>
     Functions: {

@@ -1,7 +1,7 @@
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench
  * design-system: DESIGN.md · designed-as-app · enrichment: none */
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useCategories, useImportMutations, useMovementFormHints, useSettings } from '@/hooks/useData'
+import { useCategories, useCategoryRules, useImportMutations, useMovementFormHints, useRuleMutations, useSettings } from '@/hooks/useData'
 import { useRepositories } from '@/contexts/DataContext'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { ImportBatchDefaultsCard } from '@/components/ImportBatchDefaultsCard'
@@ -95,11 +95,13 @@ function ImportFileTypeIcon({
 
 export function ImportPage() {
   const categories = useCategories() ?? []
+  const categoryRules = useCategoryRules() ?? []
   const { movements: hintMovements } = useMovementFormHints()
   const repos = useRepositories()
   const settings = useSettings()
   const persons = useCouplePersons()
   const { confirmImport } = useImportMutations()
+  const { addRule } = useRuleMutations()
 
   const [step, setStep] = useState<Step>('upload')
   const [accountType, setAccountType] = useState<AccountType>('credit')
@@ -153,7 +155,7 @@ export function ImportPage() {
           currency,
         }),
       )
-      const suggestedCat = suggestCategory(row.description, categories)
+      const suggestedCat = suggestCategory(row.description, categories, categoryRules)
       return {
         id: generateId(),
         importId: newImportId,
@@ -732,6 +734,8 @@ export function ImportPage() {
                   onShareChange={(share) => updateItemShare(item.id, share)}
                   onIgnore={() => ignoreItem(item.id)}
                   onRestore={() => restoreItem(item.id)}
+                  categoryRules={categoryRules}
+                  onSaveRule={(keyword, categoryId) => addRule(keyword, categoryId)}
                 />
               ))
             )}

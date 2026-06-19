@@ -67,7 +67,7 @@ export function Dialog({
           aria-labelledby={resolvedTitleId}
           aria-describedby={description ? resolvedDescriptionId : undefined}
           className={cn(
-            'relative w-full max-w-md rounded-t-2xl border border-b-0 border-stone-200/80 bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-xl shadow-stone-300/20 md:rounded-2xl md:border-b md:pb-5',
+            'relative w-full max-w-md rounded-t-2xl border border-b-0 border-stone-200/80 bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-elevated md:rounded-2xl md:border-b md:pb-5',
             className,
           )}
         >
@@ -113,7 +113,7 @@ export function Dialog({
             aria-labelledby={resolvedTitleId}
             aria-describedby={description ? resolvedDescriptionId : undefined}
             className={cn(
-              'relative w-full max-w-md rounded-t-2xl border border-b-0 border-stone-200/80 bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-xl shadow-stone-300/20 md:rounded-2xl md:border-b md:pb-5',
+              'relative w-full max-w-md rounded-t-2xl border border-b-0 border-stone-200/80 bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-elevated md:rounded-2xl md:border-b md:pb-5',
               className,
             )}
             initial={{ opacity: 0, y: 24 }}

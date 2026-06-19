@@ -46,6 +46,7 @@ function RemoteDataSync({ coupleId, repos }: { coupleId: string; repos: Reposito
         scheduleInvalidate(['pendingImports', coupleId])
       }),
       repos.budgets.subscribe(() => scheduleInvalidate(queryKeys.budgets(coupleId))),
+      repos.categoryRules.subscribe(() => scheduleInvalidate(queryKeys.categoryRules(coupleId))),
     ]
 
     return () => {
