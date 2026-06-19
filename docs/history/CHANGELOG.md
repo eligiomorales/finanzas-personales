@@ -4,6 +4,20 @@ Historial append-only de lo construido. El **estado actual** vive en `NEXT.md`; 
 
 ---
 
+## Fase 5.1 — Lista de Movimientos (2026-06-19)
+
+Rediseño de la pantalla `/movimientos`: agrupación por fecha (sin neto diario), cards con `CategoryAvatar`, pill del pagador (opción B), tap → editar, eliminar en formulario.
+
+| Area | Detalle |
+|------|---------|
+| **Agrupación** | `src/lib/movements-grouping.ts` |
+| **UI** | `MovementRow` variant `grouped-card`; skeleton agrupado |
+| **UX** | Sin Editar/Eliminar en lista; delete en `MovementFormPage` |
+
+`npm run ci` verde (208 tests).
+
+---
+
 ## Fase 5 — UI Overhaul (en prod)
 
 Overhaul visual inspirado en Monarch, identidad propia (paleta cálida sage/teal). Sin cambios de lógica en `src/lib/`. Referencia: `docs/DESIGN.md`.

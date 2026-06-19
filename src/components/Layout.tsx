@@ -144,14 +144,23 @@ function AppChrome() {
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col bg-surface-50 md:max-w-2xl lg:max-w-4xl">
       <header className="sticky top-0 z-10 bg-surface-50 px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-1 items-end gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <img src="/duo-wordmark.svg" alt="duo" className="h-10 w-auto shrink-0" />
-            {header.leading && <div className="mb-2.5">{header.leading}</div>}
-            {(header.title || header.subtitle) && (
-              <div className="mb-[7px] min-w-0">
+            {(header.leading || header.title || header.subtitle) && (
+              <div className="flex min-w-0 items-center gap-1.5">
+                {header.leading}
+                {(header.title || header.subtitle) && (
+              <div className="min-w-0">
                 {header.title && (
                   <div className="flex items-baseline gap-1.5">
-                    <h1 className="truncate text-sm font-medium leading-none text-stone-600">
+                    <h1
+                      className={cn(
+                        'truncate leading-none',
+                        header.leading
+                          ? 'text-base font-semibold text-stone-700'
+                          : 'text-sm font-medium text-stone-600',
+                      )}
+                    >
                       {header.title}
                     </h1>
                     {showPersonalBadge && (
@@ -163,6 +172,8 @@ function AppChrome() {
                   <p className="mt-0.5 truncate text-xs leading-none text-stone-500">
                     {header.subtitle}
                   </p>
+                )}
+              </div>
                 )}
               </div>
             )}

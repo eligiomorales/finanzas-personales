@@ -5,14 +5,12 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
-import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { useCategories, useMovement, useMovementFormHints, useSettings, useMovementMutations } from '@/hooks/useData'
-import { getDisplayAmountForView, splitPreset as getSplitPreset, personalSharesFromPayer } from '@/lib/balance'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
+import { splitPreset as getSplitPreset, personalSharesFromPayer } from '@/lib/balance'
 import {
-  formLabelWithName,
   sharePercentLabel,
 } from '@/lib/couple/person-labels'
-import { SUPPORTED_CURRENCIES } from '@/lib/currency'
 import {
   buildNewMovementDefaults,
   getFrequentCategoryIds,
@@ -20,8 +18,7 @@ import {
   splitDistributionLabel,
 } from '@/lib/movement-form-defaults'
 import { buildImportCategoryButtons } from '@/lib/import-display'
-import { formatMovementAmountLinesForView, getCurrencyConfig } from '@/lib/currency'
-import { formatCurrency, formatShortDate, todayISO } from '@/lib/utils'
+import { SUPPORTED_CURRENCIES } from '@/lib/currency'
 import {
   Button,
   Input,
@@ -35,7 +32,6 @@ import { CurrencyAmountInput } from '@/components/CurrencyAmountInput'
 import { ChoiceChip, ChoiceChipGroup } from '@/components/ui/ChoiceChip'
 import { Card } from '@/components/ui/Card'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
-import { movementLayoutId, MovementSummaryBlock } from '@/components/ui/MovementRow'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { SkeletonCard } from '@/components/skeletons/SkeletonCard'
 import { SPLIT_PRESETS } from '@/components/ImportShareControls'
@@ -53,17 +49,21 @@ const MOVEMENT_TYPE_OPTIONS = (['expense', 'income', 'settlement'] as const).map
   label: movementTypeLabels[type],
 }))
 
+const FORM_SPLIT_PRESETS = SPLIT_PRESETS.filter((preset) =>
+  ['50-50', '60-40', 'custom'].includes(preset.value),
+)
+
 export function MovementFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { membership } = useAuth()
   const persons = useCouplePersons()
-  const { mode: expenseViewMode } = useExpenseViewMode()
   const categories = useCategories() ?? []
   const { movements: hintMovements } = useMovementFormHints()
   const { movement: editMovement, isLoading: loadingMovement } = useMovement(id)
   const settings = useSettings()
-  const { createMovement, updateMovement } = useMovementMutations()
+  const { createMovement, updateMovement, deleteMovement } = useMovementMutations()
+  const { confirm, dialog } = useConfirmDialog()
   const [form, setForm] = useState<MovementFormData>(() =>
     buildNewMovementDefaults({ movements: [], displayCurrency: settings?.displayCurrency }),
   )
@@ -71,66 +71,13 @@ export function MovementFormPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formSummary, setFormSummary] = useState('')
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [showAllCategories, setShowAllCategories] = useState(false)
   const initializedNewForm = useRef(false)
   const hydratedEditId = useRef<string | null>(null)
   const isEditing = Boolean(id)
-  const myRole = persons.myRole ?? 'personA'
-  const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
-
-  const editSummary = useMemo(() => {
-    if (!isEditing || !id) return null
-
-    const source = editMovement ?? {
-      type: form.type,
-      amount: form.amount,
-      currency: form.currency,
-      date: form.date,
-      description: form.description,
-      source: 'manual' as const,
-    }
-
-    if (!source.description && !editMovement) return null
-
-    const displayAmount = editMovement
-      ? getDisplayAmountForView(editMovement, myRole, currencyConfig, expenseViewMode)
-      : form.amount
-    const amountLines = editMovement
-      ? formatMovementAmountLinesForView(editMovement, currencyConfig, displayAmount)
-      : {
-          primary: formatCurrency(form.amount, form.currency, { visible: true }),
-          secondary: undefined,
-        }
-    const amountSign =
-      source.type === 'income' ? '+' : source.type === 'expense' ? '-' : ''
-
-    return {
-      description: source.description,
-      date: formatShortDate(source.date),
-      movementType: source.type,
-      amountPrimary: amountLines.primary,
-      amountSecondary: amountLines.secondary,
-      amountSign,
-      imported: editMovement?.source === 'imported',
-      layoutId: movementLayoutId(id),
-    }
-  }, [
-    isEditing,
-    id,
-    editMovement,
-    form.type,
-    form.amount,
-    form.currency,
-    form.date,
-    form.description,
-    myRole,
-    currencyConfig,
-    expenseViewMode,
-  ])
-
   const personAName = persons.personAName
   const personBName = persons.personBName
-  const formLabel = (role: 'personA' | 'personB') => formLabelWithName(role, persons)
   const selectedTypeLabel = movementTypeLabels[form.type]
 
   useEffect(() => {
@@ -175,7 +122,7 @@ export function MovementFormPage() {
   )
 
   const frequentCategoryIds = useMemo(
-    () => getFrequentCategoryIds(hintMovements, form.type, 3),
+    () => getFrequentCategoryIds(hintMovements, form.type, 2),
     [hintMovements, form.type],
   )
 
@@ -186,7 +133,7 @@ export function MovementFormPage() {
         frequentCategoryIds,
         form.categoryId,
         null,
-        3,
+        2,
       ),
     [filteredCategories, frequentCategoryIds, form.categoryId],
   )
@@ -228,6 +175,25 @@ export function MovementFormPage() {
       navigate('/movimientos')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!id) return
+    const confirmed = await confirm({
+      title: 'Eliminar movimiento',
+      description: 'Esta acción no se puede deshacer. ¿Querés eliminar este movimiento?',
+      confirmLabel: 'Eliminar',
+      cancelLabel: 'Cancelar',
+      variant: 'danger',
+    })
+    if (!confirmed) return
+    setDeleting(true)
+    try {
+      await deleteMovement(id)
+      navigate('/movimientos')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -293,36 +259,6 @@ export function MovementFormPage() {
     setForm((f) => ({ ...f, currency }))
   }
 
-  function repartoPreviewText(): string | null {
-    if (form.amount <= 0) return null
-    const amountLabel = formatCurrency(form.amount, form.currency, { visible: true })
-    const payer = form.paidBy === 'both' ? 'Ambos' : formLabel(form.paidBy)
-
-    if (form.type === 'income') {
-      return `${payer} recibió ${amountLabel}`
-    }
-
-    if (form.type === 'settlement') {
-      return `${payer} registra ${amountLabel}`
-    }
-
-    if (!form.isShared) {
-      return `${payer} pagó ${amountLabel} · asume ${amountLabel}`
-    }
-
-    const assumeA = (form.amount * form.sharePersonA) / 100
-    const assumeB = (form.amount * form.sharePersonB) / 100
-
-    if (Math.abs(form.sharePersonA - form.sharePersonB) < 0.01) {
-      return `${payer} pagó ${amountLabel} · cada uno asume ${formatCurrency(assumeA, form.currency, { visible: true })}`
-    }
-
-    return `${payer} pagó ${amountLabel} · ${personAName} ${formatCurrency(assumeA, form.currency, { visible: true })} · ${personBName} ${formatCurrency(assumeB, form.currency, { visible: true })}`
-  }
-
-  const previewText = repartoPreviewText()
-  const dateLabel = form.date === todayISO() ? 'Hoy' : form.date
-
   const payerOptions = useMemo(
     () => [
       { value: 'personA' as const, label: personAName },
@@ -333,13 +269,15 @@ export function MovementFormPage() {
 
   return (
     <div className="space-y-4">
+      {dialog}
+
       <PageHeader
         title={isEditing ? 'Editar' : selectedTypeLabel}
         leading={
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="mt-0.5 rounded-lg text-stone-500 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-stone-600 hover:text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
             aria-label="Volver"
           >
             ←
@@ -358,12 +296,6 @@ export function MovementFormPage() {
         <SkeletonCard />
       ) : (
         <>
-      {editSummary && (
-        <Card compact className="!p-3">
-          <MovementSummaryBlock {...editSummary} />
-        </Card>
-      )}
-
       <div>
         <CurrencyAmountInput
           id="amount"
@@ -373,6 +305,7 @@ export function MovementFormPage() {
           variant="bare"
           invalid={Boolean(errors.amount)}
           autoFocus={!isEditing}
+          className="pl-5 sm:pl-8"
           aria-describedby={describedBy(errors.amount && 'amount-error')}
           onChange={(amount) => setForm({ ...form, amount })}
           trailing={
@@ -391,11 +324,12 @@ export function MovementFormPage() {
       </div>
 
       <Card compact className="min-w-0 overflow-x-clip">
-        <form onSubmit={handleSubmit} noValidate className="space-y-5" aria-describedby={formSummary ? 'movement-form-summary' : undefined}>
+        <form onSubmit={handleSubmit} noValidate aria-describedby={formSummary ? 'movement-form-summary' : undefined}>
           <LiveRegion politeness="assertive">{formSummary}</LiveRegion>
           {formSummary && <FieldError id="movement-form-summary">{formSummary}</FieldError>}
 
-          <FormGroup className="!mb-0">
+          <div className="flex flex-col gap-7">
+            <FormGroup className="!mb-0">
               <Label htmlFor="description">Concepto</Label>
               <Input
                 id="description"
@@ -409,7 +343,7 @@ export function MovementFormPage() {
             </FormGroup>
 
             {form.type !== 'settlement' && (
-              <div>
+              <FormGroup className="!mb-0">
                 {form.type === 'income' ? (
                   <ChoiceChipGroup
                     label="Categoría"
@@ -431,7 +365,7 @@ export function MovementFormPage() {
                   </ChoiceChipGroup>
                 ) : (
                   <>
-                    <span id="category-label" className="mb-1.5 block text-sm font-medium text-stone-700">
+                    <span id="category-label" className="mb-1 block text-sm font-medium text-stone-700">
                       Categoría
                     </span>
                     <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="category-label">
@@ -472,12 +406,12 @@ export function MovementFormPage() {
                   </>
                 )}
                 {errors.categoryId && <FieldError id="category-error">{errors.categoryId}</FieldError>}
-              </div>
+              </FormGroup>
             )}
 
             {form.type === 'income' && (
               <FormGroup className="!mb-0">
-                <Label className="mb-1.5">{payerFieldLabel('income')}</Label>
+                <Label>{payerFieldLabel('income')}</Label>
                 <SegmentedControl
                   aria-label={payerFieldLabel('income')}
                   options={payerOptions}
@@ -489,127 +423,106 @@ export function MovementFormPage() {
             )}
 
             {form.type !== 'income' && (
-              <div className="space-y-4">
-                <FormGroup className="!mb-0">
-                  <Label className="mb-1.5">{payerFieldLabel(form.type)}</Label>
-                  <SegmentedControl
-                    aria-label={payerFieldLabel(form.type)}
-                    options={payerOptions}
-                    value={form.paidBy === 'personB' ? 'personB' : 'personA'}
-                    onChange={(value) => handlePaidByChange(value)}
-                    size="sm"
-                  />
-                </FormGroup>
+              <FormGroup className="!mb-0">
+                <Label>{payerFieldLabel(form.type)}</Label>
+                <SegmentedControl
+                  aria-label={payerFieldLabel(form.type)}
+                  options={payerOptions}
+                  value={form.paidBy === 'personB' ? 'personB' : 'personA'}
+                  onChange={(value) => handlePaidByChange(value)}
+                  size="sm"
+                />
+              </FormGroup>
+            )}
 
-                {form.type !== 'settlement' && (
-                  <>
-                    <div className="flex items-center justify-between gap-3 pt-1">
-                      <Label htmlFor="is-shared" className="!mb-0">
-                        Compartido
-                      </Label>
-                      <button
-                        id="is-shared"
-                        type="button"
-                        role="switch"
-                        aria-checked={form.isShared}
-                        onClick={() => handleSharedChange(!form.isShared)}
-                        className={cn(
-                          'relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
-                          form.isShared ? 'bg-brand-600' : 'bg-stone-300',
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform',
-                            form.isShared ? 'left-[22px]' : 'left-0.5',
-                          )}
-                        />
-                      </button>
-                    </div>
-
-                    {form.isShared && (
-                      <>
-                        <ChoiceChipGroup
-                          label={splitDistributionLabel(form.type)}
-                          labelId="split-preset-label"
-                          role="radiogroup"
-                          className="flex flex-wrap gap-1.5"
-                        >
-                          {SPLIT_PRESETS.map((preset) => (
-                            <ChoiceChip
-                              key={preset.value}
-                              role="radio"
-                              size="sm"
-                              shape="pill"
-                              selected={splitPreset === preset.value}
-                              onClick={() => handleSplitPreset(preset.value)}
-                            >
-                              {preset.label}
-                            </ChoiceChip>
-                          ))}
-                        </ChoiceChipGroup>
-
-                        {splitPreset === 'custom' && (
-                          <div className="grid grid-cols-2 gap-3">
-                            <FormGroup className="!mb-0">
-                              <Label htmlFor="share-person-a">{sharePercentLabel('personA', persons)}</Label>
-                              <Input
-                                id="share-person-a"
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={form.sharePersonA}
-                                aria-describedby={describedBy(
-                                  errors.share && 'share-error',
-                                  previewText && 'reparto-preview',
-                                )}
-                                onChange={(e) => {
-                                  const a = parseFloat(e.target.value) || 0
-                                  setForm({ ...form, sharePersonA: a, sharePersonB: 100 - a })
-                                }}
-                              />
-                            </FormGroup>
-                            <FormGroup className="!mb-0">
-                              <Label htmlFor="share-person-b">{sharePercentLabel('personB', persons)}</Label>
-                              <Input
-                                id="share-person-b"
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={form.sharePersonB}
-                                aria-describedby={describedBy(
-                                  errors.share && 'share-error',
-                                  previewText && 'reparto-preview',
-                                )}
-                                onChange={(e) => {
-                                  const b = parseFloat(e.target.value) || 0
-                                  setForm({ ...form, sharePersonB: b, sharePersonA: 100 - b })
-                                }}
-                              />
-                            </FormGroup>
-                          </div>
-                        )}
-                        {errors.share && <FieldError id="share-error">{errors.share}</FieldError>}
-                      </>
+            {form.type !== 'income' && form.type !== 'settlement' && (
+              <div className="flex items-center gap-2">
+                <Label htmlFor="is-shared" className="!mb-0">
+                  Compartido
+                </Label>
+                <button
+                  id="is-shared"
+                  type="button"
+                  role="switch"
+                  aria-checked={form.isShared}
+                  onClick={() => handleSharedChange(!form.isShared)}
+                  className={cn(
+                    'relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100',
+                    form.isShared ? 'bg-brand-600' : 'bg-stone-300',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform',
+                      form.isShared ? 'left-[22px]' : 'left-0.5',
                     )}
-                  </>
-                )}
+                  />
+                </button>
+              </div>
+            )}
 
-                {previewText && (
-                  <p id="reparto-preview" className="text-xs text-stone-500">
-                    {previewText}
-                  </p>
+            {form.type !== 'income' && form.type !== 'settlement' && form.isShared && (
+              <div>
+                <ChoiceChipGroup
+                  label={splitDistributionLabel(form.type)}
+                  labelId="split-preset-label"
+                  role="radiogroup"
+                  className="flex flex-wrap gap-1.5"
+                >
+                  {FORM_SPLIT_PRESETS.map((preset) => (
+                    <ChoiceChip
+                      key={preset.value}
+                      role="radio"
+                      size="sm"
+                      shape="pill"
+                      selected={splitPreset === preset.value}
+                      onClick={() => handleSplitPreset(preset.value)}
+                    >
+                      {preset.label}
+                    </ChoiceChip>
+                  ))}
+                </ChoiceChipGroup>
+
+                {splitPreset === 'custom' && (
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <FormGroup className="!mb-0">
+                      <Label htmlFor="share-person-a">{sharePercentLabel('personA', persons)}</Label>
+                      <Input
+                        id="share-person-a"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={form.sharePersonA}
+                        aria-describedby={describedBy(errors.share && 'share-error')}
+                        onChange={(e) => {
+                          const a = parseFloat(e.target.value) || 0
+                          setForm({ ...form, sharePersonA: a, sharePersonB: 100 - a })
+                        }}
+                      />
+                    </FormGroup>
+                    <FormGroup className="!mb-0">
+                      <Label htmlFor="share-person-b">{sharePercentLabel('personB', persons)}</Label>
+                      <Input
+                        id="share-person-b"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={form.sharePersonB}
+                        aria-describedby={describedBy(errors.share && 'share-error')}
+                        onChange={(e) => {
+                          const b = parseFloat(e.target.value) || 0
+                          setForm({ ...form, sharePersonB: b, sharePersonA: 100 - b })
+                        }}
+                      />
+                    </FormGroup>
+                  </div>
                 )}
+                {errors.share && <FieldError id="share-error">{errors.share}</FieldError>}
               </div>
             )}
 
             <FormGroup className="!mb-0">
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <Label htmlFor="date" className="!mb-0">
-                  Fecha
-                </Label>
-                <span className="text-xs text-stone-500">{dateLabel}</span>
-              </div>
+              <Label htmlFor="date">Fecha</Label>
               <div className="min-w-0 max-w-full overflow-hidden rounded-lg border border-stone-300 bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
                 <Input
                   id="date"
@@ -623,14 +536,40 @@ export function MovementFormPage() {
               </div>
               {errors.date && <FieldError id="date-error">{errors.date}</FieldError>}
             </FormGroup>
+          </div>
 
-            <div className="flex gap-2 border-t border-stone-200/80 pt-4">
-              <Button type="submit" disabled={saving} className="min-w-0 flex-1" aria-live="polite">
-                {saving ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Registrar'}
-              </Button>
-              <Button type="button" variant="secondary" disabled={saving} onClick={() => navigate(-1)} className="shrink-0">
-                Cancelar
-              </Button>
+          <div className="mt-7 space-y-3 border-t border-stone-200/80 pt-4">
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  disabled={saving || deleting}
+                  className="min-w-0 flex-1"
+                  aria-live="polite"
+                >
+                  {saving ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Registrar'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={saving || deleting}
+                  onClick={() => navigate(-1)}
+                  className="shrink-0"
+                >
+                  Cancelar
+                </Button>
+              </div>
+              {isEditing && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full text-red-700 hover:bg-red-50"
+                  disabled={saving || deleting}
+                  aria-busy={deleting}
+                  onClick={handleDelete}
+                >
+                  {deleting ? 'Eliminando...' : 'Eliminar movimiento'}
+                </Button>
+              )}
             </div>
         </form>
       </Card>

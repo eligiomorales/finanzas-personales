@@ -1,8 +1,10 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { PeriodFilter } from '@/components/PeriodFilter'
-import { FacetMenu, FilterFacet, FacetOptionItem, type FacetOption } from '@/components/FacetDropdown'
+import { FacetMenu } from '@/components/FacetDropdown'
+import { ChoiceChip, ChoiceChipGroup } from '@/components/ui/ChoiceChip'
 import { Button, Input } from '@/components/ui/Form'
+import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel'
 import { Dialog } from '@/components/ui/Dialog'
 import { FilterChips, type FilterChip } from '@/components/ui/FilterChips'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -63,6 +65,36 @@ function advancedFiltersActiveCount(filters: MovementFilters): number {
   return n
 }
 
+function ChipFilter({
+  label,
+  labelId,
+  options,
+  value,
+  onChange,
+}: {
+  label: string
+  labelId: string
+  options: { value: string; label: string }[]
+  value: string
+  onChange: (next: string | undefined) => void
+}) {
+  return (
+    <ChoiceChipGroup label={label} labelId={labelId} role="radiogroup" className="flex flex-wrap gap-2">
+      {options.map((opt) => (
+        <ChoiceChip
+          key={opt.value || '__all'}
+          role="radio"
+          size="sm"
+          selected={(value ?? '') === opt.value}
+          onClick={() => onChange(opt.value || undefined)}
+        >
+          {opt.label}
+        </ChoiceChip>
+      ))}
+    </ChoiceChipGroup>
+  )
+}
+
 export function MovementFilterToolbar({
   filters,
   onChange,
@@ -75,13 +107,13 @@ export function MovementFilterToolbar({
   const [searchDraft, setSearchDraft] = useState(filters.search ?? '')
   const [openFacet, setOpenFacet] = useState<string | null>(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [categoryPanelOpen, setCategoryPanelOpen] = useState(false)
   const searchId = useId()
   const filtersRef = useRef(filters)
   filtersRef.current = filters
 
   const { period, setPeriod } = usePeriod()
   const periodTitle = useMemo(() => formatPeriodHeaderTitle(period), [period])
-  const moreActive = moreFiltersActiveCount(filters)
   const advancedActive = advancedFiltersActiveCount(filters)
 
   useEffect(() => {
@@ -97,117 +129,122 @@ export function MovementFilterToolbar({
     return () => window.clearTimeout(timer)
   }, [searchDraft, onChange])
 
-  const typeOptions: FacetOption[] = [
-    { value: '', label: 'Todos los tipos' },
+  useEffect(() => {
+    if (!showAdvanced) setCategoryPanelOpen(false)
+  }, [showAdvanced])
+
+  const typeOptions = [
+    { value: '', label: 'Todos' },
     { value: 'income', label: 'Ingreso' },
     { value: 'expense', label: 'Gasto' },
     { value: 'settlement', label: 'Liquidación' },
   ]
 
-  const categoryOptions: FacetOption[] = [
-    { value: '', label: 'Todas las categorías' },
-    ...categories.map((c) => ({ value: c.id, label: c.name })),
-  ]
-
-  const paidByOptions: FacetOption[] = [
+  const paidByOptions = [
     { value: '', label: 'Todos' },
     { value: 'personA', label: formLabelWithName('personA', persons) },
     { value: 'personB', label: formLabelWithName('personB', persons) },
-    { value: 'both', label: 'Ambos' },
+  ]
+
+  const sharedOptions = [
+    { value: '', label: 'Todos' },
+    { value: 'true', label: 'Compartido' },
+    { value: 'false', label: 'Personal' },
+  ]
+
+  const currencyOptions = [
+    { value: '', label: 'Todas' },
+    { value: 'ARS', label: 'ARS' },
+    { value: 'USD', label: 'USD' },
   ]
 
   function patch(patch: Partial<MovementFilters>) {
     onChange({ ...filters, ...patch })
   }
 
-  const dialogFacetClassName = 'w-full justify-between py-2.5 text-sm'
+  const sharedFilterValue =
+    filters.isShared === undefined ? '' : filters.isShared ? 'true' : 'false'
+
+  const categorySummary =
+    categories.find((c) => c.id === filters.categoryId)?.name ?? 'Todas las categorías'
 
   const advancedFilters = (
     <div
       id="movements-advanced-filters"
-      className="grid grid-cols-2 gap-3"
+      className="space-y-5"
       role="group"
       aria-label="Filtros por criterio"
     >
-      <FacetMenu
-        facetId="type"
+      <ChipFilter
         label="Tipo"
+        labelId="movements-filter-type"
         value={filters.type ?? ''}
         options={typeOptions}
-        openFacet={openFacet}
-        setOpenFacet={setOpenFacet}
         onChange={(v) => patch({ type: (v as MovementType) || undefined })}
-        buttonClassName={dialogFacetClassName}
       />
-      <FacetMenu
-        facetId="category"
-        label="Categoría"
-        value={filters.categoryId ?? ''}
-        options={categoryOptions}
-        openFacet={openFacet}
-        setOpenFacet={setOpenFacet}
-        onChange={(v) => patch({ categoryId: v || undefined })}
-        buttonClassName={dialogFacetClassName}
-      />
-      <FacetMenu
-        facetId="paidBy"
+
+      <ChipFilter
         label="Pagó"
-        value={filters.paidBy ?? ''}
+        labelId="movements-filter-paid-by"
+        value={filters.paidBy === 'both' ? '' : (filters.paidBy ?? '')}
         options={paidByOptions}
-        openFacet={openFacet}
-        setOpenFacet={setOpenFacet}
         onChange={(v) => patch({ paidBy: (v as Payer) || undefined })}
-        buttonClassName={dialogFacetClassName}
       />
-      <FilterFacet
-        label={moreActive > 0 ? `Más (${moreActive})` : 'Más'}
-        active={moreActive > 0}
-        open={openFacet === 'more'}
-        onOpen={() => setOpenFacet('more')}
-        onClose={() => setOpenFacet(null)}
-        buttonClassName={dialogFacetClassName}
+
+      <ChipFilter
+        label="Alcance"
+        labelId="movements-filter-shared"
+        value={sharedFilterValue}
+        options={sharedOptions}
+        onChange={(v) =>
+          patch({
+            isShared: v === '' ? undefined : v === 'true',
+          })
+        }
+      />
+
+      <ChipFilter
+        label="Moneda"
+        labelId="movements-filter-currency"
+        value={filters.currency ?? ''}
+        options={currencyOptions}
+        onChange={(v) => patch({ currency: (v as CurrencyCode) || undefined })}
+      />
+
+      <CollapsiblePanel
+        title="Categoría"
+        summary={categorySummary}
+        open={categoryPanelOpen}
+        onOpenChange={setCategoryPanelOpen}
+        contentClassName="border-0 p-0"
+        className={cn(filters.categoryId && !categoryPanelOpen && 'rounded-lg ring-1 ring-brand-200')}
       >
-        <li className="px-3 py-2 text-xs font-semibold text-stone-500">Compartido</li>
-        {(
-          [
-            { value: '', label: 'Todos' },
-            { value: 'true', label: 'Compartido' },
-            { value: 'false', label: 'Personal' },
-          ] as FacetOption[]
-        ).map((opt) => (
-          <FacetOptionItem
-            key={`shared-${opt.value || 'all'}`}
-            selected={
-              filters.isShared === undefined
-                ? opt.value === ''
-                : String(filters.isShared) === opt.value
-            }
-            onSelect={() =>
-              patch({
-                isShared: opt.value === '' ? undefined : opt.value === 'true',
-              })
-            }
+        <div
+          role="radiogroup"
+          aria-label="Categoría"
+          className="flex max-h-60 touch-pan-y flex-wrap gap-2 overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]"
+        >
+          <ChoiceChip
+            role="radio"
+            size="sm"
+            selected={!filters.categoryId}
+            onClick={() => patch({ categoryId: undefined })}
           >
-            {opt.label}
-          </FacetOptionItem>
-        ))}
-        <li className="border-t border-stone-100 px-3 py-2 text-xs font-semibold text-stone-500">Moneda</li>
-        {(
-          [
-            { value: '', label: 'Todas' },
-            { value: 'ARS', label: 'ARS' },
-            { value: 'USD', label: 'USD' },
-          ] as FacetOption[]
-        ).map((opt) => (
-          <FacetOptionItem
-            key={`currency-${opt.value || 'all'}`}
-            selected={(filters.currency ?? '') === opt.value}
-            onSelect={() => patch({ currency: (opt.value as CurrencyCode) || undefined })}
-          >
-            {opt.label}
-          </FacetOptionItem>
-        ))}
-      </FilterFacet>
+            Todas
+          </ChoiceChip>
+          {categories.map((cat) => (
+            <ChoiceChip
+              key={cat.id}
+              role="radio"
+              size="sm"
+              selected={filters.categoryId === cat.id}
+              onClick={() => patch({ categoryId: cat.id })}
+            >
+              {cat.name}
+            </ChoiceChip>
+          ))}
+        </div>
+      </CollapsiblePanel>
     </div>
   )
 
@@ -223,7 +260,7 @@ export function MovementFilterToolbar({
         />
       </PageHeader>
 
-      <div className="space-y-2 rounded-xl border border-stone-200/80 bg-white p-2 shadow-sm shadow-stone-200/40">
+      <div className="space-y-2">
         <div className="relative">
           <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
           <Input
@@ -233,7 +270,7 @@ export function MovementFilterToolbar({
             aria-label="Buscar movimientos"
             placeholder="Buscar movimientos, categorías, importes..."
             value={searchDraft}
-            className="border-stone-200 py-2 pl-9 pr-9 text-sm"
+            className="border-stone-200/80 bg-white py-2 pl-9 pr-9 text-sm"
             onChange={(e) => setSearchDraft(e.target.value)}
           />
           {searchDraft.length > 0 && (
@@ -259,10 +296,7 @@ export function MovementFilterToolbar({
                 ? 'border-brand-600 bg-brand-50 text-brand-800'
                 : 'border-stone-300 bg-white text-stone-700 hover:bg-surface-50',
             )}
-            onClick={() => {
-              setOpenFacet(null)
-              setShowAdvanced(true)
-            }}
+            onClick={() => setShowAdvanced(true)}
           >
             Filtros
             {advancedActive > 0 && (
@@ -302,26 +336,16 @@ export function MovementFilterToolbar({
 
       <Dialog
         open={showAdvanced}
-        onClose={() => {
-          setOpenFacet(null)
-          setShowAdvanced(false)
-        }}
+        onClose={() => setShowAdvanced(false)}
         title="Filtros"
         className="max-w-lg"
       >
         {advancedFilters}
-        <div className="mt-5 flex items-center justify-between gap-2">
+        <div className="mt-5 flex items-center justify-between gap-2 border-t border-stone-100 pt-4">
           <Button type="button" variant="ghost" size="sm" onClick={onClearFilters}>
             Restablecer
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => {
-              setOpenFacet(null)
-              setShowAdvanced(false)
-            }}
-          >
+          <Button type="button" size="sm" onClick={() => setShowAdvanced(false)}>
             Ver movimientos
           </Button>
         </div>

@@ -4,6 +4,7 @@ import {
   formLabelForRole,
   formLabelWithName,
   payerDisplayLabel,
+  payerListLabel,
   buildDefaultImportShare,
 } from '@/lib/couple/person-labels'
 
@@ -54,6 +55,12 @@ describe('form labels', () => {
   it('muestra Yo en listas cuando corresponde', () => {
     expect(payerDisplayLabel('personB', view)).toBe('Yo')
     expect(payerDisplayLabel('personA', view)).toBe('Mi pareja')
+  })
+
+  it('payerListLabel usa nombres reales en la lista de movimientos', () => {
+    expect(payerListLabel('personB', view)).toBe('Juan')
+    expect(payerListLabel('personA', view)).toBe('Ana')
+    expect(payerListLabel('both', view)).toBe('Ambos')
   })
 })
 
