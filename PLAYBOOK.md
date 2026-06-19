@@ -248,20 +248,7 @@ Features de producto solo entran si están en uso propio: reglas de categorizaci
 
 ## 14. Bootstrapping un repo nuevo (futuro)
 
-Copiar al iniciar otro emprendimiento:
-
-```
-.cursor/rules/          → karpathy + ponytail + context-router
-AGENTS.md               → mapa de contexto
-PLAYBOOK.md             → recortar secciones específicas de Finanzas Pareja
-NEXT.md                 → vacío con estructura
-docs/decisions/0000-template.md
-templates/feature-brief.md
-.github/workflows/ci.yml
-backlog/                → vacío
-```
-
-Stack mínimo recomendado: TypeScript + Vite/React + CI + un doc de handoff (`NEXT.md`) + rules + `AGENTS.md`.
+Copiá desde `C:\Users\ELIGIO\Documents\project-template-cursor` (template mantenido fuera del repo). Ver `LEEME.md` en esa carpeta.
 
 ---
 
