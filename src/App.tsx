@@ -5,6 +5,7 @@ import { AmountsVisibilityProvider } from '@/contexts/AmountsVisibilityContext'
 import { ExpenseViewProvider } from '@/contexts/ExpenseViewContext'
 import { MovementFiltersProvider } from '@/contexts/MovementFiltersContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { MotionProvider } from '@/components/MotionProvider'
 import { Layout } from '@/components/Layout'
 import { LoadingState } from '@/components/ui/PageShell'
 import { DashboardPage } from '@/pages/DashboardPage'
@@ -88,7 +89,9 @@ export function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <AuthenticatedApp />
+        <MotionProvider>
+          <AuthenticatedApp />
+        </MotionProvider>
       </BrowserRouter>
     </ErrorBoundary>
   )

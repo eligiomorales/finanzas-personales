@@ -11,6 +11,7 @@ import {
   normalizeDescription,
   parseAmount,
   parseDate,
+  suggestCategory,
 } from '@/lib/import'
 
 const fixtureDir = join(dirname(fileURLToPath(import.meta.url)), 'fixtures')
@@ -61,6 +62,28 @@ describe('normalizeDescription', () => {
     expect(
       normalizeDescription(' COMPRA DEBITO\n SAN ANTONIO\n 4517XXXXXXXXXX73\n A105\n'),
     ).toBe('COMPRA DEBITO\nSAN ANTONIO\n4517XXXXXXXXXX73\nA105')
+  })
+})
+
+describe('suggestCategory', () => {
+  const categories = [
+    { id: 'cat-super', name: 'Supermercado', type: 'expense' },
+    { id: 'cat-resto', name: 'Restaurantes', type: 'expense' },
+    { id: 'cat-otros', name: 'Otros', type: 'expense' },
+  ]
+
+  it('uses hardcoded keywords when no user rules', () => {
+    expect(suggestCategory('COMPRA CARREFOUR', categories)).toBe('cat-super')
+  })
+
+  it('user rule overrides hardcoded keyword match', () => {
+    const rules = [{ keyword: 'carrefour', categoryId: 'cat-resto' }]
+    expect(suggestCategory('COMPRA CARREFOUR', categories, rules)).toBe('cat-resto')
+  })
+
+  it('matches user rules case-insensitively', () => {
+    const rules = [{ keyword: 'farmacity', categoryId: 'cat-resto' }]
+    expect(suggestCategory('FARMACITY SA', categories, rules)).toBe('cat-resto')
   })
 })
 

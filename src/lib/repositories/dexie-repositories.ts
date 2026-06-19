@@ -14,6 +14,7 @@ import {
 } from '@/lib/movements-query'
 import type {
   CategoryRepository,
+  CategoryRulesRepository,
   ConfirmImportInput,
   DatabaseStats,
   ImportRepository,
@@ -26,7 +27,8 @@ import type {
 } from '@/lib/repositories/types'
 import { generateId } from '@/lib/utils'
 import { RECURRING_BUDGET_MONTH } from '@/lib/budget'
-import type { CategoryBudget, CurrencyCode, Movement, MovementFilters, MovementFormData } from '@/types'
+import { normalizeRuleKeyword } from '@/lib/category-rules'
+import type { CategoryBudget, CategoryRule, CurrencyCode, Movement, MovementFilters, MovementFormData } from '@/types'
 
 function noopSubscribe(_callback: () => void): () => void {
   return () => {}
@@ -228,6 +230,42 @@ class DexieBudgetRepository implements BudgetRepository {
   subscribe = noopSubscribe
 }
 
+class DexieCategoryRulesRepository implements CategoryRulesRepository {
+  async list() {
+    const rules = await db.categoryRules.toArray()
+    return rules.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  }
+
+  async add(keyword: string, categoryId: string) {
+    const normalized = normalizeRuleKeyword(keyword)
+    if (!normalized) throw new Error('La palabra clave no puede estar vacía.')
+
+    const existing = await db.categoryRules.where('keyword').equals(normalized).first()
+    const now = new Date().toISOString()
+
+    if (existing) {
+      const updated: CategoryRule = { ...existing, categoryId, createdAt: now }
+      await db.categoryRules.put(updated)
+      return updated
+    }
+
+    const rule: CategoryRule = {
+      id: generateId(),
+      keyword: normalized,
+      categoryId,
+      createdAt: now,
+    }
+    await db.categoryRules.add(rule)
+    return rule
+  }
+
+  async delete(id: string) {
+    await db.categoryRules.delete(id)
+  }
+
+  subscribe = noopSubscribe
+}
+
 async function getDexieStats(): Promise<DatabaseStats> {
   const movements = await db.movements.toArray()
   return {
@@ -248,6 +286,7 @@ export function createDexieRepositories(): Repositories {
       settings: new DexieSettingsRepository(),
       imports: new DexieImportRepository(),
       budgets: new DexieBudgetRepository(),
+      categoryRules: new DexieCategoryRulesRepository(),
       getStats: getDexieStats,
     }
   }

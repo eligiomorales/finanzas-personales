@@ -56,7 +56,7 @@ describe('getMotionProps', () => {
   it('returns button micro-interaction props when shouldAnimate is true', () => {
     expect(getMotionProps('button', true)).toEqual({
       whileHover: { y: -1 },
-      whileTap: { scale: 0.97 },
+      whileTap: { scale: 0.98 },
       transition: motionTransitions.microInteraction,
     })
   })
@@ -91,7 +91,7 @@ describe('getTapMotionProps', () => {
 
   it('returns tap scale when shouldAnimate is true', () => {
     expect(getTapMotionProps(true)).toEqual({
-      whileTap: { scale: 0.97 },
+      whileTap: { scale: 0.98 },
       transition: motionTransitions.microInteraction,
     })
   })

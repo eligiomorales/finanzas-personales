@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/Card'
 import { useAmountsVisibility, useAmountsVisible } from '@/contexts/AmountsVisibilityContext'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { LayoutHeaderProvider, useLayoutHeaderContext } from '@/contexts/LayoutHeaderContext'
+import { useMotionPreferences } from '@/hooks/useMotionPreferences'
 import { cn } from '@/lib/utils'
 import { focusRing } from '@/components/ui/styles'
 
@@ -129,6 +130,7 @@ function RoutedContent() {
 
 function AppChrome() {
   const location = useLocation()
+  const { shouldAnimate } = useMotionPreferences()
   const { isPersonal } = useExpenseViewMode()
   const { visible: amountsVisible, toggle: toggleAmountsVisibility } = useAmountsVisibility()
   const { active: header } = useLayoutHeaderContext()
@@ -260,7 +262,7 @@ function AppChrome() {
             'fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] right-5 z-20',
             'flex h-[52px] w-[52px] items-center justify-center rounded-full',
             'bg-brand-600 text-2xl text-white shadow-lg shadow-brand-600/25',
-            'transition-transform hover:scale-105 active:scale-95',
+            shouldAnimate && 'transition-transform hover:scale-105 active:scale-95',
             focusRing,
           )}
           aria-label="Nuevo movimiento"

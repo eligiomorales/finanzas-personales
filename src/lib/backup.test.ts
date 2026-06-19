@@ -96,6 +96,17 @@ describe('exportDatabaseFromRepositories', () => {
         delete: async () => {},
         subscribe: () => () => {},
       },
+      categoryRules: {
+        list: async () => [],
+        add: async () => ({
+          id: 'r1',
+          keyword: 'farmacity',
+          categoryId: 'c1',
+          createdAt: '2026-06-01T00:00:00.000Z',
+        }),
+        delete: async () => {},
+        subscribe: () => () => {},
+      },
       getStats: async () => ({ total: 1, settlements: 0, expenses: 1, incomes: 0 }),
     }
 

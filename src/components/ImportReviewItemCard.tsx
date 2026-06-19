@@ -7,7 +7,8 @@ import {
 } from '@/components/ImportShareControls'
 import { Badge } from '@/components/ui/Card'
 import { ChoiceChip } from '@/components/ui/ChoiceChip'
-import { Button } from '@/components/ui/Form'
+import { Button, Input, Label } from '@/components/ui/Form'
+import { ruleKeywordMatchesDescription } from '@/lib/category-rules'
 import {
   buildImportCategoryButtons,
   importItemTitle,
@@ -20,7 +21,7 @@ import { formatMovementAmount } from '@/lib/currency'
 import type { CouplePersonsView } from '@/lib/couple/person-labels'
 import { payerDisplayLabel } from '@/lib/couple/person-labels'
 import { cn, formatShortDate, movementAmountColor } from '@/lib/utils'
-import type { Category, CurrencyCode } from '@/types'
+import type { Category, CategoryRule, CurrencyCode } from '@/types'
 
 const EXTRACT_PREVIEW_LINES = 3
 const PRIMARY_CATEGORY_LIMIT = 4
@@ -36,6 +37,8 @@ interface ImportReviewItemCardProps {
   onShareChange: (share: ImportShareValues) => void
   onIgnore: () => void
   onRestore: () => void
+  categoryRules?: CategoryRule[]
+  onSaveRule?: (keyword: string, categoryId: string) => Promise<unknown>
 }
 
 export function ImportReviewItemCard({
@@ -49,12 +52,19 @@ export function ImportReviewItemCard({
   onShareChange,
   onIgnore,
   onRestore,
+  categoryRules = [],
+  onSaveRule,
 }: ImportReviewItemCardProps) {
   const [editOpen, setEditOpen] = useState(false)
   const [extractOpen, setExtractOpen] = useState(false)
   const [extractFull, setExtractFull] = useState(false)
   const [showAllCategories, setShowAllCategories] = useState(false)
   const [shareEdited, setShareEdited] = useState(false)
+  const [saveRuleOpen, setSaveRuleOpen] = useState(false)
+  const [saveRuleKeyword, setSaveRuleKeyword] = useState('')
+  const [saveRuleSaving, setSaveRuleSaving] = useState(false)
+  const [saveRuleDone, setSaveRuleDone] = useState(false)
+  const [saveRuleError, setSaveRuleError] = useState<string | null>(null)
 
   const category = expenseCategories.find((c) => c.id === item.selectedCategoryId)
   const suggestedCategory = expenseCategories.find((c) => c.id === item.suggestedCategoryId)
@@ -88,6 +98,16 @@ export function ImportReviewItemCard({
 
   const extractLines = item.originalDescription.split('\n').filter((line) => line.trim()).length
   const isPending = item.status === 'pending'
+  const categoryWasCorrected =
+    Boolean(item.selectedCategoryId) && item.selectedCategoryId !== item.suggestedCategoryId
+  const existingRule = useMemo(() => {
+    if (!item.selectedCategoryId) return null
+    return categoryRules.find(
+      (rule) =>
+        rule.categoryId === item.selectedCategoryId &&
+        ruleKeywordMatchesDescription(rule.keyword, item.originalDescription),
+    )
+  }, [categoryRules, item.originalDescription, item.selectedCategoryId])
 
   const repartoChip = item.isShared
     ? SPLIT_PRESETS.find((preset) => preset.value === item.splitPreset)?.label ??
@@ -97,6 +117,41 @@ export function ImportReviewItemCard({
   function handleShareChange(share: ImportShareValues) {
     setShareEdited(true)
     onShareChange(share)
+  }
+
+  function handleCategoryChange(categoryId: string) {
+    setSaveRuleDone(false)
+    setSaveRuleOpen(false)
+    setSaveRuleError(null)
+    onCategoryChange(categoryId)
+  }
+
+  function openSaveRule() {
+    setSaveRuleKeyword(item.originalDescription)
+    setSaveRuleOpen(true)
+    setSaveRuleError(null)
+  }
+
+  async function handleSaveRule(e: React.FormEvent) {
+    e.preventDefault()
+    if (!onSaveRule || !item.selectedCategoryId) return
+    const keyword = saveRuleKeyword.trim()
+    if (!keyword) {
+      setSaveRuleError('Ingresá una palabra clave.')
+      return
+    }
+
+    setSaveRuleSaving(true)
+    setSaveRuleError(null)
+    try {
+      await onSaveRule(keyword, item.selectedCategoryId)
+      setSaveRuleDone(true)
+      setSaveRuleOpen(false)
+    } catch (err) {
+      setSaveRuleError(err instanceof Error ? err.message : 'No se pudo guardar la regla.')
+    } finally {
+      setSaveRuleSaving(false)
+    }
   }
 
   function handleStatusToggle() {
@@ -201,7 +256,7 @@ export function ImportReviewItemCard({
                           shape="pill"
                           size="sm"
                           selected={isSelected}
-                          onClick={() => onCategoryChange(option.id)}
+                          onClick={() => handleCategoryChange(option.id)}
                         >
                           {option.name}
                           {isSuggested ? ' · sugerida' : ''}
@@ -216,6 +271,52 @@ export function ImportReviewItemCard({
                       {showAllCategories ? 'Ver menos' : 'Más'}
                     </ChoiceChip>
                   </div>
+
+                  {categoryWasCorrected && onSaveRule && (
+                    <div className="rounded-lg border border-dashed border-stone-200 bg-white px-2.5 py-2">
+                      {existingRule || saveRuleDone ? (
+                        <p className="text-xs text-stone-500">Regla guardada para futuras importaciones.</p>
+                      ) : !saveRuleOpen ? (
+                        <button
+                          type="button"
+                          onClick={openSaveRule}
+                          className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+                        >
+                          Guardar como regla
+                        </button>
+                      ) : (
+                        <form onSubmit={handleSaveRule} className="space-y-2">
+                          <Label htmlFor={`save-rule-${item.id}`} className="text-xs text-stone-600">
+                            Palabra clave
+                          </Label>
+                          <Input
+                            id={`save-rule-${item.id}`}
+                            value={saveRuleKeyword}
+                            onChange={(e) => setSaveRuleKeyword(e.target.value)}
+                            className="text-sm"
+                            disabled={saveRuleSaving}
+                          />
+                          <div className="flex gap-2">
+                            <Button type="submit" size="sm" disabled={saveRuleSaving}>
+                              {saveRuleSaving ? 'Guardando...' : 'Guardar regla'}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setSaveRuleOpen(false)}
+                              disabled={saveRuleSaving}
+                            >
+                              Cancelar
+                            </Button>
+                          </div>
+                          {saveRuleError && (
+                            <p className="text-xs text-red-600">{saveRuleError}</p>
+                          )}
+                        </form>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {perRowCurrency && (

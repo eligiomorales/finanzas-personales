@@ -1,7 +1,10 @@
 import { type ReactNode } from 'react'
+import { motion } from 'framer-motion'
 import { ButtonLink } from '@/components/ui/TextLink'
 import { cn } from '@/lib/utils'
 import { cardSurface } from '@/components/ui/styles'
+import { getTapMotionProps } from '@/design/motion'
+import { useMotionPreferences } from '@/hooks/useMotionPreferences'
 
 interface CardProps {
   children: ReactNode
@@ -11,18 +14,35 @@ interface CardProps {
   compact?: boolean
 }
 
+const MotionDiv = motion.div
+
 export function Card({ children, className, id, onClick, compact }: CardProps) {
+  const { shouldAnimate } = useMotionPreferences()
+  const isClickable = Boolean(onClick)
+  const tapMotion = isClickable && shouldAnimate ? getTapMotionProps(true) : {}
+  const classes = cn(
+    cardSurface,
+    compact ? 'p-3' : 'p-4',
+    isClickable && 'cursor-pointer hover:shadow-elevated',
+    className,
+  )
+
+  if (isClickable && shouldAnimate) {
+    return (
+      <MotionDiv
+        id={id}
+        className={classes}
+        onClick={onClick}
+        whileTap={tapMotion.whileTap}
+        transition={tapMotion.transition}
+      >
+        {children}
+      </MotionDiv>
+    )
+  }
+
   return (
-    <div
-      id={id}
-      className={cn(
-        cardSurface,
-        compact ? 'p-3' : 'p-4',
-        onClick && 'cursor-pointer transition-shadow hover:shadow-md',
-        className,
-      )}
-      onClick={onClick}
-    >
+    <div id={id} className={classes} onClick={onClick}>
       {children}
     </div>
   )

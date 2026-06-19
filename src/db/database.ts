@@ -3,6 +3,7 @@ import type {
   AppSettings,
   Category,
   CategoryBudget,
+  CategoryRule,
   ImportRecord,
   Movement,
   PendingImportMovement,
@@ -18,6 +19,7 @@ export class FinanzasDB extends Dexie {
   pendingImports!: EntityTable<PendingImportMovement, 'id'>
   settings!: EntityTable<AppSettings, 'id'>
   categoryBudgets!: EntityTable<CategoryBudget, 'id'>
+  categoryRules!: EntityTable<CategoryRule, 'id'>
 
   constructor() {
     super('FinanzasParejaDB')
@@ -115,6 +117,16 @@ export class FinanzasDB extends Dexie {
           await tx.table('categoryBudgets').put({ ...row, yearMonth: 'recurring' })
         }
       })
+    this.version(6).stores({
+      persons: 'id',
+      categories: 'id',
+      movements: 'id, date, type, categoryId, paidBy, isShared, source, currency',
+      imports: 'id, importedAt, status',
+      pendingImports: 'id, importId, status, date',
+      settings: 'id',
+      categoryBudgets: 'id, categoryId, yearMonth, scope, [yearMonth+scope]',
+      categoryRules: 'id, keyword',
+    })
   }
 }
 

@@ -10,6 +10,7 @@ export const queryKeys = {
   pendingImports: (coupleId: string, importId?: string) =>
     ['pendingImports', coupleId, importId ?? 'all'] as const,
   budgets: (coupleId: string) => ['budgets', coupleId] as const,
+  categoryRules: (coupleId: string) => ['categoryRules', coupleId] as const,
   couplePersons: (
     coupleId: string,
     userId: string,

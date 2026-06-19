@@ -7,23 +7,30 @@
 export const motionDurations = {
   xxs: 80,
   xs: 120,
+  fast: 150,
   sm: 180,
+  normal: 200,
   page: 220,
   pageExit: 140,
+  slow: 280,
   md: 280,
   lg: 420,
 } as const;
 
 // Cubic bezier easings
 export const motionEasings = {
-  // Standard: entrada rápida, salida suave (ease-out)
+  // Standard/smooth: default para casi todo
   standard: [0.22, 1, 0.36, 1] as [number, number, number, number],
-  // Decelerate: salida muy suave
+  // Out: entradas decorativas
+  out: [0.17, 1, 0.32, 1] as [number, number, number, number],
+  // Decelerate: salida muy suave (page enter)
   decel: [0.0, 0.0, 0.2, 1] as [number, number, number, number],
-  // Accelerate: entrada rápida
+  // Accelerate: entrada rápida (page exit)
   accel: [0.4, 0.0, 0.2, 1] as [number, number, number, number],
-  // Spring-like: para toggles y bounce
-  spring: [0.34, 1.56, 0.64, 1] as [number, number, number, number],
+  // InOut: movimientos simétricos
+  inOut: [0.66, 0, 0.34, 1] as [number, number, number, number],
+  // Spring: badges, pops, overshoot
+  spring: [0.35, 1.55, 0.65, 1] as [number, number, number, number],
 } as const;
 
 // Delays en milisegundos
@@ -81,8 +88,21 @@ export const motionVariants = {
     animate: { opacity: 1, scale: 1 },
     exit: { opacity: 0, scale: 0.95 },
   },
+  blurIn: {
+    initial: { opacity: 0, y: 6, filter: "blur(2px)" },
+    animate: {
+      opacity: 1,
+      y: 0,
+      filter: "blur(0px)",
+      transition: {
+        duration: toMotionSeconds(motionDurations.slow),
+        ease: motionEasings.standard,
+      },
+    },
+    exit: { opacity: 0, y: -4, filter: "blur(2px)" },
+  },
   buttonPress: {
-    tap: { scale: 0.97 },
+    tap: { scale: 0.98 },
   },
   buttonHover: {
     hover: { y: -1 },
@@ -146,7 +166,7 @@ export const getMotionProps = (
     case "button":
       return {
         whileHover: { y: -1 },
-        whileTap: { scale: 0.97 },
+        whileTap: { scale: 0.98 },
         transition: motionTransitions.microInteraction,
       };
 
@@ -178,7 +198,7 @@ export const getMotionProps = (
 export const getTapMotionProps = (shouldAnimate: boolean): MotionProps => {
   if (!shouldAnimate) return {};
   return {
-    whileTap: { scale: 0.97 },
+    whileTap: { scale: 0.98 },
     transition: motionTransitions.microInteraction,
   };
 };

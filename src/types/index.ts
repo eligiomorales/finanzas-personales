@@ -20,6 +20,13 @@ export interface Category {
   color?: string
 }
 
+export interface CategoryRule {
+  id: string
+  keyword: string
+  categoryId: string
+  createdAt: string
+}
+
 export interface Movement {
   id: string
   type: MovementType

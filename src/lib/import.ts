@@ -383,9 +383,26 @@ export function guessColumnMapping(headers: string[]): Partial<ColumnMapping> {
   }
 }
 
-export function suggestCategory(description: string, categories: { id: string; name: string; type: string }[]): string | null {
+export function suggestCategory(
+  description: string,
+  categories: { id: string; name: string; type: string }[],
+  userRules?: { keyword: string; categoryId: string }[],
+): string | null {
   const desc = description.toLowerCase()
   const expenseCategories = categories.filter((c) => c.type === 'expense')
+  const expenseIds = new Set(expenseCategories.map((c) => c.id))
+
+  if (userRules) {
+    for (const rule of userRules) {
+      if (
+        rule.keyword &&
+        desc.includes(rule.keyword.toLowerCase()) &&
+        expenseIds.has(rule.categoryId)
+      ) {
+        return rule.categoryId
+      }
+    }
+  }
 
   const rules: [string[], string][] = [
     [['super', 'carrefour', 'coto', 'jumbo', 'dia'], 'Supermercado'],

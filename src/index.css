@@ -24,6 +24,18 @@
   /* Radius scale */
   --radius-card: 0.875rem;
   --radius-control: 0.625rem;
+
+  /* Shadows — layered, never single */
+  --shadow-card:
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 2px 4px rgba(0, 0, 0, 0.02),
+    0 0 0 0.5px rgba(0, 0, 0, 0.08);
+  --shadow-elevated:
+    0 4px 8px rgba(0, 0, 0, 0.02),
+    0 8px 12px rgba(0, 0, 0, 0.02),
+    0 2px 4px rgba(0, 0, 0, 0.02),
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 0 0 0.5px rgba(0, 0, 0, 0.08);
 }
 
 body {
@@ -53,4 +65,25 @@ input[type="date"]::-webkit-date-and-time-value {
 input[type="date"]::-webkit-calendar-picker-indicator {
   margin-inline-start: auto;
   padding: 0;
+}
+
+/* ponytail: global collapse for OS reduce-motion + VITE_ANIMATIONS_ENABLED=false (via data attr) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html[data-reduce-motion='true'] *,
+html[data-reduce-motion='true'] *::before,
+html[data-reduce-motion='true'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }

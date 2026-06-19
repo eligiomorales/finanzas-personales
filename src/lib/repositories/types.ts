@@ -3,6 +3,7 @@ import type {
   AppSettings,
   Category,
   CategoryBudget,
+  CategoryRule,
   CurrencyCode,
   ImportRecord,
   Movement,
@@ -105,6 +106,13 @@ export interface BudgetRepository {
   subscribe(callback: () => void): () => void
 }
 
+export interface CategoryRulesRepository {
+  list(): Promise<CategoryRule[]>
+  add(keyword: string, categoryId: string): Promise<CategoryRule>
+  delete(id: string): Promise<void>
+  subscribe(callback: () => void): () => void
+}
+
 export interface DatabaseStats {
   total: number
   settlements: number
@@ -118,6 +126,7 @@ export interface Repositories {
   settings: SettingsRepository
   imports: ImportRepository
   budgets: BudgetRepository
+  categoryRules: CategoryRulesRepository
   getStats(): Promise<DatabaseStats>
 }
 

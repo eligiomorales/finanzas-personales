@@ -212,6 +212,16 @@ export function useBudgets() {
   return mode === 'local' ? (local ?? []) : (remote.data ?? [])
 }
 
+export function useCategoryRules() {
+  const { mode, repos, coupleId } = useDataContext()
+  const local = useLiveQuery(() => db.categoryRules.toArray(), [])
+  const remote = useRemoteQuery(queryKeys.categoryRules(coupleId ?? 'local'), () =>
+    repos.categoryRules.list(),
+  )
+
+  return mode === 'local' ? (local ?? []) : (remote.data ?? [])
+}
+
 export function useDatabaseStats() {
   const { mode, repos, coupleId } = useDataContext()
   const local = useLiveQuery(() => repos.getStats(), [repos])
@@ -338,5 +348,17 @@ export function useBudgetMutations() {
       [repos],
     ),
     deleteBudget: useCallback((id: string) => repos.budgets.delete(id), [repos]),
+  }
+}
+
+export function useRuleMutations() {
+  const repos = useRepositories()
+
+  return {
+    addRule: useCallback(
+      (keyword: string, categoryId: string) => repos.categoryRules.add(keyword, categoryId),
+      [repos],
+    ),
+    deleteRule: useCallback((id: string) => repos.categoryRules.delete(id), [repos]),
   }
 }
