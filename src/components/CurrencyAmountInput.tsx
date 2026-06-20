@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import {
   currencyInputPrefix,
@@ -54,8 +54,15 @@ export function CurrencyAmountInput({
   'aria-describedby': ariaDescribedBy,
 }: CurrencyAmountInputProps) {
   const { text, handleChange } = useAmountInputText(value, onChange)
+  const inputRef = useRef<HTMLInputElement>(null)
   const hero = size === 'hero'
   const bare = variant === 'bare'
+
+  // ponytail: ref-based focus instead of HTML autoFocus so iOS Safari
+  // picks up the keyboard opened by the Layout focus-proxy.
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (bare && hero) {
     return (
@@ -68,11 +75,11 @@ export function CurrencyAmountInput({
             {currencyInputPrefix(currency)}
           </span>
           <input
+            ref={inputRef}
             id={id}
             type="text"
             inputMode="decimal"
             autoComplete="off"
-            autoFocus={autoFocus}
             aria-invalid={invalid}
             aria-describedby={ariaDescribedBy}
             className={cn(
@@ -106,11 +113,11 @@ export function CurrencyAmountInput({
         {currencyInputPrefix(currency)}
       </span>
       <input
+        ref={inputRef}
         id={id}
         type="text"
         inputMode="decimal"
         autoComplete="off"
-        autoFocus={autoFocus}
         aria-invalid={invalid}
         aria-describedby={ariaDescribedBy}
         className={cn(

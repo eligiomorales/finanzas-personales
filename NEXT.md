@@ -4,7 +4,7 @@
 
 **Prod:** https://finanzas-personales-ebon.vercel.app · Vercel + Supabase · migraciones `001`–`008` (aplicar `008` en prod)
 **Rama de trabajo:** `redesign/budget-category` (verificar con `git status`)
-**Última fase cerrada:** Local vs prod — ¿localhost escribe en producción? (sesión 2026-06-20)
+**Última fase cerrada:** Fix teclado iOS en formulario de movimiento (sesión 2026-06-20)
 
 ---
 
@@ -47,16 +47,18 @@ Objetivo (una sola cosa): [...]
 Explore + Plan primero. Al final: npm run ci + actualizar NEXT.md.
 ```
 
-## Capture — sesión 2026-06-20 (Local vs prod)
+## Capture — sesión 2026-06-20 (iOS keyboard fix)
 
-**Pregunta:** ¿Cargar gastos en localhost puede escribir datos reales en producción?
+**Objetivo:** En iPhone, al tocar el FAB para registrar un nuevo gasto, el teclado numérico no se activaba automáticamente (funciona en Android).
 
-**Respuesta:** **Sí**, si tenés `.env.local` con las credenciales del proyecto Supabase de prod (setup habitual del repo). Local y Vercel comparten la misma base; el frontend solo cambia el host (`localhost:5173` vs Vercel), no el backend. Login con tu cuenta real → `DataContext` en modo `remote` → inserts vía `supabase-repositories` a Postgres. El otro navegador en prod lo ve por realtime.
+**Causa raíz:** iOS Safari ignora el atributo HTML `autoFocus` y no abre el teclado virtual. Solo lo abre si `.focus()` ocurre durante un gesto del usuario (tap).
 
-**Excepción:** sin `.env.local`, la app arranca en modo IndexedDB (`seedDatabase`); ahí los movimientos quedan solo en el dispositivo.
+**Entregado — focus-proxy pattern:**
+- **Layout.tsx:** FAB cambia de `<NavLink>` a `<button>`. Al tocar, foca un `<input inputMode="decimal">` oculto (gesto del usuario → teclado se abre), luego navega a `/movimientos/nuevo`.
+- **CurrencyAmountInput.tsx:** `autoFocus` HTML reemplazado por `useRef` + `useEffect` con `.focus()` al montar. El foco se transfiere del proxy al input real y el teclado queda abierto.
 
-**Mitigación documentada:** `docs/deploy.md` § "Importante: local y prod comparten datos" — usar movimientos/cuentas de test o un proyecto Supabase aparte para pruebas destructivas.
+**Archivos:** `Layout.tsx`, `CurrencyAmountInput.tsx`.
 
-**Entregable:** investigación (sin cambios de código). `npm run ci` verde.
+**Verificación:** `npm run ci` verde (219 tests, build OK).
 
-**Aprendizaje:** el riesgo no es Vercel ni el deploy; es que `.env.local` y Vercel apuntan al mismo Supabase por diseño. Conviene asumir "estoy en prod" cada vez que corrés `npm run dev` con credenciales.
+**Aprendizaje:** iOS nunca honra `autoFocus` en inputs para abrir el teclado virtual; el workaround estándar es pre-focar un input invisible durante el gesto del usuario y transferir foco al input real al montar el componente destino.
