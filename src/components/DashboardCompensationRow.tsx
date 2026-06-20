@@ -22,7 +22,7 @@ export function DashboardCompensationRow({
 
   return (
     <Link
-      to="/balance"
+      to="/balance?scope=period"
       className={cn(
         cardSurface,
         focusRing,

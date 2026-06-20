@@ -10,7 +10,7 @@ import {
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { usePeriod } from '@/contexts/MovementFiltersContext'
 import {
-  calculateCoupleBalance,
+  calculateCoupleBalanceForScope,
   calculatePeriodSummary,
   calculatePersonalExpenseSummary,
   movementVisibleInPersonalView,
@@ -95,8 +95,8 @@ export function DashboardPage() {
   }, [isPersonal, budgets, budgetMonthMovements, categories, currencyConfig, budgetMonth])
 
   const coupleBalance = useMemo(
-    () => calculateCoupleBalance(allMovements, currencyConfig),
-    [allMovements, currencyConfig],
+    () => calculateCoupleBalanceForScope(periodMovements, currencyConfig, 'period'),
+    [periodMovements, currencyConfig],
   )
 
   const personAName = persons.personAName

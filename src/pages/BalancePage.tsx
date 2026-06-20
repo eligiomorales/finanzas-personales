@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useMovementsInRange, useMovementsQuery, useSettings, useDataMutations } from '@/hooks/useData'
+import { usePeriod } from '@/contexts/MovementFiltersContext'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { calculateCoupleBalanceForScope } from '@/lib/balance'
 import { displayLabelForRole, formLabelWithName } from '@/lib/couple/person-labels'
@@ -22,13 +24,33 @@ import {
   describedBy,
 } from '@/components/ui/Form'
 
+function resolveInitialBalanceScope(
+  urlScope: string | null,
+  sharedPeriod: PeriodRange,
+): { scope: BalanceScope; customPeriod: PeriodRange } {
+  if (urlScope === 'period') {
+    const month = currentMonthRange()
+    if (sharedPeriod.from === month.from && sharedPeriod.to === month.to) {
+      return { scope: 'current_month', customPeriod: month }
+    }
+    return { scope: 'custom', customPeriod: sharedPeriod }
+  }
+  return { scope: 'all', customPeriod: currentMonthRange() }
+}
+
 export function BalancePage() {
   const settings = useSettings()
   const persons = useCouplePersons()
   const { createSettlement } = useDataMutations()
+  const [searchParams] = useSearchParams()
+  const { period: sharedPeriod } = usePeriod()
   const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
-  const [scope, setScope] = useState<BalanceScope>('current_month')
-  const [customPeriod, setCustomPeriod] = useState<PeriodRange>(() => currentMonthRange())
+  const [scope, setScope] = useState<BalanceScope>(
+    () => resolveInitialBalanceScope(searchParams.get('scope'), sharedPeriod).scope,
+  )
+  const [customPeriod, setCustomPeriod] = useState<PeriodRange>(
+    () => resolveInitialBalanceScope(searchParams.get('scope'), sharedPeriod).customPeriod,
+  )
   const [showSettlement, setShowSettlement] = useState(false)
   const [settlementAmount, setSettlementAmount] = useState(0)
   const [settlementCurrency, setSettlementCurrency] = useState<CurrencyCode>('ARS')
@@ -45,7 +67,9 @@ export function BalancePage() {
   }, [scope, customPeriod])
 
   const { movements: periodMovements, isLoading: periodLoading } = useMovementsInRange(periodRange)
-  const { movements: allMovements, isLoading: allLoading } = useMovementsQuery({ enabled: scope === 'all' })
+  const { movements: allMovements, isLoading: allLoading } = useMovementsQuery({
+    enabled: scope === 'all',
+  })
 
   const balanceMovements = scope === 'all' ? allMovements : periodMovements
   const isLoading = scope === 'all' ? allLoading : periodLoading

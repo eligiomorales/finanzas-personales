@@ -1,4 +1,5 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { useRef } from 'react'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatedRoutes } from '@/components/AnimatedRoutes'
 import { Badge } from '@/components/ui/Card'
 import { useAmountsVisibility, useAmountsVisible } from '@/contexts/AmountsVisibilityContext'
@@ -130,8 +131,13 @@ function RoutedContent() {
 
 function AppChrome() {
   const location = useLocation()
+  const navigate = useNavigate()
   const { shouldAnimate } = useMotionPreferences()
   const { isPersonal } = useExpenseViewMode()
+  // ponytail: iOS Safari ignores autoFocus on inputs; focusing a proxy
+  // during the user gesture opens the keyboard before navigation.
+  // Upgrade path: remove if Safari ever honours autoFocus natively.
+  const focusProxyRef = useRef<HTMLInputElement>(null)
   const { visible: amountsVisible, toggle: toggleAmountsVisibility } = useAmountsVisibility()
   const { active: header } = useLayoutHeaderContext()
   const isFormPage = location.pathname.includes('/nuevo') || location.pathname.includes('/editar')
@@ -255,9 +261,21 @@ function AppChrome() {
         </nav>
       )}
 
+      <input
+        ref={focusProxyRef}
+        inputMode="decimal"
+        aria-hidden="true"
+        tabIndex={-1}
+        className="pointer-events-none fixed -left-full top-0 h-px w-px opacity-0"
+      />
+
       {!hideFab && (
-        <NavLink
-          to="/movimientos/nuevo"
+        <button
+          type="button"
+          onClick={() => {
+            focusProxyRef.current?.focus()
+            navigate('/movimientos/nuevo')
+          }}
           className={cn(
             'fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] right-5 z-20',
             'flex h-[52px] w-[52px] items-center justify-center rounded-full',
@@ -268,7 +286,7 @@ function AppChrome() {
           aria-label="Nuevo movimiento"
         >
           +
-        </NavLink>
+        </button>
       )}
     </div>
   )
