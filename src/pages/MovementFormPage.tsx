@@ -5,7 +5,15 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
-import { useCategories, useMovement, useMovementFormHints, useSettings, useMovementMutations } from '@/hooks/useData'
+import {
+  useCategories,
+  useCategoryRules,
+  useMovement,
+  useMovementFormHints,
+  useRuleMutations,
+  useSettings,
+  useMovementMutations,
+} from '@/hooks/useData'
 import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import { splitPreset as getSplitPreset, personalSharesFromPayer } from '@/lib/balance'
 import {
@@ -17,7 +25,9 @@ import {
   payerFieldLabel,
   splitDistributionLabel,
 } from '@/lib/movement-form-defaults'
+import { ruleKeywordMatchesDescription } from '@/lib/category-rules'
 import { buildImportCategoryButtons } from '@/lib/import-display'
+import { suggestCategory } from '@/lib/import'
 import { SUPPORTED_CURRENCIES } from '@/lib/currency'
 import {
   Button,
@@ -53,28 +63,39 @@ const FORM_SPLIT_PRESETS = SPLIT_PRESETS.filter((preset) =>
   ['50-50', '60-40', 'custom'].includes(preset.value),
 )
 
+const DESCRIPTION_DEBOUNCE_MS = 300
+
 export function MovementFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { membership } = useAuth()
   const persons = useCouplePersons()
   const categories = useCategories() ?? []
+  const categoryRules = useCategoryRules() ?? []
   const { movements: hintMovements } = useMovementFormHints()
   const { movement: editMovement, isLoading: loadingMovement } = useMovement(id)
   const settings = useSettings()
   const { createMovement, updateMovement, deleteMovement } = useMovementMutations()
+  const { addRule } = useRuleMutations()
   const { confirm, dialog } = useConfirmDialog()
   const [form, setForm] = useState<MovementFormData>(() =>
     buildNewMovementDefaults({ movements: [], displayCurrency: settings?.displayCurrency }),
   )
+  const [debouncedDescription, setDebouncedDescription] = useState('')
   const [splitPreset, setSplitPreset] = useState('50-50')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formSummary, setFormSummary] = useState('')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showAllCategories, setShowAllCategories] = useState(false)
+  const [saveRuleOpen, setSaveRuleOpen] = useState(false)
+  const [saveRuleKeyword, setSaveRuleKeyword] = useState('')
+  const [saveRuleSaving, setSaveRuleSaving] = useState(false)
+  const [saveRuleDone, setSaveRuleDone] = useState(false)
+  const [saveRuleError, setSaveRuleError] = useState<string | null>(null)
   const initializedNewForm = useRef(false)
   const hydratedEditId = useRef<string | null>(null)
+  const categoryTouchedByUser = useRef(false)
   const isEditing = Boolean(id)
   const personAName = persons.personAName
   const personBName = persons.personBName
@@ -117,6 +138,23 @@ export function MovementFormPage() {
     )
   }, [id, settings, membership, hintMovements])
 
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedDescription(form.description), DESCRIPTION_DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+  }, [form.description])
+
+  const suggestedCategoryId = useMemo(() => {
+    if (form.type !== 'expense' || !debouncedDescription.trim()) return null
+    return suggestCategory(debouncedDescription, categories, categoryRules)
+  }, [form.type, debouncedDescription, categories, categoryRules])
+
+  useEffect(() => {
+    if (isEditing || form.type !== 'expense' || categoryTouchedByUser.current || !suggestedCategoryId) {
+      return
+    }
+    setForm((f) => (f.categoryId === suggestedCategoryId ? f : { ...f, categoryId: suggestedCategoryId }))
+  }, [isEditing, form.type, suggestedCategoryId])
+
   const filteredCategories = categories.filter((c) =>
     form.type === 'settlement' ? true : c.type === (form.type === 'income' ? 'income' : 'expense'),
   )
@@ -132,11 +170,25 @@ export function MovementFormPage() {
         filteredCategories,
         frequentCategoryIds,
         form.categoryId,
-        null,
+        form.type === 'expense' ? suggestedCategoryId : null,
         2,
       ),
-    [filteredCategories, frequentCategoryIds, form.categoryId],
+    [filteredCategories, frequentCategoryIds, form.categoryId, form.type, suggestedCategoryId],
   )
+
+  const categoryWasCorrected = useMemo(() => {
+    if (isEditing || form.type !== 'expense') return false
+    return Boolean(suggestedCategoryId && form.categoryId && form.categoryId !== suggestedCategoryId)
+  }, [isEditing, form.type, suggestedCategoryId, form.categoryId])
+
+  const existingRule = useMemo(() => {
+    if (!form.categoryId || form.type !== 'expense') return null
+    return categoryRules.find(
+      (rule) =>
+        rule.categoryId === form.categoryId &&
+        ruleKeywordMatchesDescription(rule.keyword, form.description),
+    )
+  }, [categoryRules, form.categoryId, form.description, form.type])
 
   const categoryOptions = useMemo(() => {
     if (!showAllCategories) return primaryCategories
@@ -226,8 +278,56 @@ export function MovementFormPage() {
     setSplitPreset(isShared ? '50-50' : '100-0')
   }
 
+  function resetSaveRuleState() {
+    setSaveRuleDone(false)
+    setSaveRuleOpen(false)
+    setSaveRuleError(null)
+  }
+
+  function handleDescriptionChange(description: string) {
+    resetSaveRuleState()
+    setForm((f) => ({ ...f, description }))
+  }
+
+  function handleExpenseCategoryChange(categoryId: string) {
+    categoryTouchedByUser.current = true
+    resetSaveRuleState()
+    setForm((f) => ({ ...f, categoryId }))
+    setShowAllCategories(false)
+  }
+
+  function openSaveRule() {
+    setSaveRuleKeyword(form.description)
+    setSaveRuleOpen(true)
+    setSaveRuleError(null)
+  }
+
+  async function handleSaveRule(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.categoryId) return
+    const keyword = saveRuleKeyword.trim()
+    if (!keyword) {
+      setSaveRuleError('Ingresá una palabra clave.')
+      return
+    }
+
+    setSaveRuleSaving(true)
+    setSaveRuleError(null)
+    try {
+      await addRule(keyword, form.categoryId)
+      setSaveRuleDone(true)
+      setSaveRuleOpen(false)
+    } catch (err) {
+      setSaveRuleError(err instanceof Error ? err.message : 'No se pudo guardar la regla.')
+    } finally {
+      setSaveRuleSaving(false)
+    }
+  }
+
   function handleTypeChange(type: MovementType) {
     setShowAllCategories(false)
+    categoryTouchedByUser.current = false
+    resetSaveRuleState()
     setForm((f) => {
       const paidBy = f.paidBy === 'both' ? 'personA' : f.paidBy
 
@@ -336,7 +436,7 @@ export function MovementFormPage() {
                 value={form.description}
                 invalid={Boolean(errors.description)}
                 aria-describedby={describedBy(errors.description && 'description-error')}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={(e) => handleDescriptionChange(e.target.value)}
                 placeholder={form.type === 'income' ? 'Ej: Sueldo de junio...' : 'Ej: Supermercado, cena...'}
               />
               {errors.description && <FieldError id="description-error">{errors.description}</FieldError>}
@@ -369,29 +469,31 @@ export function MovementFormPage() {
                       Categoría
                     </span>
                     <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="category-label">
-                      {categoryOptions.map((category) => (
-                        <ChoiceChip
-                          key={category.id}
-                          role="radio"
-                          shape="pill"
-                          size="sm"
-                          selected={form.categoryId === category.id}
-                          className="inline-flex items-center gap-1.5"
-                          onClick={() => {
-                            setForm({ ...form, categoryId: category.id })
-                            setShowAllCategories(false)
-                          }}
-                        >
-                          {category.color && (
-                            <span
-                              className="h-2 w-2 shrink-0 rounded-full"
-                              style={{ backgroundColor: category.color }}
-                              aria-hidden="true"
-                            />
-                          )}
-                          {category.name}
-                        </ChoiceChip>
-                      ))}
+                      {categoryOptions.map((category) => {
+                        const isSelected = form.categoryId === category.id
+                        const isSuggested = suggestedCategoryId === category.id && !isSelected
+                        return (
+                          <ChoiceChip
+                            key={category.id}
+                            role="radio"
+                            shape="pill"
+                            size="sm"
+                            selected={isSelected}
+                            className="inline-flex items-center gap-1.5"
+                            onClick={() => handleExpenseCategoryChange(category.id)}
+                          >
+                            {category.color && (
+                              <span
+                                className="h-2 w-2 shrink-0 rounded-full"
+                                style={{ backgroundColor: category.color }}
+                                aria-hidden="true"
+                              />
+                            )}
+                            {category.name}
+                            {isSuggested ? ' · sugerida' : ''}
+                          </ChoiceChip>
+                        )
+                      })}
                       {filteredCategories.length > primaryCategories.length && (
                         <ChoiceChip
                           shape="pill"
@@ -403,6 +505,54 @@ export function MovementFormPage() {
                         </ChoiceChip>
                       )}
                     </div>
+
+                    {categoryWasCorrected && form.description.trim() && (
+                      <div className="mt-2 rounded-lg border border-dashed border-stone-200 bg-white px-2.5 py-2">
+                        {existingRule || saveRuleDone ? (
+                          <p className="text-xs text-stone-500">
+                            Regla guardada para futuros movimientos.
+                          </p>
+                        ) : !saveRuleOpen ? (
+                          <button
+                            type="button"
+                            onClick={openSaveRule}
+                            className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+                          >
+                            Guardar como regla
+                          </button>
+                        ) : (
+                          <form onSubmit={handleSaveRule} className="space-y-2">
+                            <Label htmlFor="save-rule-keyword" className="text-xs text-stone-600">
+                              Palabra clave
+                            </Label>
+                            <Input
+                              id="save-rule-keyword"
+                              value={saveRuleKeyword}
+                              onChange={(e) => setSaveRuleKeyword(e.target.value)}
+                              className="text-sm"
+                              disabled={saveRuleSaving}
+                            />
+                            <div className="flex gap-2">
+                              <Button type="submit" size="sm" disabled={saveRuleSaving}>
+                                {saveRuleSaving ? 'Guardando...' : 'Guardar regla'}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => setSaveRuleOpen(false)}
+                                disabled={saveRuleSaving}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                            {saveRuleError && (
+                              <p className="text-xs text-red-600">{saveRuleError}</p>
+                            )}
+                          </form>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
                 {errors.categoryId && <FieldError id="category-error">{errors.categoryId}</FieldError>}
