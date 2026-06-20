@@ -1,12 +1,54 @@
 import type { CurrencyCode, Movement, MovementFormData, MovementType } from '@/types'
 import { todayISO } from '@/lib/utils'
 
+// ponytail: mirrors import.normalizeAmountString; dedupe if a third caller appears
+function normalizeAmountInputString(raw: string): string {
+  const cleaned = raw.replace(/[^\d.,]/g, '')
+  const lastComma = cleaned.lastIndexOf(',')
+  const lastDot = cleaned.lastIndexOf('.')
+
+  if (lastComma !== -1 && lastDot !== -1) {
+    if (lastDot > lastComma) {
+      return cleaned.replace(/,/g, '')
+    }
+    return cleaned.replace(/\./g, '').replace(',', '.')
+  }
+
+  if (lastComma !== -1) {
+    const commaCount = (cleaned.match(/,/g) ?? []).length
+    if (commaCount > 1) {
+      return cleaned.replace(/,/g, '')
+    }
+    return cleaned.replace(',', '.')
+  }
+
+  if (lastDot !== -1) {
+    const dotCount = (cleaned.match(/\./g) ?? []).length
+    if (dotCount > 1) {
+      return cleaned.replace(/\./g, '')
+    }
+    const fractionalDigits = cleaned.length - lastDot - 1
+    if (fractionalDigits <= 2) {
+      return cleaned
+    }
+    return cleaned.replace(/\./g, '')
+  }
+
+  return cleaned
+}
+
 export function parseAmountInput(raw: string): number {
   const trimmed = raw.trim()
   if (!trimmed) return 0
-  const normalized = trimmed.replace(/\./g, '').replace(',', '.')
+  const normalized = normalizeAmountInputString(trimmed)
+  if (!normalized || normalized === '.' || normalized === ',') return 0
   const parsed = parseFloat(normalized)
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+export function formatAmountInputValue(amount: number): string {
+  if (amount <= 0) return ''
+  return String(amount)
 }
 
 export function currencyInputPrefix(currency: CurrencyCode): string {

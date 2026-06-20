@@ -4,7 +4,7 @@
 
 **Prod:** https://finanzas-personales-ebon.vercel.app · Vercel + Supabase · migraciones `001`–`008` (aplicar `008` en prod)
 **Rama de trabajo:** `redesign/budget-category` (verificar con `git status`)
-**Última fase cerrada:** Inferir reglas desde historial (sesión 2026-06-19)
+**Última fase cerrada:** Local vs prod — ¿localhost escribe en producción? (sesión 2026-06-20)
 
 ---
 
@@ -20,6 +20,7 @@
 
 ## Bloqueos / riesgos activos
 
+- **Local = prod (con `.env.local`):** `npm run dev` usa las mismas `VITE_SUPABASE_*` que producción; un gasto en localhost es un row real en Postgres y aparece en la app desplegada (realtime). Sin `.env.local` → IndexedDB aislado, no toca prod.
 - **RLS en prod:** revisar políticas antes de uso con datos reales; nunca `service_role` en el frontend.
 - **`couple_settings.person_a/b_name`:** columnas legacy; fuente de verdad real = `profiles` + `couple_members`.
 - **Migración `008_category_rules.sql`:** aplicar en Supabase SQL Editor antes de usar reglas en prod.
@@ -46,10 +47,16 @@ Objetivo (una sola cosa): [...]
 Explore + Plan primero. Al final: npm run ci + actualizar NEXT.md.
 ```
 
-## Capture — sesión 2026-06-19 (Inferir reglas desde historial)
+## Capture — sesión 2026-06-20 (Local vs prod)
 
-**Entregado:** `inferRulesFromHistory()` en `infer-rules.ts` — tokeniza descripciones de gastos categorizados, filtra por dominancia (≥80%, ≥2 usos), descarta reglas existentes y keywords hardcodeadas redundantes; botón "Sugerir desde historial" + preview con checkboxes en `CategorySettingsPage`; guardado batch vía `addRule`. `npm run ci` verde (219 tests).
+**Pregunta:** ¿Cargar gastos en localhost puede escribir datos reales en producción?
 
-**Archivos clave:** `infer-rules.ts`, `infer-rules.test.ts`, `CategorySettingsPage.tsx`.
+**Respuesta:** **Sí**, si tenés `.env.local` con las credenciales del proyecto Supabase de prod (setup habitual del repo). Local y Vercel comparten la misma base; el frontend solo cambia el host (`localhost:5173` vs Vercel), no el backend. Login con tu cuenta real → `DataContext` en modo `remote` → inserts vía `supabase-repositories` a Postgres. El otro navegador en prod lo ve por realtime.
 
-**Aprendizaje:** inferencia 100% front sobre movimientos ya cargados; preview con confirmación evita reglas basura sin necesitar back ni RPC.
+**Excepción:** sin `.env.local`, la app arranca en modo IndexedDB (`seedDatabase`); ahí los movimientos quedan solo en el dispositivo.
+
+**Mitigación documentada:** `docs/deploy.md` § "Importante: local y prod comparten datos" — usar movimientos/cuentas de test o un proyecto Supabase aparte para pruebas destructivas.
+
+**Entregable:** investigación (sin cambios de código). `npm run ci` verde.
+
+**Aprendizaje:** el riesgo no es Vercel ni el deploy; es que `.env.local` y Vercel apuntan al mismo Supabase por diseño. Conviene asumir "estoy en prod" cada vez que corrés `npm run dev` con credenciales.

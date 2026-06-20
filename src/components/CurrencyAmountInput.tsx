@@ -1,7 +1,30 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { currencyInputPrefix, parseAmountInput } from '@/lib/movement-form-defaults'
+import {
+  currencyInputPrefix,
+  formatAmountInputValue,
+  parseAmountInput,
+} from '@/lib/movement-form-defaults'
 import type { CurrencyCode } from '@/types'
+
+function useAmountInputText(value: number, onChange: (amount: number) => void) {
+  const [text, setText] = useState(() => formatAmountInputValue(value))
+
+  useEffect(() => {
+    setText((current) => {
+      if (parseAmountInput(current) === value) return current
+      return formatAmountInputValue(value)
+    })
+  }, [value])
+
+  const handleChange = (raw: string) => {
+    const sanitized = raw.replace(/[^\d.,]/g, '')
+    setText(sanitized)
+    onChange(parseAmountInput(sanitized))
+  }
+
+  return { text, handleChange }
+}
 
 interface CurrencyAmountInputProps {
   id: string
@@ -30,6 +53,7 @@ export function CurrencyAmountInput({
   className,
   'aria-describedby': ariaDescribedBy,
 }: CurrencyAmountInputProps) {
+  const { text, handleChange } = useAmountInputText(value, onChange)
   const hero = size === 'hero'
   const bare = variant === 'bare'
 
@@ -55,9 +79,9 @@ export function CurrencyAmountInput({
               'min-w-0 w-0 flex-1 border-0 bg-transparent py-1 text-4xl font-semibold tabular-nums tracking-tight text-stone-900 outline-none placeholder:text-stone-300',
               'focus-visible:ring-0',
             )}
-            value={value > 0 ? String(value) : ''}
+            value={text}
             placeholder="0"
-            onChange={(e) => onChange(parseAmountInput(e.target.value))}
+            onChange={(e) => handleChange(e.target.value)}
           />
         </div>
         {trailing}
@@ -93,9 +117,9 @@ export function CurrencyAmountInput({
           'min-w-0 flex-1 bg-white outline-none tabular-nums',
           hero ? 'px-3 py-3.5 text-2xl font-semibold' : 'px-3 py-3 text-sm',
         )}
-        value={value > 0 ? String(value) : ''}
+        value={text}
         placeholder="0"
-        onChange={(e) => onChange(parseAmountInput(e.target.value))}
+        onChange={(e) => handleChange(e.target.value)}
       />
     </div>
   )
