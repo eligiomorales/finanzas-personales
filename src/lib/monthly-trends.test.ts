@@ -51,21 +51,33 @@ describe('buildCumulativeSpendSeries', () => {
       base({ id: 'c', date: `${ym}-15`, amount: 20 }),
     ]
     const series = buildCumulativeSpendSeries(movements, config, undefined, now)
-    expect(series).toHaveLength(15)
-    expect(series[4].currentCumulative).toBe(50)
-    expect(series[9].currentCumulative).toBe(80)
-    expect(series[14].currentCumulative).toBe(100)
+    expect(series).toHaveLength(30) // full June
+    expect(series[4].currentCumulative).toBe(50) // day 5
+    expect(series[9].currentCumulative).toBe(80) // day 10
+    expect(series[14].currentCumulative).toBe(100) // day 15 (today)
+    expect(series[15].currentCumulative).toBeNull() // day 16
   })
 
-  it('baseline uses avg daily of prior 3 months', () => {
+  it('baseline averages cumulative curves of prior 3 months', () => {
     const ym = format(now, 'yyyy-MM')
     const prev1 = format(subMonths(now, 1), 'yyyy-MM')
+    const prev2 = format(subMonths(now, 2), 'yyyy-MM')
     const movements = [
-      base({ id: 'p', date: `${prev1}-01`, amount: 300 }),
+      base({ id: 'p1', date: `${prev1}-01`, amount: 300 }),
+      base({ id: 'p2', date: `${prev2}-10`, amount: 150 }),
       base({ id: 'c', date: `${ym}-01`, amount: 10 }),
     ]
     const series = buildCumulativeSpendSeries(movements, config, undefined, now)
-    expect(series[0].baselineCumulative).toBeGreaterThan(0)
-    expect(series[14].baselineCumulative).toBeGreaterThan(series[0].baselineCumulative)
+    // day 1: only prev1 spent (300) → avg 100
+    expect(series[0].baselineCumulative).toBe(100)
+    // day 10: prev1 full (300) + prev2 hits 150 → avg 150
+    expect(series[9].baselineCumulative).toBe(150)
+    // not a straight line from origin: day 5 still 100, not 100 * 5/10
+    expect(series[4].baselineCumulative).toBe(100)
+    expect(series[4].baselineCumulative).toBeLessThan(series[9].baselineCumulative)
+    // baseline extends through month end; current stops at today (day 15)
+    expect(series[29].baselineCumulative).toBe(150)
+    expect(series[14].currentCumulative).not.toBeNull()
+    expect(series[15].currentCumulative).toBeNull()
   })
 })

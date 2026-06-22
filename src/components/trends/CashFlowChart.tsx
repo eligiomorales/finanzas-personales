@@ -5,8 +5,9 @@ import { cn } from '@/lib/utils'
 import { toMotionSeconds, motionDurations, motionEasings } from '@/design/motion'
 import { useMotionPreferences } from '@/hooks/useMotionPreferences'
 import type { MonthlyTrend } from '@/lib/monthly-trends'
+import { TREND_CHART_H } from '@/components/trends/chart-layout'
 
-const CHART_H = 220
+const CHART_H = TREND_CHART_H
 const PAD = { l: 8, r: 8, t: 16, b: 28 }
 
 interface CashFlowChartProps {

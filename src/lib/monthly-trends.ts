@@ -26,7 +26,8 @@ export interface BuildMonthlyTrendsOptions {
 
 export interface CumulativeSpendPoint {
   day: number
-  currentCumulative: number
+  /** null after today — line stops mid-chart */
+  currentCumulative: number | null
   baselineCumulative: number
 }
 
@@ -114,7 +115,7 @@ export function buildMonthlyTrends(
   return months
 }
 
-/** Daily cumulative spend for current month vs. avg daily of prior 3 calendar months. */
+/** Daily cumulative spend for current month vs. avg cumulative curve of prior 3 calendar months. */
 export function buildCumulativeSpendSeries(
   movements: Movement[],
   currencyConfig: CurrencyConfig,
@@ -124,40 +125,60 @@ export function buildCumulativeSpendSeries(
   const personalRole = options?.personalRole
   const currentYm = format(now, 'yyyy-MM')
   const todayDay = now.getDate()
+  const daysInMonth = getDaysInMonth(now)
 
-  const dailyExpenses = new Map<number, number>()
-  for (const mv of movements) {
-    if (!mv.date.startsWith(currentYm)) continue
-    const amount = getTrendExpenseAmount(mv, currencyConfig, personalRole)
-    if (amount <= 0) continue
-    const day = Number.parseInt(mv.date.slice(8, 10), 10)
-    dailyExpenses.set(day, (dailyExpenses.get(day) ?? 0) + amount)
-  }
+  const currentDaily = dailyExpensesForMonth(movements, currentYm, currencyConfig, personalRole)
 
-  let baselineTotal = 0
-  let baselineDays = 0
-  for (let i = 1; i <= 3; i++) {
-    const monthDate = subMonths(now, i)
+  const priorDailies = Array.from({ length: 3 }, (_, i) => {
+    const monthDate = subMonths(now, i + 1)
     const ym = format(monthDate, 'yyyy-MM')
-    baselineDays += getDaysInMonth(monthDate)
-    for (const mv of movements) {
-      if (!mv.date.startsWith(ym)) continue
-      baselineTotal += getTrendExpenseAmount(mv, currencyConfig, personalRole)
+    return {
+      daysInMonth: getDaysInMonth(monthDate),
+      daily: dailyExpensesForMonth(movements, ym, currencyConfig, personalRole),
     }
-  }
-
-  const avgDaily = baselineDays > 0 ? baselineTotal / baselineDays : 0
+  })
 
   let cumulative = 0
   const points: CumulativeSpendPoint[] = []
-  for (let day = 1; day <= todayDay; day++) {
-    cumulative += dailyExpenses.get(day) ?? 0
+  for (let day = 1; day <= daysInMonth; day++) {
+    if (day <= todayDay) {
+      cumulative += currentDaily.get(day) ?? 0
+    }
+    let baselineSum = 0
+    for (const { daysInMonth: priorDays, daily } of priorDailies) {
+      baselineSum += cumulativeThroughDay(daily, Math.min(day, priorDays))
+    }
     points.push({
       day,
-      currentCumulative: cumulative,
-      baselineCumulative: avgDaily * day,
+      currentCumulative: day <= todayDay ? cumulative : null,
+      baselineCumulative: baselineSum / priorDailies.length,
     })
   }
 
   return points
+}
+
+function dailyExpensesForMonth(
+  movements: Movement[],
+  ym: string,
+  currencyConfig: CurrencyConfig,
+  personalRole?: 'personA' | 'personB',
+): Map<number, number> {
+  const daily = new Map<number, number>()
+  for (const mv of movements) {
+    if (!mv.date.startsWith(ym)) continue
+    const amount = getTrendExpenseAmount(mv, currencyConfig, personalRole)
+    if (amount <= 0) continue
+    const day = Number.parseInt(mv.date.slice(8, 10), 10)
+    daily.set(day, (daily.get(day) ?? 0) + amount)
+  }
+  return daily
+}
+
+function cumulativeThroughDay(daily: Map<number, number>, throughDay: number): number {
+  let sum = 0
+  for (let d = 1; d <= throughDay; d++) {
+    sum += daily.get(d) ?? 0
+  }
+  return sum
 }
