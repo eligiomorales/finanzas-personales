@@ -3,13 +3,11 @@ import { Link } from 'react-router-dom'
 import { ImportCategoryPicker } from '@/components/ImportCategoryPicker'
 import {
   ImportShareControls,
-  ImportSharedToggle,
   IMPORT_SPLIT_PRESETS,
   type ImportShareValues,
 } from '@/components/ImportShareControls'
 import { Badge, Card } from '@/components/ui/Card'
 import { Button, Input, Label } from '@/components/ui/Form'
-import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import {
   defaultImportRuleKeyword,
   findExistingImportRuleForItem,
@@ -30,7 +28,6 @@ interface ImportReviewItemCardProps {
   expenseCategories: Category[]
   frequentCategoryIds: string[]
   perRowCurrency: boolean
-  compact?: boolean
   onCategoryChange: (categoryId: string) => void
   onCurrencyChange: (currency: CurrencyCode) => void
   onShareChange: (share: ImportShareValues) => void
@@ -49,7 +46,6 @@ export function ImportReviewItemCard({
   expenseCategories,
   frequentCategoryIds,
   perRowCurrency,
-  compact = false,
   onCategoryChange,
   onCurrencyChange,
   onShareChange,
@@ -68,14 +64,12 @@ export function ImportReviewItemCard({
   const extractText = item.originalDescription.trim() || 'Sin descripción'
 
   const isPending = item.status === 'pending'
-  const showFullEditor = isPending && !compact
+  const showFullEditor = isPending
   const categoryWasCorrected = importItemCategoryWasCorrected(item)
   const existingRule = useMemo(() => {
     if (!item.selectedCategoryId) return undefined
     return findExistingImportRuleForItem(item, categoryRules, item.selectedCategoryId)
   }, [categoryRules, item, item.selectedCategoryId])
-
-  const selectedCategoryName = expenseCategories.find((c) => c.id === item.selectedCategoryId)?.name
 
   function handleShareChange(share: ImportShareValues) {
     setShareEdited(true)
@@ -95,14 +89,6 @@ export function ImportReviewItemCard({
     else onRestore()
   }
 
-  const shareValues: ImportShareValues = {
-    paidBy: item.paidBy,
-    isShared: item.isShared,
-    sharePersonA: item.sharePersonA,
-    sharePersonB: item.sharePersonB,
-    splitPreset: item.splitPreset,
-  }
-
   return (
     <Card
       compact
@@ -117,15 +103,12 @@ export function ImportReviewItemCard({
             <span className="text-xs text-stone-500">{formatShortDate(item.date)}</span>
             {item.currency === 'USD' && !perRowCurrency && <Badge variant="warning">USD</Badge>}
             {item.possibleDuplicate && isPending && <Badge variant="warning">Duplicado</Badge>}
-            {compact && isPending && !item.needsReview && <Badge variant="info">Auto-aprobado</Badge>}
+            {isPending && !item.needsReview && <Badge variant="info">Auto-aprobado</Badge>}
             {item.status === 'ignored' && <Badge>Ignorado</Badge>}
           </div>
           <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold text-stone-900">
             {extractText}
           </p>
-          {compact && isPending && selectedCategoryName && (
-            <p className="mt-0.5 text-xs text-stone-500">{selectedCategoryName}</p>
-          )}
         </div>
         <div className="shrink-0 text-right">
           <p
@@ -141,30 +124,6 @@ export function ImportReviewItemCard({
           </Button>
         </div>
       </div>
-
-      {compact && isPending && (
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          {perRowCurrency && (
-            <SegmentedControl
-              aria-label="Moneda del movimiento"
-              indicatorLayoutId={`import-item-currency-${item.id}`}
-              size="sm"
-              fullWidth={false}
-              options={[
-                { value: 'ARS' as const, label: 'ARS' },
-                { value: 'USD' as const, label: 'USD' },
-              ]}
-              value={item.currency}
-              onChange={onCurrencyChange}
-            />
-          )}
-          <ImportSharedToggle
-            idPrefix={`import-item-shared-${item.id}`}
-            values={shareValues}
-            onChange={handleShareChange}
-          />
-        </div>
-      )}
 
       {showFullEditor && (
         <div className="mt-3 flex flex-col gap-4 border-t border-stone-100 pt-4">
