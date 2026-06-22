@@ -15,6 +15,7 @@ import { BalancePage } from '@/pages/BalancePage'
 import { CategoriesPage } from '@/pages/CategoriesPage'
 import { BudgetPage } from '@/pages/BudgetPage'
 import { AnalisisPage } from '@/pages/AnalisisPage'
+import { TrendPage } from '@/pages/TrendPage'
 import { ImportPage } from '@/pages/ImportPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { CategorySettingsPage } from '@/pages/CategorySettingsPage'
@@ -34,6 +35,7 @@ function AppRoutes() {
           <Route index element={<Navigate to="categorias" replace />} />
           <Route path="presupuesto" element={<BudgetPage embedded />} />
           <Route path="categorias" element={<CategoriesPage />} />
+          <Route path="tendencias" element={<TrendPage />} />
         </Route>
         <Route path="categorias" element={<Navigate to="/analisis/categorias" replace />} />
         <Route path="presupuesto" element={<Navigate to="/analisis/presupuesto" replace />} />

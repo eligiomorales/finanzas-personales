@@ -2,14 +2,17 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
 const tabs = [
-  { value: 'presupuesto', label: 'Presupuesto' },
   { value: 'categorias', label: 'Categorías' },
+  { value: 'tendencias', label: 'Tendencias' },
+  { value: 'presupuesto', label: 'Presupuesto' },
 ] as const
 
 type AnalisisTab = (typeof tabs)[number]['value']
 
 function activeTab(pathname: string): AnalisisTab {
-  return pathname.includes('/presupuesto') ? 'presupuesto' : 'categorias'
+  if (pathname.includes('/presupuesto')) return 'presupuesto'
+  if (pathname.includes('/tendencias')) return 'tendencias'
+  return 'categorias'
 }
 
 export function AnalisisPage() {

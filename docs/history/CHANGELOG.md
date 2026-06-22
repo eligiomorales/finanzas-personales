@@ -4,6 +4,23 @@ Historial append-only de lo construido. El **estado actual** vive en `NEXT.md`; 
 
 ---
 
+## TRK-3 — Tendencias mensuales (2026-06-21 + polish 2026-06-22)
+
+Tab **Tendencias** en `/analisis/tendencias`: evolución de 6 meses y distribución por categoría.
+
+| Area | Detalle |
+|------|---------|
+| **MVP (21)** | `TrendPage.tsx` + `monthly-trends.ts`: barras de gastos y detalle mensual |
+| **Rediseño (22)** | Carrusel: flujo de caja (barras ingreso/gasto + línea ahorro) y ritmo de gasto (acumulado vs prom. diario 3m) |
+| **Categorías** | Dona + listado `monto (%)`; filtro por mes seleccionado en flujo de caja |
+| **Resumen mes** | Inline bajo el gráfico (ingresos / gastos / ahorro) — evita clip del carrusel |
+| **Componentes** | `src/components/trends/`: `CashFlowChart`, `CumulativeSpendChart`, `CategoryDonutBreakdown`, `TrendChartCarousel` |
+| **Tests** | `monthly-trends.test.ts` (`buildCumulativeSpendSeries`) |
+
+Sin nuevas dependencias; SVG inline. `npm run ci` verde (247 tests).
+
+---
+
 ## IMP-UI — Pulido Pantalla Import (2026-06-21)
 
 Reorganización del paso `review`: resumen compacto, excepciones first (Opción A del canvas), bulk colapsable, filas compactas para auto-aprobados, footer sobre nav con safe-area.
