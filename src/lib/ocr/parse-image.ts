@@ -35,7 +35,14 @@ export function parseImageText(text: string): ParseResult {
         'Se reconoció una captura Wallbit, pero no se encontraron consumos. Probá con más zoom, mejor luz o una captura más nítida.',
       )
     }
-    return rowsToParseResult(outcome.rows, 'wallbit-debit')
+    const hasMissingDates = outcome.rows.some((row) => !row.date)
+    return {
+      ...rowsToParseResult(outcome.rows, 'wallbit-debit'),
+      forceNeedsReview: outcome.forceNeedsReview || hasMissingDates,
+      warnings: hasMissingDates
+        ? ['OCR: algunas filas no tienen fecha detectada — revisalas manualmente']
+        : undefined,
+    }
   }
 
   throw new Error(

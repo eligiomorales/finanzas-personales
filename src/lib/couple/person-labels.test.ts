@@ -3,6 +3,7 @@ import {
   buildCouplePersonsView,
   formLabelForRole,
   formLabelWithName,
+  importPayerChipLabel,
   payerDisplayLabel,
   payerListLabel,
   buildDefaultImportShare,
@@ -23,6 +24,7 @@ describe('buildCouplePersonsView', () => {
     expect(view.partnerName).toBe('Juan')
     expect(view.personAName).toBe('Ana')
     expect(view.personBName).toBe('Juan')
+    expect(view.hasConfiguredNames).toBe(true)
   })
 
   it('usa fallback de settings si falta display_name', () => {
@@ -61,6 +63,23 @@ describe('form labels', () => {
     expect(payerListLabel('personB', view)).toBe('Juan')
     expect(payerListLabel('personA', view)).toBe('Ana')
     expect(payerListLabel('both', view)).toBe('Ambos')
+  })
+
+  it('importPayerChipLabel usa solo nombres cuando la pareja los configuró', () => {
+    expect(importPayerChipLabel('personB', view)).toBe('Juan')
+    expect(importPayerChipLabel('personA', view)).toBe('Ana')
+  })
+
+  it('importPayerChipLabel usa Yo / Mi pareja con nombres por defecto', () => {
+    const defaultView = buildCouplePersonsView({
+      members: [
+        { role: 'personA', userId: 'u1', displayName: null, email: 'a@t.com' },
+        { role: 'personB', userId: 'u2', displayName: null, email: 'b@t.com' },
+      ],
+      myUserId: 'u2',
+    })
+    expect(importPayerChipLabel('personB', defaultView)).toBe('Yo')
+    expect(importPayerChipLabel('personA', defaultView)).toBe('Mi pareja')
   })
 })
 

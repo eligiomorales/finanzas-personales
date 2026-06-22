@@ -5,10 +5,11 @@ import { useCategories, useCategoryRules, useImportMutations, useMovementFormHin
 import { useRepositories } from '@/contexts/DataContext'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { ImportBatchDefaultsCard } from '@/components/ImportBatchDefaultsCard'
+import { ImportMerchantBulkActionsCard } from '@/components/ImportMerchantBulkActionsCard'
 import { ImportReviewItemCard } from '@/components/ImportReviewItemCard'
 import { buildDefaultImportShare } from '@/lib/couple/person-labels'
 import { isDuplicateMovement } from '@/lib/balance'
-import { filterImportReviewItems, type ImportReviewFilter, type ImportReviewItem } from '@/lib/import-display'
+import { filterImportReviewItems, buildImportPreviewSummary, buildImportMerchantGroups, applyCategoryToImportMerchantGroup, buildImportRuleCandidatesToSave, defaultImportRuleKeyword, importItemCategoryWasCorrected, importPendingMissingCategory, shouldApplyImportBulkAction, type ImportReviewFilter, type ImportReviewItem } from '@/lib/import-display'
 import { getFrequentCategoryIds } from '@/lib/movement-form-defaults'
 import { cn, dateSpanFromIsoDates, formatCurrency, generateId } from '@/lib/utils'
 import {
@@ -17,13 +18,16 @@ import {
   guessColumnMapping,
   hasAmountMapping,
   hasPerRowCurrencyMapping,
-  suggestCategory,
+  scoreImportRowConfidence,
+  suggestCategoryWithConfidence,
   type ColumnMapping,
   type ParsedRow,
 } from '@/lib/import'
 import { imageProfileLabel, type ImageProfile } from '@/lib/ocr/profile-labels'
 import { pdfProfileLabel, type PdfProfile } from '@/lib/pdf/parse-pdf'
-import { Badge, Card, MetricCard } from '@/components/ui/Card'
+import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel'
+import { Alert } from '@/components/ui/Alert'
+import { Badge, Card, EmptyState, MetricCard } from '@/components/ui/Card'
 import { ChoiceChip } from '@/components/ui/ChoiceChip'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -122,8 +126,12 @@ export function ImportPage() {
   const [imageProfile, setImageProfile] = useState<ImageProfile | null>(null)
   const [perRowCurrency, setPerRowCurrency] = useState(false)
   const [loadingDetail, setLoadingDetail] = useState<string | null>(null)
-  const [reviewFilter, setReviewFilter] = useState<ImportReviewFilter>('pending')
+  const [reviewFilter, setReviewFilter] = useState<ImportReviewFilter>('needs_review')
   const [dragging, setDragging] = useState(false)
+  const [parserWarnings, setParserWarnings] = useState<string[]>([])
+  const [forceNeedsReview, setForceNeedsReview] = useState(false)
+  const [rememberedRules, setRememberedRules] = useState<Record<string, string>>({})
+  const reviewListRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (persons.loading || shareDefaultApplied.current) return
@@ -143,8 +151,10 @@ export function ImportPage() {
     rows: ParsedRow[],
     newImportId: string,
     duplicateCandidates: Movement[],
+    options?: { forceNeedsReview?: boolean },
   ): ImportReviewItem[] {
     const shareDefaults = buildDefaultImportShare(persons.myRole)
+    const batchForceReview = options?.forceNeedsReview ?? forceNeedsReview
     return rows.map((row) => {
       const currency = row.currency
       const duplicate = duplicateCandidates.find((m) =>
@@ -155,7 +165,13 @@ export function ImportPage() {
           currency,
         }),
       )
-      const suggestedCat = suggestCategory(row.description, categories, categoryRules)
+      const suggestion = suggestCategoryWithConfidence(row.description, categories, categoryRules)
+      const scored = scoreImportRowConfidence({
+        suggestion,
+        possibleDuplicate: Boolean(duplicate),
+        missingDate: !row.date,
+        forceNeedsReview: batchForceReview,
+      })
       return {
         id: generateId(),
         importId: newImportId,
@@ -164,11 +180,13 @@ export function ImportPage() {
         amount: row.amount,
         currency,
         merchant: row.merchant,
-        suggestedCategoryId: suggestedCat,
+        suggestedCategoryId: suggestion.categoryId,
         possibleDuplicate: Boolean(duplicate),
         duplicateMovementId: duplicate?.id,
         status: 'pending' as const,
-        selectedCategoryId: suggestedCat,
+        selectedCategoryId: suggestion.categoryId,
+        confidence: scored.confidence,
+        needsReview: scored.needsReview,
         ...shareDefaults,
       }
     })
@@ -200,6 +218,8 @@ export function ImportPage() {
       setPdfProfile(result.pdfProfile ?? null)
       setImageProfile(result.imageProfile ?? null)
       setPerRowCurrency(Boolean(result.perRowCurrency))
+      setParserWarnings(result.warnings ?? [])
+      setForceNeedsReview(Boolean(result.forceNeedsReview))
       if (result.imageProfile === 'wallbit-debit') {
         setAccountType('debit')
         setImportCurrency('USD')
@@ -214,7 +234,12 @@ export function ImportPage() {
           amount: 'Pesos',
           merchant: 'Comprobante',
         })
-        setPendingItems(buildPendingItems(result.rows, newImportId, await loadDuplicateCandidates(result.rows)))
+        setPendingItems(
+          buildPendingItems(result.rows, newImportId, await loadDuplicateCandidates(result.rows), {
+            forceNeedsReview: result.forceNeedsReview,
+          }),
+        )
+        setReviewFilter('needs_review')
         setStep('review')
         return
       }
@@ -262,12 +287,21 @@ export function ImportPage() {
     setImportId(newImportId)
     const duplicateCandidates = await loadDuplicateCandidates(rows)
     setPendingItems(buildPendingItems(rows, newImportId, duplicateCandidates))
+    setReviewFilter('needs_review')
     setStep('review')
   }
 
   async function confirmSelected() {
     if (!importId) return
     const selected = pendingItems.filter((p) => p.status === 'pending')
+    const missingCategory = importPendingMissingCategory(pendingItems)
+    if (missingCategory.length > 0) {
+      setError(
+        `${missingCategory.length} movimiento(s) pendiente(s) sin categoría. Asigná una categoría antes de confirmar.`,
+      )
+      scrollToReviewList()
+      return
+    }
     const invalidShare = selected.find(
       (item) => item.isShared && Math.abs(item.sharePersonA + item.sharePersonB - 100) > 0.01,
     )
@@ -280,6 +314,15 @@ export function ImportPage() {
 
     setLoading(true)
     try {
+      const ruleCandidates = buildImportRuleCandidatesToSave(
+        pendingItems,
+        rememberedRules,
+        categoryRules,
+      )
+      for (const candidate of ruleCandidates) {
+        await addRule(candidate.keyword, candidate.categoryId)
+      }
+
       const count = await confirmImport({
         id: importId,
         accountType,
@@ -310,6 +353,35 @@ export function ImportPage() {
     setPendingItems((items) =>
       items.map((p) => (p.id === id ? { ...p, selectedCategoryId: categoryId } : p)),
     )
+    setRememberedRules((current) => {
+      const item = pendingItems.find((p) => p.id === id)
+      if (!item) return current
+      const updated = { ...item, selectedCategoryId: categoryId }
+      if (!importItemCategoryWasCorrected(updated)) {
+        const { [id]: _, ...rest } = current
+        return rest
+      }
+      return current
+    })
+  }
+
+  function setRememberRuleForItem(itemId: string, remember: boolean) {
+    setRememberedRules((current) => {
+      if (!remember) {
+        const { [itemId]: _, ...rest } = current
+        return rest
+      }
+      const item = pendingItems.find((p) => p.id === itemId)
+      if (!item) return current
+      return {
+        ...current,
+        [itemId]: current[itemId] ?? defaultImportRuleKeyword(item),
+      }
+    })
+  }
+
+  function updateRuleKeywordForItem(itemId: string, keyword: string) {
+    setRememberedRules((current) => ({ ...current, [itemId]: keyword }))
   }
 
   function updateItemShare(id: string, share: ImportShareValues) {
@@ -320,7 +392,7 @@ export function ImportPage() {
 
   function applyBulkShareToPending() {
     setPendingItems((items) =>
-      items.map((p) => (p.status === 'pending' ? { ...p, ...bulkShare } : p)),
+      items.map((p) => (shouldApplyImportBulkAction(p) ? { ...p, ...bulkShare } : p)),
     )
   }
 
@@ -328,9 +400,13 @@ export function ImportPage() {
     if (!bulkCategoryId) return
     setPendingItems((items) =>
       items.map((p) =>
-        p.status === 'pending' ? { ...p, selectedCategoryId: bulkCategoryId } : p,
+        shouldApplyImportBulkAction(p) ? { ...p, selectedCategoryId: bulkCategoryId } : p,
       ),
     )
+  }
+
+  function applyCategoryToMerchantGroup(groupKey: string, categoryId: string) {
+    setPendingItems((items) => applyCategoryToImportMerchantGroup(items, groupKey, categoryId))
   }
 
   function updateItemCurrency(id: string, currency: CurrencyCode) {
@@ -356,8 +432,11 @@ export function ImportPage() {
     setImportCurrency('ARS')
     setError(null)
     setConfirmedCount(0)
-    setReviewFilter('pending')
+    setReviewFilter('needs_review')
     setDragging(false)
+    setParserWarnings([])
+    setForceNeedsReview(false)
+    setRememberedRules({})
   }
 
   const mappingFields = [
@@ -375,6 +454,12 @@ export function ImportPage() {
   const pendingCount = pendingItems.filter((p) => p.status === 'pending').length
   const ignoredCount = pendingItems.filter((p) => p.status === 'ignored').length
   const duplicateCount = pendingItems.filter((p) => p.possibleDuplicate && p.status === 'pending').length
+  const previewSummary = useMemo(
+    () => buildImportPreviewSummary(pendingItems, defaultRate, parserWarnings),
+    [pendingItems, defaultRate, parserWarnings],
+  )
+  const needsReviewCount = previewSummary.reviewRequiredCount
+  const autoApprovedCount = previewSummary.autoApprovedCount
   const expenseCategories = categories.filter((c) => c.type === 'expense')
   const frequentCategoryIds = useMemo(
     () => getFrequentCategoryIds(hintMovements, 'expense', 6),
@@ -383,6 +468,10 @@ export function ImportPage() {
   const visibleItems = useMemo(
     () => filterImportReviewItems(pendingItems, reviewFilter),
     [pendingItems, reviewFilter],
+  )
+  const merchantGroups = useMemo(
+    () => buildImportMerchantGroups(pendingItems, defaultRate),
+    [pendingItems, defaultRate],
   )
   const pendingTotalArs = useMemo(
     () =>
@@ -401,6 +490,11 @@ export function ImportPage() {
   if (step !== 'upload') completedStepIds.push('upload')
   if (step === 'review' || step === 'done') completedStepIds.push('mapping')
   if (step === 'done') completedStepIds.push('review')
+
+  function scrollToReviewList() {
+    setReviewFilter('needs_review')
+    reviewListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   function ignoreAllDuplicates() {
     setPendingItems((items) =>
@@ -644,7 +738,7 @@ export function ImportPage() {
 
       {step === 'review' && (
         <div className="space-y-4">
-          <Card className="space-y-4">
+          <Card className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                 <ImportFileTypeIcon
@@ -659,9 +753,12 @@ export function ImportPage() {
                   {[
                     pdfProfile && pdfProfileLabel(pdfProfile),
                     imageProfile && imageProfileLabel(imageProfile),
-                    perRowCurrency && 'Moneda detectada por movimiento',
-                    !pdfProfile && !imageProfile && !perRowCurrency && `${pendingItems.length} movimiento(s) detectados`,
-                  ].filter(Boolean).join(' · ')}
+                    perRowCurrency && 'Moneda por movimiento',
+                    `${previewSummary.expenseCount} gasto(s)`,
+                    duplicateCount > 0 && `${duplicateCount} duplicado(s)`,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </p>
               </div>
               <div className="ml-auto flex shrink-0 flex-wrap justify-end gap-1.5">
@@ -671,34 +768,77 @@ export function ImportPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 border-t border-stone-200 pt-4">
-              <MetricCard label="Pendientes" value={String(pendingCount)} compact />
-              <MetricCard label="Total ARS" value={formatCurrency(pendingTotalArs, 'ARS')} compact />
-              <MetricCard label="Ignorados" value={String(ignoredCount)} compact />
-              <MetricCard label="Duplicados" value={String(duplicateCount)} compact />
+            <div className="grid grid-cols-2 gap-3 border-t border-stone-200 pt-3">
+              <MetricCard label="Para revisar" value={String(needsReviewCount)} compact />
+              <MetricCard label="Total" value={formatCurrency(previewSummary.totalArs, 'ARS')} compact />
+              <MetricCard label="Auto-aprobados" value={String(autoApprovedCount)} compact />
+              <MetricCard label="Confianza" value={`${previewSummary.aggregateConfidence}%`} compact />
             </div>
 
-            <ImportBatchDefaultsCard
-              expenseCategories={expenseCategories}
-              frequentCategoryIds={frequentCategoryIds}
-              bulkCategoryId={bulkCategoryId}
-              bulkShare={bulkShare}
-              persons={persons}
-              pendingCount={pendingCount}
-              duplicateCount={duplicateCount}
-              onCategoryChange={setBulkCategoryId}
-              onShareChange={setBulkShare}
-              onApplyCategory={applyBulkCategoryToPending}
-              onApplyShare={applyBulkShareToPending}
-              onIgnoreDuplicates={ignoreAllDuplicates}
-            />
+            {previewSummary.parserWarnings.length > 0 && (
+              <Alert tone="info">{previewSummary.parserWarnings.join(' · ')}</Alert>
+            )}
+
+            {needsReviewCount === 0 && (
+              <StatusMessage tone="success">
+                {autoApprovedCount} movimiento(s) auto-aprobados. Confirmá abajo para importar el lote.
+              </StatusMessage>
+            )}
           </Card>
 
-          <div className="flex flex-wrap gap-1.5">
+          {(needsReviewCount > 0 || merchantGroups.length > 0) && (
+            <div className="space-y-2">
+              {needsReviewCount > 0 && (
+                <CollapsiblePanel
+                  compact
+                  title="Acciones del lote"
+                  summary={`Defaults para ${needsReviewCount} excepción${needsReviewCount === 1 ? '' : 'es'}`}
+                  contentClassName="border-0 p-0"
+                >
+                  <ImportBatchDefaultsCard
+                    embedded
+                    expenseCategories={expenseCategories}
+                    frequentCategoryIds={frequentCategoryIds}
+                    bulkCategoryId={bulkCategoryId}
+                    bulkShare={bulkShare}
+                    persons={persons}
+                    bulkTargetCount={needsReviewCount}
+                    duplicateCount={duplicateCount}
+                    onCategoryChange={setBulkCategoryId}
+                    onShareChange={setBulkShare}
+                    onApplyCategory={applyBulkCategoryToPending}
+                    onApplyShare={applyBulkShareToPending}
+                    onIgnoreDuplicates={ignoreAllDuplicates}
+                  />
+                </CollapsiblePanel>
+              )}
+
+              {merchantGroups.length > 0 && (
+                <CollapsiblePanel
+                  compact
+                  title="Comercios repetidos"
+                  summary={`${merchantGroups.length} comercio${merchantGroups.length === 1 ? '' : 's'} · acciones masivas`}
+                  contentClassName="border-0 p-0"
+                >
+                  <ImportMerchantBulkActionsCard
+                    embedded
+                    groups={merchantGroups}
+                    expenseCategories={expenseCategories}
+                    frequentCategoryIds={frequentCategoryIds}
+                    pendingItems={pendingItems}
+                    onApplyCategory={applyCategoryToMerchantGroup}
+                  />
+                </CollapsiblePanel>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-1.5" ref={reviewListRef}>
             {(
               [
-                ['pending', `Pendientes (${pendingCount})`],
-                ['duplicates', `Duplicados (${duplicateCount})`],
+                ['needs_review', `Excepciones (${needsReviewCount})`],
+                ['auto_approved', `Auto (${autoApprovedCount})`],
+                ['duplicates', `Dup (${duplicateCount})`],
                 ['ignored', `Ignorados (${ignoredCount})`],
                 ['all', `Todos (${pendingItems.length})`],
               ] as const
@@ -715,11 +855,18 @@ export function ImportPage() {
             ))}
           </div>
 
-          <div className="space-y-2 pb-28">
+          <div className="space-y-2 pb-[calc(9.5rem+env(safe-area-inset-bottom,0px))]">
             {visibleItems.length === 0 ? (
-              <Card compact className="text-center text-sm text-stone-500">
-                No hay movimientos en esta vista.
-              </Card>
+              reviewFilter === 'needs_review' && needsReviewCount === 0 ? (
+                <EmptyState
+                  title="Sin excepciones"
+                  description={`${autoApprovedCount} movimiento(s) auto-aprobados. Confirmá abajo para importar el lote.`}
+                />
+              ) : (
+                <Card compact className="text-center text-sm text-stone-500">
+                  No hay movimientos en esta vista.
+                </Card>
+              )
             ) : (
               visibleItems.map((item) => (
                 <ImportReviewItemCard
@@ -729,27 +876,33 @@ export function ImportPage() {
                   expenseCategories={expenseCategories}
                   frequentCategoryIds={frequentCategoryIds}
                   perRowCurrency={perRowCurrency}
+                  compact={item.status === 'pending' && !item.needsReview}
                   onCategoryChange={(categoryId) => updateItemCategory(item.id, categoryId)}
                   onCurrencyChange={(currency) => updateItemCurrency(item.id, currency)}
                   onShareChange={(share) => updateItemShare(item.id, share)}
                   onIgnore={() => ignoreItem(item.id)}
                   onRestore={() => restoreItem(item.id)}
                   categoryRules={categoryRules}
-                  onSaveRule={(keyword, categoryId) => addRule(keyword, categoryId)}
+                  rememberRule={Boolean(rememberedRules[item.id])}
+                  ruleKeyword={rememberedRules[item.id] ?? ''}
+                  onRememberRuleChange={(remember) => setRememberRuleForItem(item.id, remember)}
+                  onRuleKeywordChange={(keyword) => updateRuleKeywordForItem(item.id, keyword)}
                 />
               ))
             )}
           </div>
 
-          <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-stone-200 bg-surface-50 px-4 py-3 sm:px-6">
+          <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-20 border-t border-stone-200 bg-surface-50/95 px-4 py-3 backdrop-blur-md sm:px-6">
             <div className="mx-auto flex max-w-2xl flex-col gap-2 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-stone-800">
                   {loading ? 'Importando...' : `Confirmar ${pendingCount} movimiento(s)`}
                 </p>
                 <p className="text-xs text-stone-500">
+                  {needsReviewCount > 0 && `${needsReviewCount} para revisar · `}
+                  {autoApprovedCount > 0 && `${autoApprovedCount} auto-aprobado(s) · `}
                   {ignoredCount > 0 && `${ignoredCount} ignorado(s) · `}
-                  Total pendiente ~{formatCurrency(pendingTotalArs, 'ARS')}
+                  Total ~{formatCurrency(pendingTotalArs, 'ARS')}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -766,7 +919,11 @@ export function ImportPage() {
                 </Button>
               </div>
             </div>
-            {error && <StatusMessage tone="error" className="mx-auto mt-2 max-w-2xl">{error}</StatusMessage>}
+            {error && (
+              <Alert tone="error" className="mx-auto mt-2 max-w-2xl">
+                {error}
+              </Alert>
+            )}
             {loading && <LiveRegion>Importando movimientos</LiveRegion>}
           </div>
         </div>

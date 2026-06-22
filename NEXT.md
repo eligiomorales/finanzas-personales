@@ -3,20 +3,24 @@
 > Estado vivo del proyecto. **Corto a propósito** (máx. una pantalla). Cuando una fase termina, su detalle se muda a `docs/history/CHANGELOG.md`; este archivo solo dice *dónde estoy y qué sigue*.
 
 **Prod:** https://finanzas-personales-ebon.vercel.app · Vercel + Supabase · migraciones `001`–`008` (aplicar `008` en prod)
-**Rama de trabajo:** `redesign/budget-category` (verificar con `git status`)
-**Última fase cerrada:** Fix teclado iOS en formulario de movimiento (sesión 2026-06-20)
+**Rama actual:** `fix/focus-new-expense` (incluye IMP-UI; mover a `feature/imp-ui-import-polish` antes de PR)
+**Última fase cerrada:** IMP-UI Pulido pantalla Import (sesión 2026-06-21)
 
 ---
 
 ## En curso
 
-- (nada activo / anotar la feature de la sesión)
+_Nada activo — elegir siguiente sesión del top 3._
 
-## Siguiente (1–3, priorizado)
+## Siguiente (1–3, priorizado por dolor)
 
-1. Gastos recurrentes manuales
-2. Metas compartidas simples
-3. Estado de revisión de movimientos
+1. Epic Planning **`PLAN-1`** (proyección fin de mes — ready, sin deps)
+2. Sueltas ready: **`TRK-1`** · **`TRK-2`** · **`DASH-2`** (elegir una por sesión)
+3. Epic recurrentes **`REC-1`** (modelo + migración — prioridad #4)
+
+_Epic Import by exception (IMP-1→IMP-5 + IMP-UI) cerrado._
+
+_Prioridad completa:_ `backlog/product-ideas.md` → Prioridad por dolor
 
 ## Bloqueos / riesgos activos
 
@@ -46,19 +50,3 @@ Lee AGENTS.md, PLAYBOOK.md, NEXT.md y el brief adjunto.
 Objetivo (una sola cosa): [...]
 Explore + Plan primero. Al final: npm run ci + actualizar NEXT.md.
 ```
-
-## Capture — sesión 2026-06-20 (iOS keyboard fix)
-
-**Objetivo:** En iPhone, al tocar el FAB para registrar un nuevo gasto, el teclado numérico no se activaba automáticamente (funciona en Android).
-
-**Causa raíz:** iOS Safari ignora el atributo HTML `autoFocus` y no abre el teclado virtual. Solo lo abre si `.focus()` ocurre durante un gesto del usuario (tap).
-
-**Entregado — focus-proxy pattern:**
-- **Layout.tsx:** FAB cambia de `<NavLink>` a `<button>`. Al tocar, foca un `<input inputMode="decimal">` oculto (gesto del usuario → teclado se abre), luego navega a `/movimientos/nuevo`.
-- **CurrencyAmountInput.tsx:** `autoFocus` HTML reemplazado por `useRef` + `useEffect` con `.focus()` al montar. El foco se transfiere del proxy al input real y el teclado queda abierto.
-
-**Archivos:** `Layout.tsx`, `CurrencyAmountInput.tsx`.
-
-**Verificación:** `npm run ci` verde (219 tests, build OK).
-
-**Aprendizaje:** iOS nunca honra `autoFocus` en inputs para abrir el teclado virtual; el workaround estándar es pre-focar un input invisible durante el gesto del usuario y transferir foco al input real al montar el componente destino.

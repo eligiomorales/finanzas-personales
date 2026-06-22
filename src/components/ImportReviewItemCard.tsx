@@ -1,17 +1,19 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ImportCategoryPicker } from '@/components/ImportCategoryPicker'
 import {
   ImportShareControls,
-  SPLIT_PRESETS,
+  ImportSharedToggle,
+  IMPORT_SPLIT_PRESETS,
   type ImportShareValues,
 } from '@/components/ImportShareControls'
-import { Badge } from '@/components/ui/Card'
-import { ChoiceChip } from '@/components/ui/ChoiceChip'
+import { Badge, Card } from '@/components/ui/Card'
 import { Button, Input, Label } from '@/components/ui/Form'
-import { ruleKeywordMatchesDescription } from '@/lib/category-rules'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import {
-  buildImportCategoryButtons,
-  importItemTitle,
+  defaultImportRuleKeyword,
+  findExistingImportRuleForItem,
+  importItemCategoryWasCorrected,
   importRepartoPreview,
   importRepartoSummary,
   importShareLabelForRole,
@@ -19,12 +21,8 @@ import {
 } from '@/lib/import-display'
 import { formatMovementAmount } from '@/lib/currency'
 import type { CouplePersonsView } from '@/lib/couple/person-labels'
-import { payerDisplayLabel } from '@/lib/couple/person-labels'
 import { cn, formatShortDate, movementAmountColor } from '@/lib/utils'
 import type { Category, CategoryRule, CurrencyCode } from '@/types'
-
-const EXTRACT_PREVIEW_LINES = 3
-const PRIMARY_CATEGORY_LIMIT = 4
 
 interface ImportReviewItemCardProps {
   item: ImportReviewItem
@@ -32,13 +30,17 @@ interface ImportReviewItemCardProps {
   expenseCategories: Category[]
   frequentCategoryIds: string[]
   perRowCurrency: boolean
+  compact?: boolean
   onCategoryChange: (categoryId: string) => void
   onCurrencyChange: (currency: CurrencyCode) => void
   onShareChange: (share: ImportShareValues) => void
   onIgnore: () => void
   onRestore: () => void
   categoryRules?: CategoryRule[]
-  onSaveRule?: (keyword: string, categoryId: string) => Promise<unknown>
+  rememberRule?: boolean
+  ruleKeyword?: string
+  onRememberRuleChange?: (remember: boolean) => void
+  onRuleKeywordChange?: (keyword: string) => void
 }
 
 export function ImportReviewItemCard({
@@ -47,110 +49,44 @@ export function ImportReviewItemCard({
   expenseCategories,
   frequentCategoryIds,
   perRowCurrency,
+  compact = false,
   onCategoryChange,
   onCurrencyChange,
   onShareChange,
   onIgnore,
   onRestore,
   categoryRules = [],
-  onSaveRule,
+  rememberRule = false,
+  ruleKeyword = '',
+  onRememberRuleChange,
+  onRuleKeywordChange,
 }: ImportReviewItemCardProps) {
-  const [editOpen, setEditOpen] = useState(false)
-  const [extractOpen, setExtractOpen] = useState(false)
-  const [extractFull, setExtractFull] = useState(false)
-  const [showAllCategories, setShowAllCategories] = useState(false)
   const [shareEdited, setShareEdited] = useState(false)
-  const [saveRuleOpen, setSaveRuleOpen] = useState(false)
-  const [saveRuleKeyword, setSaveRuleKeyword] = useState('')
-  const [saveRuleSaving, setSaveRuleSaving] = useState(false)
-  const [saveRuleDone, setSaveRuleDone] = useState(false)
-  const [saveRuleError, setSaveRuleError] = useState<string | null>(null)
 
-  const category = expenseCategories.find((c) => c.id === item.selectedCategoryId)
-  const suggestedCategory = expenseCategories.find((c) => c.id === item.suggestedCategoryId)
-  const title = importItemTitle(item.originalDescription, item.merchant)
   const repartoSummary = importRepartoSummary(item, (role) => importShareLabelForRole(role, persons))
   const repartoPreview = importRepartoPreview(item, persons, item.amount, item.currency)
+  const extractText = item.originalDescription.trim() || 'Sin descripción'
 
-  const primaryCategories = useMemo(
-    () =>
-      buildImportCategoryButtons(
-        expenseCategories,
-        frequentCategoryIds,
-        item.selectedCategoryId,
-        item.suggestedCategoryId,
-        PRIMARY_CATEGORY_LIMIT,
-      ),
-    [
-      expenseCategories,
-      frequentCategoryIds,
-      item.selectedCategoryId,
-      item.suggestedCategoryId,
-    ],
-  )
-
-  const categoryOptions = useMemo(() => {
-    if (!showAllCategories) return primaryCategories
-    const seen = new Set(primaryCategories.map((c) => c.id))
-    const extra = expenseCategories.filter((c) => !seen.has(c.id))
-    return [...primaryCategories, ...extra]
-  }, [expenseCategories, primaryCategories, showAllCategories])
-
-  const extractLines = item.originalDescription.split('\n').filter((line) => line.trim()).length
   const isPending = item.status === 'pending'
-  const categoryWasCorrected =
-    Boolean(item.selectedCategoryId) && item.selectedCategoryId !== item.suggestedCategoryId
+  const showFullEditor = isPending && !compact
+  const categoryWasCorrected = importItemCategoryWasCorrected(item)
   const existingRule = useMemo(() => {
-    if (!item.selectedCategoryId) return null
-    return categoryRules.find(
-      (rule) =>
-        rule.categoryId === item.selectedCategoryId &&
-        ruleKeywordMatchesDescription(rule.keyword, item.originalDescription),
-    )
-  }, [categoryRules, item.originalDescription, item.selectedCategoryId])
+    if (!item.selectedCategoryId) return undefined
+    return findExistingImportRuleForItem(item, categoryRules, item.selectedCategoryId)
+  }, [categoryRules, item, item.selectedCategoryId])
 
-  const repartoChip = item.isShared
-    ? SPLIT_PRESETS.find((preset) => preset.value === item.splitPreset)?.label ??
-      `${item.sharePersonA} / ${item.sharePersonB}`
-    : payerDisplayLabel(item.paidBy, persons)
+  const selectedCategoryName = expenseCategories.find((c) => c.id === item.selectedCategoryId)?.name
 
   function handleShareChange(share: ImportShareValues) {
     setShareEdited(true)
     onShareChange(share)
   }
 
-  function handleCategoryChange(categoryId: string) {
-    setSaveRuleDone(false)
-    setSaveRuleOpen(false)
-    setSaveRuleError(null)
-    onCategoryChange(categoryId)
-  }
-
-  function openSaveRule() {
-    setSaveRuleKeyword(item.originalDescription)
-    setSaveRuleOpen(true)
-    setSaveRuleError(null)
-  }
-
-  async function handleSaveRule(e: React.FormEvent) {
-    e.preventDefault()
-    if (!onSaveRule || !item.selectedCategoryId) return
-    const keyword = saveRuleKeyword.trim()
-    if (!keyword) {
-      setSaveRuleError('Ingresá una palabra clave.')
-      return
-    }
-
-    setSaveRuleSaving(true)
-    setSaveRuleError(null)
-    try {
-      await onSaveRule(keyword, item.selectedCategoryId)
-      setSaveRuleDone(true)
-      setSaveRuleOpen(false)
-    } catch (err) {
-      setSaveRuleError(err instanceof Error ? err.message : 'No se pudo guardar la regla.')
-    } finally {
-      setSaveRuleSaving(false)
+  function handleRememberToggle(checked: boolean) {
+    if (!onRememberRuleChange) return
+    onRememberRuleChange(checked)
+    if (checked && onRuleKeywordChange && !ruleKeyword.trim()) {
+      onRuleKeywordChange(defaultImportRuleKeyword(item))
     }
   }
 
@@ -159,248 +95,155 @@ export function ImportReviewItemCard({
     else onRestore()
   }
 
+  const shareValues: ImportShareValues = {
+    paidBy: item.paidBy,
+    isShared: item.isShared,
+    sharePersonA: item.sharePersonA,
+    sharePersonB: item.sharePersonB,
+    splitPreset: item.splitPreset,
+  }
+
   return (
-    <div
+    <Card
+      compact
       className={cn(
-        'rounded-xl border bg-white transition-colors',
         item.status === 'ignored' && 'opacity-60',
         item.possibleDuplicate && item.status === 'pending' && 'border-amber-300 bg-amber-50/20',
-        !item.possibleDuplicate && 'border-stone-200',
       )}
     >
-      <div className="p-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs text-stone-500">{formatShortDate(item.date)}</span>
-              {item.currency === 'USD' && !perRowCurrency && <Badge variant="warning">USD</Badge>}
-              {item.possibleDuplicate && isPending && <Badge variant="warning">Duplicado</Badge>}
-              {item.status === 'ignored' && <Badge>Ignorado</Badge>}
-            </div>
-            <p className="mt-1 break-words text-sm font-semibold text-stone-900">{title}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-stone-500">{formatShortDate(item.date)}</span>
+            {item.currency === 'USD' && !perRowCurrency && <Badge variant="warning">USD</Badge>}
+            {item.possibleDuplicate && isPending && <Badge variant="warning">Duplicado</Badge>}
+            {compact && isPending && !item.needsReview && <Badge variant="info">Auto-aprobado</Badge>}
+            {item.status === 'ignored' && <Badge>Ignorado</Badge>}
           </div>
-          <div className="shrink-0 text-right">
-            <p
-              className={cn(
-                'text-sm font-bold tabular-nums sm:text-base',
-                movementAmountColor('expense'),
-              )}
-            >
-              -{formatMovementAmount(item)}
-            </p>
-            <Button size="sm" variant="ghost" className="mt-1 h-auto px-1 py-0" onClick={handleStatusToggle}>
-              {isPending ? 'Ignorar' : 'Restaurar'}
-            </Button>
-          </div>
+          <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold text-stone-900">
+            {extractText}
+          </p>
+          {compact && isPending && selectedCategoryName && (
+            <p className="mt-0.5 text-xs text-stone-500">{selectedCategoryName}</p>
+          )}
         </div>
+        <div className="shrink-0 text-right">
+          <p
+            className={cn(
+              'text-sm font-bold tabular-nums sm:text-base',
+              movementAmountColor('expense'),
+            )}
+          >
+            -{formatMovementAmount(item)}
+          </p>
+          <Button size="sm" variant="ghost" className="mt-1 h-auto px-1 py-0" onClick={handleStatusToggle}>
+            {isPending ? 'Ignorar' : 'Restaurar'}
+          </Button>
+        </div>
+      </div>
 
-        {isPending && (
-          <div className="mt-2 space-y-2">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <ChoiceChip
-                shape="pill"
-                size="sm"
-                selected
-                onClick={() => setEditOpen(true)}
-              >
-                {category?.name ?? 'Sin categoría'}
-              </ChoiceChip>
-              {perRowCurrency && (
-                <div className="inline-flex rounded-full border border-stone-200 bg-surface-50 p-0.5">
-                  {(['ARS', 'USD'] as const).map((currency) => (
-                    <button
-                      key={currency}
-                      type="button"
-                      onClick={() => onCurrencyChange(currency)}
-                      className={cn(
-                        'rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors',
-                        item.currency === currency
-                          ? 'bg-white text-brand-700 shadow-sm'
-                          : 'text-stone-500',
-                      )}
-                    >
-                      {currency}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <ChoiceChip shape="pill" size="sm" onClick={() => setEditOpen(true)}>
-                {repartoChip}
-              </ChoiceChip>
-              <button
-                type="button"
-                onClick={() => setEditOpen((open) => !open)}
-                className="rounded-full px-2.5 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50"
-              >
-                {editOpen ? 'Cerrar ajustes' : 'Ajustar'}
-              </button>
-            </div>
+      {compact && isPending && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {perRowCurrency && (
+            <SegmentedControl
+              aria-label="Moneda del movimiento"
+              indicatorLayoutId={`import-item-currency-${item.id}`}
+              size="sm"
+              fullWidth={false}
+              options={[
+                { value: 'ARS' as const, label: 'ARS' },
+                { value: 'USD' as const, label: 'USD' },
+              ]}
+              value={item.currency}
+              onChange={onCurrencyChange}
+            />
+          )}
+          <ImportSharedToggle
+            idPrefix={`import-item-shared-${item.id}`}
+            values={shareValues}
+            onChange={handleShareChange}
+          />
+        </div>
+      )}
 
-            {editOpen && (
-              <div className="space-y-3 rounded-xl border border-stone-200 bg-surface-50/70 p-2.5">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-stone-600">Categoría</span>
-                    {suggestedCategory && item.selectedCategoryId !== item.suggestedCategoryId && (
-                      <span className="text-[11px] text-stone-400">Sugerida: {suggestedCategory.name}</span>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {categoryOptions.map((option) => {
-                      const isSelected = item.selectedCategoryId === option.id
-                      const isSuggested =
-                        item.suggestedCategoryId === option.id && !isSelected
-                      return (
-                        <ChoiceChip
-                          key={option.id}
-                          shape="pill"
-                          size="sm"
-                          selected={isSelected}
-                          onClick={() => handleCategoryChange(option.id)}
-                        >
-                          {option.name}
-                          {isSuggested ? ' · sugerida' : ''}
-                        </ChoiceChip>
-                      )
-                    })}
-                    <ChoiceChip
-                      shape="pill"
-                      size="sm"
-                      onClick={() => setShowAllCategories((open) => !open)}
-                    >
-                      {showAllCategories ? 'Ver menos' : 'Más'}
-                    </ChoiceChip>
-                  </div>
+      {showFullEditor && (
+        <div className="mt-3 flex flex-col gap-4 border-t border-stone-100 pt-4">
+          <ImportCategoryPicker
+            idPrefix={`import-item-${item.id}`}
+            expenseCategories={expenseCategories}
+            frequentCategoryIds={frequentCategoryIds}
+            selectedCategoryId={item.selectedCategoryId}
+            suggestedCategoryId={item.suggestedCategoryId}
+            onChange={onCategoryChange}
+          />
 
-                  {categoryWasCorrected && onSaveRule && (
-                    <div className="rounded-lg border border-dashed border-stone-200 bg-white px-2.5 py-2">
-                      {existingRule || saveRuleDone ? (
-                        <p className="text-xs text-stone-500">Regla guardada para futuras importaciones.</p>
-                      ) : !saveRuleOpen ? (
-                        <button
-                          type="button"
-                          onClick={openSaveRule}
-                          className="text-xs font-semibold text-brand-600 hover:text-brand-700"
-                        >
-                          Guardar como regla
-                        </button>
-                      ) : (
-                        <form onSubmit={handleSaveRule} className="space-y-2">
-                          <Label htmlFor={`save-rule-${item.id}`} className="text-xs text-stone-600">
-                            Palabra clave
-                          </Label>
-                          <Input
-                            id={`save-rule-${item.id}`}
-                            value={saveRuleKeyword}
-                            onChange={(e) => setSaveRuleKeyword(e.target.value)}
-                            className="text-sm"
-                            disabled={saveRuleSaving}
-                          />
-                          <div className="flex gap-2">
-                            <Button type="submit" size="sm" disabled={saveRuleSaving}>
-                              {saveRuleSaving ? 'Guardando...' : 'Guardar regla'}
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => setSaveRuleOpen(false)}
-                              disabled={saveRuleSaving}
-                            >
-                              Cancelar
-                            </Button>
-                          </div>
-                          {saveRuleError && (
-                            <p className="text-xs text-red-600">{saveRuleError}</p>
-                          )}
-                        </form>
-                      )}
+          {categoryWasCorrected && onRememberRuleChange && (
+            <div className="rounded-lg border border-dashed border-stone-200 bg-surface-50/70 px-2.5 py-2.5">
+              {existingRule ? (
+                <p className="text-xs text-stone-500">
+                  Regla existente: &quot;{existingRule.keyword}&quot; → futuras importaciones.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <label className="flex cursor-pointer items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={rememberRule}
+                      onChange={(e) => handleRememberToggle(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-stone-300 text-brand-600"
+                    />
+                    <span className="text-xs font-medium text-stone-700">
+                      Recordar para próximas importaciones
+                    </span>
+                  </label>
+                  {rememberRule && onRuleKeywordChange && (
+                    <div className="space-y-1 pl-6">
+                      <Label htmlFor={`remember-rule-${item.id}`} className="text-xs text-stone-600">
+                        Palabra clave
+                      </Label>
+                      <Input
+                        id={`remember-rule-${item.id}`}
+                        value={ruleKeyword}
+                        onChange={(e) => onRuleKeywordChange(e.target.value)}
+                        className="text-sm"
+                      />
                     </div>
                   )}
                 </div>
+              )}
+            </div>
+          )}
 
-                {perRowCurrency && (
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-semibold text-stone-600">Moneda</span>
-                    <div className="inline-grid grid-cols-2 rounded-full border border-stone-200 bg-white p-0.5">
-                      {(['ARS', 'USD'] as const).map((currency) => (
-                        <button
-                          key={currency}
-                          type="button"
-                          onClick={() => onCurrencyChange(currency)}
-                          className={cn(
-                            'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                            item.currency === currency
-                              ? 'bg-brand-50 text-brand-700'
-                              : 'text-stone-500 hover:text-stone-700',
-                          )}
-                        >
-                          {currency}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+          <div className="border-t border-stone-100 pt-4">
+            <ImportShareControls
+              compact
+              idPrefix={`import-item-share-${item.id}`}
+              paidBy={item.paidBy}
+              isShared={item.isShared}
+              sharePersonA={item.sharePersonA}
+              sharePersonB={item.sharePersonB}
+              splitPreset={item.splitPreset}
+              persons={persons}
+              summaryText={repartoSummary}
+              previewText={shareEdited ? repartoPreview : null}
+              splitPresets={IMPORT_SPLIT_PRESETS}
+              includeBothPayer={false}
+              currency={perRowCurrency ? item.currency : undefined}
+              onCurrencyChange={perRowCurrency ? onCurrencyChange : undefined}
+              onChange={handleShareChange}
+            />
 
-                <ImportShareControls
-                  compact
-                  idPrefix={`import-item-share-${item.id}`}
-                  paidBy={item.paidBy}
-                  isShared={item.isShared}
-                  sharePersonA={item.sharePersonA}
-                  sharePersonB={item.sharePersonB}
-                  splitPreset={item.splitPreset}
-                  persons={persons}
-                  summaryText={repartoSummary}
-                  previewText={shareEdited ? repartoPreview : null}
-                  onChange={handleShareChange}
-                />
-
-                <button
-                  type="button"
-                  onClick={() => setExtractOpen((open) => !open)}
-                  className="flex w-full items-center justify-between rounded-lg bg-white px-2.5 py-2 text-left text-xs font-medium text-stone-600"
-                >
-                  <span>Detalle del extracto</span>
-                  <span className="text-stone-400">
-                    {extractLines} línea{extractLines === 1 ? '' : 's'} {extractOpen ? '▴' : '▾'}
-                  </span>
-                </button>
-                {extractOpen && (
-                  <div className="rounded-lg border border-stone-200 bg-white px-2.5 py-2">
-                    <p
-                      className={cn(
-                        'whitespace-pre-wrap break-words text-xs leading-snug text-stone-600',
-                        !extractFull && extractLines > EXTRACT_PREVIEW_LINES && 'line-clamp-3',
-                      )}
-                    >
-                      {item.originalDescription}
-                    </p>
-                    {extractLines > EXTRACT_PREVIEW_LINES && (
-                      <button
-                        type="button"
-                        onClick={() => setExtractFull((full) => !full)}
-                        className="mt-1 text-xs font-medium text-brand-600 hover:text-brand-700"
-                      >
-                        {extractFull ? 'Ver menos' : 'Ver completo'}
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {item.possibleDuplicate && item.duplicateMovementId && (
-                  <Link
-                    to={`/movimientos/editar/${item.duplicateMovementId}`}
-                    className="inline-block text-xs font-medium text-brand-600 hover:text-brand-700"
-                  >
-                    Ver movimiento existente →
-                  </Link>
-                )}
-              </div>
+            {item.possibleDuplicate && item.duplicateMovementId && (
+              <Link
+                to={`/movimientos/editar/${item.duplicateMovementId}`}
+                className="mt-4 inline-block text-xs font-medium text-brand-600 hover:text-brand-700"
+              >
+                Ver movimiento existente →
+              </Link>
             )}
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </Card>
   )
 }

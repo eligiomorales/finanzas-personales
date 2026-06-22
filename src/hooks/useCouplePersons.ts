@@ -17,6 +17,7 @@ const EMPTY_VIEW: CouplePersonsView = {
   partnerName: 'Persona B',
   personAName: 'Persona A',
   personBName: 'Persona B',
+  hasConfiguredNames: false,
 }
 
 export function useCouplePersons(): CouplePersonsView & {
@@ -93,6 +94,7 @@ export function useCouplePersons(): CouplePersonsView & {
       partnerName: view.partnerName,
       personAName: view.personAName,
       personBName: view.personBName,
+      hasConfiguredNames: view.hasConfiguredNames,
       loading,
       refresh,
     }),
@@ -102,6 +104,7 @@ export function useCouplePersons(): CouplePersonsView & {
       view.partnerName,
       view.personAName,
       view.personBName,
+      view.hasConfiguredNames,
       loading,
       refresh,
     ],

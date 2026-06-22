@@ -85,7 +85,7 @@ El índice operativo vive en `AGENTS.md`. Resumen por ciclo de vida:
 | `README.md` | Referencia | Stack, funcionalidades, setup |
 | `docs/DESIGN.md` | Referencia | Diseño y motion; criterios UI |
 | `docs/deploy.md` | Proceso | Local → CI → PR → Vercel; migraciones |
-| `backlog/*.md` | Backlog | Deuda técnica por tema |
+| `backlog/*.md` | Backlog | Deuda técnica por tema; ideas de producto en `product-ideas.md` |
 | `docs/research/` | Research | Benchmark, mercado, viabilidad |
 | `plan-implementacion-finanzas-pareja.md` | Histórico | Plan original del MVP |
 | `.cursor/rules/` | Comportamiento | Reglas del agente (siempre activas) |
@@ -198,8 +198,9 @@ Al terminar, actualizar `NEXT.md`:
 3. Si una **fase terminó** → mover su detalle a `docs/history/CHANGELOG.md`
 4. Si hubo una **decisión con tradeoff** → nuevo ADR en `docs/decisions/`
 5. **Aprendizaje** — 1–3 líneas: qué delegación funcionó / falló (sección Capture del brief)
+6. **Triage (cada 2–4 sesiones, ~5 min):** repasar **Radar** en `backlog/product-ideas.md`; promover 0–1 candidato `Ready=✅` a `NEXT` si aplica
 
-Tiempo humano: ~5 minutos.
+Tiempo humano: ~5 minutos (Capture); triage aparte cuando toque.
 
 ---
 

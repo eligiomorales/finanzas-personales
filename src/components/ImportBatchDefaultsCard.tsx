@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import {
   ImportShareControls,
+  ImportSharedToggle,
+  IMPORT_SPLIT_PRESETS,
   SPLIT_PRESETS,
   type ImportShareValues,
 } from '@/components/ImportShareControls'
@@ -23,13 +25,14 @@ interface ImportBatchDefaultsCardProps {
   bulkCategoryId: string
   bulkShare: ImportShareValues
   persons: CouplePersonsView
-  pendingCount: number
+  bulkTargetCount: number
   duplicateCount: number
   onCategoryChange: (categoryId: string) => void
   onShareChange: (share: ImportShareValues) => void
   onApplyCategory: () => void
   onApplyShare: () => void
   onIgnoreDuplicates: () => void
+  embedded?: boolean
 }
 
 export function ImportBatchDefaultsCard({
@@ -38,13 +41,14 @@ export function ImportBatchDefaultsCard({
   bulkCategoryId,
   bulkShare,
   persons,
-  pendingCount,
+  bulkTargetCount,
   duplicateCount,
   onCategoryChange,
   onShareChange,
   onApplyCategory,
   onApplyShare,
   onIgnoreDuplicates,
+  embedded = false,
 }: ImportBatchDefaultsCardProps) {
   const [editOpen, setEditOpen] = useState(false)
   const [showAllCategories, setShowAllCategories] = useState(false)
@@ -75,6 +79,95 @@ export function ImportBatchDefaultsCard({
     return [...primaryCategories, ...extra]
   }, [expenseCategories, primaryCategories, showAllCategories])
 
+  const controls = (
+    <div className={embedded ? 'space-y-2' : 'ml-7 mt-2 space-y-2'}>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <ChoiceChip
+          shape="pill"
+          size="sm"
+          selected={Boolean(selectedCategory)}
+          onClick={() => setEditOpen(true)}
+        >
+          {selectedCategory?.name ?? 'Sin categoría'}
+        </ChoiceChip>
+        <ChoiceChip shape="pill" size="sm" onClick={() => setEditOpen(true)}>
+          {repartoChip}
+        </ChoiceChip>
+        <ImportSharedToggle
+          idPrefix="import-bulk-shared"
+          values={bulkShare}
+          onChange={onShareChange}
+        />
+        <button
+          type="button"
+          onClick={() => setEditOpen((open) => !open)}
+          className="rounded-full px-2.5 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50"
+        >
+          {editOpen ? 'Cerrar ajustes' : 'Ajustar'}
+        </button>
+      </div>
+
+      {editOpen && (
+        <div className="space-y-3 rounded-lg bg-surface-100/80 p-2.5">
+          <div className="space-y-1.5">
+            <span className="text-xs font-semibold text-stone-600">Categoría masiva</span>
+            <div className="flex flex-wrap gap-1.5">
+              {categoryOptions.map((option) => (
+                <ChoiceChip
+                  key={option.id}
+                  shape="pill"
+                  size="sm"
+                  selected={bulkCategoryId === option.id}
+                  onClick={() => onCategoryChange(option.id)}
+                >
+                  {option.name}
+                </ChoiceChip>
+              ))}
+              <ChoiceChip
+                shape="pill"
+                size="sm"
+                onClick={() => setShowAllCategories((open) => !open)}
+              >
+                {showAllCategories ? 'Ver menos' : 'Más'}
+              </ChoiceChip>
+            </div>
+          </div>
+
+          <ImportShareControls
+            compact
+            idPrefix="import-bulk-share"
+            paidBy={bulkShare.paidBy}
+            isShared={bulkShare.isShared}
+            sharePersonA={bulkShare.sharePersonA}
+            sharePersonB={bulkShare.sharePersonB}
+            splitPreset={bulkShare.splitPreset}
+            persons={persons}
+            summaryText={repartoSummary}
+            splitPresets={IMPORT_SPLIT_PRESETS}
+            includeBothPayer={false}
+            onChange={onShareChange}
+          />
+
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" disabled={!bulkCategoryId || bulkTargetCount === 0} onClick={onApplyCategory}>
+              Aplicar categoría a excepciones
+            </Button>
+            <Button size="sm" variant="secondary" disabled={bulkTargetCount === 0} onClick={onApplyShare}>
+              Aplicar reparto a excepciones
+            </Button>
+            {duplicateCount > 0 && (
+              <Button size="sm" variant="ghost" onClick={onIgnoreDuplicates}>
+                Ignorar {duplicateCount} duplicados
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
+  if (embedded) return controls
+
   return (
     <section className="border-t border-stone-200 pt-4">
       <div className="flex items-start gap-3">
@@ -85,88 +178,11 @@ export function ImportBatchDefaultsCard({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-stone-900">Defaults del lote</p>
           <p className="text-xs text-stone-500">
-            Aplicar a {pendingCount} pendiente{pendingCount === 1 ? '' : 's'}
+            Aplicar a {bulkTargetCount} excepción{bulkTargetCount === 1 ? '' : 'es'}
           </p>
         </div>
       </div>
-
-      <div className="ml-7 mt-2 space-y-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <ChoiceChip
-            shape="pill"
-            size="sm"
-            selected={Boolean(selectedCategory)}
-            onClick={() => setEditOpen(true)}
-          >
-            {selectedCategory?.name ?? 'Sin categoría'}
-          </ChoiceChip>
-          <ChoiceChip shape="pill" size="sm" onClick={() => setEditOpen(true)}>
-            {repartoChip}
-          </ChoiceChip>
-          <button
-            type="button"
-            onClick={() => setEditOpen((open) => !open)}
-            className="rounded-full px-2.5 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50"
-          >
-            {editOpen ? 'Cerrar ajustes' : 'Ajustar'}
-          </button>
-        </div>
-
-        {editOpen && (
-          <div className="space-y-3 rounded-lg bg-surface-100/80 p-2.5">
-            <div className="space-y-1.5">
-              <span className="text-xs font-semibold text-stone-600">Categoría masiva</span>
-              <div className="flex flex-wrap gap-1.5">
-                {categoryOptions.map((option) => (
-                  <ChoiceChip
-                    key={option.id}
-                    shape="pill"
-                    size="sm"
-                    selected={bulkCategoryId === option.id}
-                    onClick={() => onCategoryChange(option.id)}
-                  >
-                    {option.name}
-                  </ChoiceChip>
-                ))}
-                <ChoiceChip
-                  shape="pill"
-                  size="sm"
-                  onClick={() => setShowAllCategories((open) => !open)}
-                >
-                  {showAllCategories ? 'Ver menos' : 'Más'}
-                </ChoiceChip>
-              </div>
-            </div>
-
-            <ImportShareControls
-              compact
-              idPrefix="import-bulk-share"
-              paidBy={bulkShare.paidBy}
-              isShared={bulkShare.isShared}
-              sharePersonA={bulkShare.sharePersonA}
-              sharePersonB={bulkShare.sharePersonB}
-              splitPreset={bulkShare.splitPreset}
-              persons={persons}
-              summaryText={repartoSummary}
-              onChange={onShareChange}
-            />
-
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="secondary" disabled={!bulkCategoryId} onClick={onApplyCategory}>
-                Aplicar categoría a pendientes
-              </Button>
-              <Button size="sm" variant="secondary" onClick={onApplyShare}>
-                Aplicar reparto a pendientes
-              </Button>
-              {duplicateCount > 0 && (
-                <Button size="sm" variant="ghost" onClick={onIgnoreDuplicates}>
-                  Ignorar {duplicateCount} duplicados
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      {controls}
     </section>
   )
 }

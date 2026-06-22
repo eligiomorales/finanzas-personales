@@ -14,6 +14,8 @@ interface SegmentedControlProps<T extends string> {
   value: T
   onChange: (value: T) => void
   'aria-label': string
+  /** Unique per instance — shared layoutId makes the selection indicator jump between controls. */
+  indicatorLayoutId?: string
   className?: string
   size?: 'sm' | 'md'
   fullWidth?: boolean
@@ -26,13 +28,15 @@ export function SegmentedControl<T extends string>({
   value,
   onChange,
   'aria-label': ariaLabel,
+  indicatorLayoutId: indicatorLayoutIdProp,
   className,
   size = 'md',
   fullWidth = true,
 }: SegmentedControlProps<T>) {
   const { shouldAnimate } = useMotionPreferences()
   const tapMotion = getTapMotionProps(shouldAnimate)
-  const indicatorLayoutId = `segmented-indicator-${ariaLabel.replace(/\s+/g, '-')}`
+  const indicatorLayoutId =
+    indicatorLayoutIdProp ?? `segmented-indicator-${ariaLabel.replace(/\s+/g, '-')}`
 
   return (
     <div

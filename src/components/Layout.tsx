@@ -141,7 +141,10 @@ function AppChrome() {
   const { visible: amountsVisible, toggle: toggleAmountsVisibility } = useAmountsVisibility()
   const { active: header } = useLayoutHeaderContext()
   const isFormPage = location.pathname.includes('/nuevo') || location.pathname.includes('/editar')
-  const hideFab = isFormPage || location.pathname.includes('/analisis/presupuesto')
+  const hideFab =
+    isFormPage ||
+    location.pathname.includes('/analisis/presupuesto') ||
+    location.pathname.startsWith('/importar')
   const showPersonalBadge =
     isPersonal &&
     !location.pathname.includes('/analisis/presupuesto') &&

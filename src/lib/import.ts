@@ -35,7 +35,30 @@ export interface ParseResult {
   imageProfile?: ImageProfile
   /** When true, each row already has its currency; hide global currency selector. */
   perRowCurrency?: boolean
+  /** Parser-level warnings shown in import preview (ponytail: string[], no structured warning engine). */
+  warnings?: string[]
+  /** When true, all parsed rows should be treated as needing manual review (OCR uncertainty). */
+  forceNeedsReview?: boolean
 }
+
+export type CategoryMatchSource = 'user_rule' | 'keyword' | 'fallback' | 'none'
+
+export interface CategorySuggestion {
+  categoryId: string | null
+  confidence: number
+  source: CategoryMatchSource
+}
+
+/** ponytail: fixed scores; upgrade path = IMP-2 threshold + IMP-5 rule boost wiring */
+export const IMPORT_CONFIDENCE = {
+  USER_RULE: 95,
+  KEYWORD: 100,
+  FALLBACK: 70,
+  OCR_UNCERTAIN: 40,
+  DUPLICATE: 0,
+} as const
+
+export const IMPORT_REVIEW_THRESHOLD = 90
 
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp'])
 
@@ -383,11 +406,20 @@ export function guessColumnMapping(headers: string[]): Partial<ColumnMapping> {
   }
 }
 
-export function suggestCategory(
+const HARDCODED_CATEGORY_RULES: [string[], string][] = [
+  [['super', 'carrefour', 'coto', 'jumbo', 'dia'], 'Supermercado'],
+  [['restaurant', 'resto', 'cafe', 'café', 'pizza', 'burger'], 'Restaurantes'],
+  [['uber', 'cabify', 'taxi', 'subte', 'colectivo', 'nafta', 'ypf', 'shell'], 'Transporte'],
+  [['netflix', 'spotify', 'disney', 'hbo', 'suscrip'], 'Suscripciones'],
+  [['farmacia', 'medico', 'médico', 'hospital', 'osde', 'swiss'], 'Salud'],
+  [['edenor', 'metrogas', 'aysa', 'internet', 'telecom', 'movistar', 'claro'], 'Servicios'],
+]
+
+export function suggestCategoryWithConfidence(
   description: string,
   categories: { id: string; name: string; type: string }[],
   userRules?: { keyword: string; categoryId: string }[],
-): string | null {
+): CategorySuggestion {
   const desc = description.toLowerCase()
   const expenseCategories = categories.filter((c) => c.type === 'expense')
   const expenseIds = new Set(expenseCategories.map((c) => c.id))
@@ -399,27 +431,62 @@ export function suggestCategory(
         desc.includes(rule.keyword.toLowerCase()) &&
         expenseIds.has(rule.categoryId)
       ) {
-        return rule.categoryId
+        return {
+          categoryId: rule.categoryId,
+          confidence: IMPORT_CONFIDENCE.USER_RULE,
+          source: 'user_rule',
+        }
       }
     }
   }
 
-  const rules: [string[], string][] = [
-    [['super', 'carrefour', 'coto', 'jumbo', 'dia'], 'Supermercado'],
-    [['restaurant', 'resto', 'cafe', 'café', 'pizza', 'burger'], 'Restaurantes'],
-    [['uber', 'cabify', 'taxi', 'subte', 'colectivo', 'nafta', 'ypf', 'shell'], 'Transporte'],
-    [['netflix', 'spotify', 'disney', 'hbo', 'suscrip'], 'Suscripciones'],
-    [['farmacia', 'medico', 'médico', 'hospital', 'osde', 'swiss'], 'Salud'],
-    [['edenor', 'metrogas', 'aysa', 'internet', 'telecom', 'movistar', 'claro'], 'Servicios'],
-  ]
-
-  for (const [keywords, catName] of rules) {
+  for (const [keywords, catName] of HARDCODED_CATEGORY_RULES) {
     if (keywords.some((k) => desc.includes(k))) {
       const cat = expenseCategories.find((c) => c.name === catName)
-      if (cat) return cat.id
+      if (cat) {
+        return {
+          categoryId: cat.id,
+          confidence: IMPORT_CONFIDENCE.KEYWORD,
+          source: 'keyword',
+        }
+      }
     }
   }
 
   const otros = expenseCategories.find((c) => c.name === 'Otros')
-  return otros?.id ?? expenseCategories[0]?.id ?? null
+  const fallbackId = otros?.id ?? expenseCategories[0]?.id ?? null
+  return {
+    categoryId: fallbackId,
+    confidence: fallbackId ? IMPORT_CONFIDENCE.FALLBACK : IMPORT_CONFIDENCE.OCR_UNCERTAIN,
+    source: fallbackId ? 'fallback' : 'none',
+  }
+}
+
+export function scoreImportRowConfidence(params: {
+  suggestion: CategorySuggestion
+  possibleDuplicate: boolean
+  missingDate?: boolean
+  forceNeedsReview?: boolean
+}): { confidence: number; needsReview: boolean } {
+  if (params.possibleDuplicate) {
+    return { confidence: IMPORT_CONFIDENCE.DUPLICATE, needsReview: true }
+  }
+
+  let confidence = params.suggestion.confidence
+  let needsReview = confidence < IMPORT_REVIEW_THRESHOLD || params.suggestion.source === 'fallback'
+
+  if (params.missingDate || params.forceNeedsReview) {
+    confidence = Math.min(confidence, IMPORT_CONFIDENCE.OCR_UNCERTAIN)
+    needsReview = true
+  }
+
+  return { confidence, needsReview }
+}
+
+export function suggestCategory(
+  description: string,
+  categories: { id: string; name: string; type: string }[],
+  userRules?: { keyword: string; categoryId: string }[],
+): string | null {
+  return suggestCategoryWithConfidence(description, categories, userRules).categoryId
 }
