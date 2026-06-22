@@ -876,7 +876,6 @@ export function ImportPage() {
                   expenseCategories={expenseCategories}
                   frequentCategoryIds={frequentCategoryIds}
                   perRowCurrency={perRowCurrency}
-                  compact={item.status === 'pending' && !item.needsReview}
                   onCategoryChange={(categoryId) => updateItemCategory(item.id, categoryId)}
                   onCurrencyChange={(currency) => updateItemCurrency(item.id, currency)}
                   onShareChange={(share) => updateItemShare(item.id, share)}
