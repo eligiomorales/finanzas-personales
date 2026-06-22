@@ -8,6 +8,8 @@ export interface CouplePersonsView {
   partnerName: string
   personAName: string
   personBName: string
+  /** Both members set a display name (not email fallback). */
+  hasConfiguredNames: boolean
 }
 
 export function buildCouplePersonsView(params: {
@@ -40,6 +42,9 @@ export function buildCouplePersonsView(params: {
   const memberB = params.members.find((m) => m.role === 'personB')
   const personAName = resolveName('personA', memberA)
   const personBName = resolveName('personB', memberB)
+  const hasConfiguredNames = Boolean(
+    memberA?.displayName?.trim() && memberB?.displayName?.trim(),
+  )
 
   const myMember = params.myUserId
     ? params.members.find((m) => m.userId === params.myUserId)
@@ -60,10 +65,11 @@ export function buildCouplePersonsView(params: {
       partnerName: myRole === 'personA' ? fallbackB : fallbackA,
       personAName,
       personBName,
+      hasConfiguredNames,
     }
   }
 
-  return { myRole, myName, partnerName, personAName, personBName }
+  return { myRole, myName, partnerName, personAName, personBName, hasConfiguredNames }
 }
 
 /** Etiqueta corta para formularios: Yo / Mi pareja / nombre en modo local */
@@ -79,6 +85,14 @@ export function formLabelWithName(role: PersonRole, view: CouplePersonsView): st
   const short = formLabelForRole(role, view)
   if (short === 'Yo' || short === 'Mi pareja') return `${short} (${name})`
   return name
+}
+
+/** Import review: solo nombres si la pareja ya los configuró; si no, Yo / Mi pareja. */
+export function importPayerChipLabel(role: PersonRole, view: CouplePersonsView): string {
+  if (view.hasConfiguredNames) {
+    return role === 'personA' ? view.personAName : view.personBName
+  }
+  return formLabelForRole(role, view)
 }
 
 /** Etiqueta para listas, balance y dashboard (nombres reales; Yo si aplica) */

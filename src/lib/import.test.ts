@@ -8,10 +8,13 @@ import {
   buildImportDescription,
   findHeaderRowIndex,
   guessColumnMapping,
+  IMPORT_CONFIDENCE,
   normalizeDescription,
   parseAmount,
   parseDate,
+  scoreImportRowConfidence,
   suggestCategory,
+  suggestCategoryWithConfidence,
 } from '@/lib/import'
 
 const fixtureDir = join(dirname(fileURLToPath(import.meta.url)), 'fixtures')
@@ -84,6 +87,72 @@ describe('suggestCategory', () => {
   it('matches user rules case-insensitively', () => {
     const rules = [{ keyword: 'farmacity', categoryId: 'cat-resto' }]
     expect(suggestCategory('FARMACITY SA', categories, rules)).toBe('cat-resto')
+  })
+})
+
+describe('suggestCategoryWithConfidence', () => {
+  const categories = [
+    { id: 'cat-super', name: 'Supermercado', type: 'expense' },
+    { id: 'cat-otros', name: 'Otros', type: 'expense' },
+  ]
+
+  it('assigns high confidence for keyword match', () => {
+    expect(suggestCategoryWithConfidence('COMPRA CARREFOUR', categories)).toMatchObject({
+      categoryId: 'cat-super',
+      confidence: IMPORT_CONFIDENCE.KEYWORD,
+      source: 'keyword',
+    })
+  })
+
+  it('assigns lower confidence for fallback category', () => {
+    expect(suggestCategoryWithConfidence('COMERCIO DESCONOCIDO XYZ', categories)).toMatchObject({
+      categoryId: 'cat-otros',
+      confidence: IMPORT_CONFIDENCE.FALLBACK,
+      source: 'fallback',
+    })
+  })
+
+  it('assigns user rule confidence above review threshold', () => {
+    const rules = [{ keyword: 'farmacity', categoryId: 'cat-super' }]
+    expect(suggestCategoryWithConfidence('FARMACITY SA', categories, rules)).toMatchObject({
+      categoryId: 'cat-super',
+      confidence: IMPORT_CONFIDENCE.USER_RULE,
+      source: 'user_rule',
+    })
+  })
+})
+
+describe('scoreImportRowConfidence', () => {
+  it('marks duplicates as zero confidence and needs review', () => {
+    expect(
+      scoreImportRowConfidence({
+        suggestion: { categoryId: 'cat-1', confidence: 100, source: 'keyword' },
+        possibleDuplicate: true,
+      }),
+    ).toEqual({ confidence: IMPORT_CONFIDENCE.DUPLICATE, needsReview: true })
+  })
+
+  it('caps confidence when date is missing', () => {
+    expect(
+      scoreImportRowConfidence({
+        suggestion: { categoryId: 'cat-1', confidence: 100, source: 'keyword' },
+        possibleDuplicate: false,
+        missingDate: true,
+      }),
+    ).toEqual({ confidence: IMPORT_CONFIDENCE.OCR_UNCERTAIN, needsReview: true })
+  })
+
+  it('auto-approves user rule matches without duplicate or OCR flags', () => {
+    expect(
+      scoreImportRowConfidence({
+        suggestion: {
+          categoryId: 'cat-1',
+          confidence: IMPORT_CONFIDENCE.USER_RULE,
+          source: 'user_rule',
+        },
+        possibleDuplicate: false,
+      }),
+    ).toEqual({ confidence: IMPORT_CONFIDENCE.USER_RULE, needsReview: false })
   })
 })
 

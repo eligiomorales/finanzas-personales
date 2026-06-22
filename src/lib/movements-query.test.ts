@@ -18,6 +18,7 @@ const persons: MovementSearchContext['persons'] = {
   partnerName: 'Bruno',
   personAName: 'Ana',
   personBName: 'Bruno',
+  hasConfiguredNames: true,
 }
 
 const categories: Category[] = [

@@ -1,13 +1,16 @@
 import type { ImportShareValues } from '@/components/ImportShareControls'
 import { SPLIT_PRESETS } from '@/components/ImportShareControls'
 import type { CouplePersonsView } from '@/lib/couple/person-labels'
-import { formLabelWithName, payerDisplayLabel } from '@/lib/couple/person-labels'
+import { importPayerChipLabel, payerDisplayLabel } from '@/lib/couple/person-labels'
+import { normalizeRuleKeyword, ruleKeywordMatchesDescription } from '@/lib/category-rules'
 import { repartoSummary } from '@/lib/movement-form-defaults'
 import { formatCurrency } from '@/lib/utils'
-import type { Category, CurrencyCode, PendingImportMovement } from '@/types'
+import type { Category, CategoryRule, CurrencyCode, PendingImportMovement } from '@/types'
 
 export type ImportReviewItem = PendingImportMovement & {
   selectedCategoryId: string | null
+  confidence: number
+  needsReview: boolean
 } & ImportShareValues
 
 const GENERIC_FIRST_LINES =
@@ -132,10 +135,65 @@ export function buildImportCategoryButtons(
 }
 
 export function importShareLabelForRole(role: 'personA' | 'personB', persons: CouplePersonsView): string {
-  return formLabelWithName(role, persons)
+  return importPayerChipLabel(role, persons)
 }
 
-export type ImportReviewFilter = 'pending' | 'duplicates' | 'ignored' | 'all'
+export type ImportReviewFilter = 'pending' | 'needs_review' | 'auto_approved' | 'duplicates' | 'ignored' | 'all'
+
+export interface ImportPreviewSummary {
+  expenseCount: number
+  totalArs: number
+  reviewRequiredCount: number
+  autoApprovedCount: number
+  aggregateConfidence: number
+  parserWarnings: string[]
+}
+
+export function importItemNeedsReview(item: ImportReviewItem): boolean {
+  return item.status === 'pending' && item.needsReview
+}
+
+export function importItemAutoApproved(item: ImportReviewItem): boolean {
+  return item.status === 'pending' && !item.needsReview
+}
+
+/** Bulk category/share actions apply only to exceptions, not auto-approved rows. */
+export function shouldApplyImportBulkAction(item: ImportReviewItem): boolean {
+  return importItemNeedsReview(item)
+}
+
+/** Pending rows that cannot be confirmed without a category. */
+export function importPendingMissingCategory(items: ImportReviewItem[]): ImportReviewItem[] {
+  return items.filter((item) => item.status === 'pending' && !item.selectedCategoryId)
+}
+
+export function buildImportPreviewSummary(
+  items: ImportReviewItem[],
+  defaultExchangeRateUsd: number,
+  parserWarnings: string[] = [],
+): ImportPreviewSummary {
+  const pending = items.filter((item) => item.status === 'pending')
+  const totalArs = pending.reduce(
+    (sum, item) =>
+      sum + (item.currency === 'USD' ? item.amount * defaultExchangeRateUsd : item.amount),
+    0,
+  )
+  const reviewRequiredCount = pending.filter(importItemNeedsReview).length
+  const autoApprovedCount = pending.length - reviewRequiredCount
+  const aggregateConfidence =
+    pending.length === 0
+      ? 0
+      : Math.round(pending.reduce((sum, item) => sum + item.confidence, 0) / pending.length)
+
+  return {
+    expenseCount: pending.length,
+    totalArs,
+    reviewRequiredCount,
+    autoApprovedCount,
+    aggregateConfidence,
+    parserWarnings,
+  }
+}
 
 export function filterImportReviewItems(
   items: ImportReviewItem[],
@@ -144,6 +202,10 @@ export function filterImportReviewItems(
   switch (filter) {
     case 'pending':
       return items.filter((item) => item.status === 'pending')
+    case 'needs_review':
+      return items.filter(importItemNeedsReview)
+    case 'auto_approved':
+      return items.filter(importItemAutoApproved)
     case 'duplicates':
       return items.filter((item) => item.possibleDuplicate && item.status === 'pending')
     case 'ignored':
@@ -151,4 +213,137 @@ export function filterImportReviewItems(
     case 'all':
       return items
   }
+}
+
+/** ponytail: in-memory key from visible title, not raw PDF comprobante in `merchant`. */
+export function normalizeImportMerchantKey(value: string): string {
+  return value
+    .trim()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
+export function importMerchantGroupKey(item: ImportReviewItem): string | null {
+  const title = importItemTitle(item.originalDescription, item.merchant)
+  const normalized = normalizeImportMerchantKey(title)
+  return normalized || null
+}
+
+export interface ImportMerchantGroup {
+  key: string
+  displayName: string
+  itemIds: string[]
+  count: number
+  totalArs: number
+}
+
+/** Repeated merchants among review exceptions only (count >= 2). */
+export function buildImportMerchantGroups(
+  items: ImportReviewItem[],
+  defaultExchangeRateUsd: number,
+): ImportMerchantGroup[] {
+  const byKey = new Map<string, { displayName: string; groupItems: ImportReviewItem[] }>()
+
+  for (const item of items) {
+    if (!importItemNeedsReview(item)) continue
+    const key = importMerchantGroupKey(item)
+    if (!key) continue
+
+    const displayName = importItemTitle(item.originalDescription, item.merchant)
+    const existing = byKey.get(key)
+    if (existing) {
+      existing.groupItems.push(item)
+    } else {
+      byKey.set(key, { displayName, groupItems: [item] })
+    }
+  }
+
+  const groups: ImportMerchantGroup[] = []
+  for (const [key, { displayName, groupItems }] of byKey) {
+    if (groupItems.length < 2) continue
+    groups.push({
+      key,
+      displayName,
+      itemIds: groupItems.map((item) => item.id),
+      count: groupItems.length,
+      totalArs: groupItems.reduce(
+        (sum, item) =>
+          sum + (item.currency === 'USD' ? item.amount * defaultExchangeRateUsd : item.amount),
+        0,
+      ),
+    })
+  }
+
+  return groups.sort(
+    (a, b) => b.count - a.count || a.displayName.localeCompare(b.displayName, 'es'),
+  )
+}
+
+export function applyCategoryToImportMerchantGroup(
+  items: ImportReviewItem[],
+  groupKey: string,
+  categoryId: string,
+): ImportReviewItem[] {
+  return items.map((item) => {
+    if (!importItemNeedsReview(item)) return item
+    if (importMerchantGroupKey(item) !== groupKey) return item
+    return { ...item, selectedCategoryId: categoryId }
+  })
+}
+
+export interface ImportRuleCandidate {
+  keyword: string
+  categoryId: string
+}
+
+/** Default keyword when user checks "Recordar" — readable merchant title, not raw extract. */
+export function defaultImportRuleKeyword(
+  item: Pick<ImportReviewItem, 'originalDescription' | 'merchant'>,
+): string {
+  return importItemTitle(item.originalDescription, item.merchant)
+}
+
+export function importItemCategoryWasCorrected(item: ImportReviewItem): boolean {
+  return Boolean(item.selectedCategoryId) && item.selectedCategoryId !== item.suggestedCategoryId
+}
+
+export function findExistingImportRuleForItem(
+  item: ImportReviewItem,
+  categoryRules: CategoryRule[],
+  categoryId: string,
+): CategoryRule | undefined {
+  return categoryRules.find(
+    (rule) =>
+      rule.categoryId === categoryId &&
+      ruleKeywordMatchesDescription(rule.keyword, item.originalDescription),
+  )
+}
+
+/** Pending remembered rows → unique normalized keywords to upsert on confirm. */
+export function buildImportRuleCandidatesToSave(
+  items: ImportReviewItem[],
+  rememberedKeywordsByItemId: Record<string, string>,
+  categoryRules: CategoryRule[],
+): ImportRuleCandidate[] {
+  const candidates: ImportRuleCandidate[] = []
+  const seenKeywords = new Set<string>()
+
+  for (const item of items) {
+    if (item.status !== 'pending' || !item.selectedCategoryId) continue
+    if (!importItemCategoryWasCorrected(item)) continue
+
+    const rawKeyword = rememberedKeywordsByItemId[item.id]?.trim()
+    if (!rawKeyword) continue
+    if (findExistingImportRuleForItem(item, categoryRules, item.selectedCategoryId)) continue
+
+    const keyword = normalizeRuleKeyword(rawKeyword)
+    if (!keyword || seenKeywords.has(keyword)) continue
+
+    seenKeywords.add(keyword)
+    candidates.push({ keyword, categoryId: item.selectedCategoryId })
+  }
+
+  return candidates
 }

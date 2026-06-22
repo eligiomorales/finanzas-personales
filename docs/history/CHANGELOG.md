@@ -4,6 +4,95 @@ Historial append-only de lo construido. El **estado actual** vive en `NEXT.md`; 
 
 ---
 
+## IMP-UI — Pulido Pantalla Import (2026-06-21)
+
+Reorganización del paso `review`: resumen compacto, excepciones first (Opción A del canvas), bulk colapsable, filas compactas para auto-aprobados, footer sobre nav con safe-area.
+
+| Area | Detalle |
+|------|---------|
+| **Decisión** | Canvas `imp-ui-import-redesign.canvas.tsx` · Opción A · brief `briefs/2026-06-21-imp-ui-import-polish.md` |
+| **ImportPage** | 4 métricas max; filtros antes de lista; `CollapsiblePanel` para lote y comercios; `Alert`/`EmptyState`; footer `bottom-[calc(4.5rem+safe-area)]` |
+| **Cards** | `ImportReviewItemCard` compact + `CollapsiblePanel` ajustes; `embedded` en batch/merchant cards |
+| **Sin cambios** | Parsing, scoring, reglas, persistencia |
+
+`npm run ci` verde (238 tests).
+
+---
+
+## IMP-5 — Reglas Desde Import (2026-06-21)
+
+Checkbox "Recordar para próximas importaciones" al corregir categoría en import; reglas persistidas al confirmar el lote; match futuro → confianza 95 (auto-aprobado).
+
+| Area | Detalle |
+|------|---------|
+| **Helpers** | `defaultImportRuleKeyword`, `buildImportRuleCandidatesToSave`, `importItemCategoryWasCorrected`, `findExistingImportRuleForItem` en `import-display.ts` |
+| **UI** | Checkbox + keyword editable en `ImportReviewItemCard`; estado `rememberedRules` en `ImportPage`; `addRule()` antes de `confirmImport` |
+| **Confianza** | `IMPORT_CONFIDENCE.USER_RULE` (95) ya wired en `suggestCategoryWithConfidence` |
+| **Tests** | +2 en `import.test.ts`, +4 en `import-display.test.ts` |
+
+Epic **Import by exception** (IMP-1→IMP-5) cerrado.
+
+`npm run ci` verde (238 tests).
+
+---
+
+## IMP-4 — Bulk Actions Merchant (2026-06-21)
+
+Agrupación por comercio repetido en review de import; aplicar categoría a N filas del mismo merchant en un clic.
+
+| Area | Detalle |
+|------|---------|
+| **Helpers** | `normalizeImportMerchantKey`, `buildImportMerchantGroups`, `applyCategoryToImportMerchantGroup` en `import-display.ts` |
+| **UI** | `ImportMerchantBulkActionsCard` debajo de defaults del lote en `ImportPage` |
+| **Tests** | +5 en `import-display.test.ts` |
+
+`npm run ci` verde (232 tests).
+
+---
+
+## IMP-3 — Edición Inline Import (2026-06-21)
+
+Categoría editable in-place en cada fila de excepción; cambios persisten en `pendingItems` hasta confirmar; bloqueo si hay pendientes sin categoría.
+
+| Area | Detalle |
+|------|---------|
+| **UI** | `ImportCategoryPicker` inline en `ImportReviewItemCard`; "Ajustar" solo reparto/moneda/extracto |
+| **Validación** | `importPendingMissingCategory` + guard en `confirmSelected()` |
+| **Tests** | +1 en `import-display.test.ts` |
+
+`npm run ci` verde (227 tests).
+
+---
+
+## IMP-2 — Import by Exception (2026-06-21)
+
+Revisión por excepción: lista primaria solo movimientos con `needsReview`; auto-aprobados ocultos por defecto; confirmar importa todo el lote pendiente.
+
+| Area | Detalle |
+|------|---------|
+| **Helpers** | `importItemAutoApproved`, `shouldApplyImportBulkAction`, filtro `auto_approved`, `autoApprovedCount` en preview |
+| **UI** | Default filtro `needs_review`; métricas Auto-aprobados / Para revisar; empty state positivo; bulk solo excepciones |
+| **Tests** | +2 en `import-display.test.ts` |
+
+`npm run ci` verde (226 tests).
+
+---
+
+## IMP-1 — Import Preview (2026-06-21)
+
+Preview del lote importado en el paso `review`: N gastos, total ARS, requieren revisión, confianza estimada, CTA "Revisar pendientes".
+
+| Area | Detalle |
+|------|---------|
+| **Confianza v0** | `suggestCategoryWithConfidence` + `scoreImportRowConfidence` en `src/lib/import.ts` |
+| **Resumen** | `buildImportPreviewSummary` en `src/lib/import-display.ts` |
+| **UI** | Tarjeta preview + filtro `needs_review` en `ImportPage.tsx` |
+| **OCR** | Warnings por fechas faltantes en `parse-image.ts` |
+
+`npm run ci` verde (224 tests).
+
+---
+
 ## Fase 5.1 — Lista de Movimientos (2026-06-19)
 
 Rediseño de la pantalla `/movimientos`: agrupación por fecha (sin neto diario), cards con `CategoryAvatar`, pill del pagador (opción B), tap → editar, eliminar en formulario.

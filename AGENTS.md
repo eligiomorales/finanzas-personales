@@ -12,7 +12,8 @@ Punto de entrada para cualquier agente (Cursor u otro) que trabaje en este repo.
 | Qué es el producto / setup | `README.md` |
 | Sistema de diseño y motion | `docs/DESIGN.md` |
 | Cómo deployar / migraciones | `docs/deploy.md` |
-| Deuda técnica conocida | `backlog/` |
+| Deuda técnica conocida | `backlog/` (`code-review.md`, etc.) |
+| Ideas de producto (inbox entre sesiones) | `backlog/product-ideas.md` |
 | Análisis de mercado / competencia | `docs/research/` |
 | Plan original del MVP (histórico) | `plan-implementacion-finanzas-pareja.md` |
 | Historial de fases entregadas | `docs/history/CHANGELOG.md` |
@@ -33,7 +34,7 @@ Punto de entrada para cualquier agente (Cursor u otro) que trabaje en este repo.
 | Estado vivo | `NEXT.md` | Cada sesión (se sobrescribe) |
 | Historial | `docs/history/CHANGELOG.md` | Append-only |
 | Decisiones | `docs/decisions/NNNN-*.md` | Append-only, numeradas |
-| Backlogs | `backlog/*.md` | Cuando surge deuda |
+| Backlogs | `backlog/*.md` | Deuda técnica o ideas de producto (inbox) |
 | Proceso / research | `PLAYBOOK.md`, `docs/deploy.md`, `docs/research/` | Rara vez |
 
 No crear un doc nuevo si un humano o el agente no lo va a leer en las próximas semanas.
