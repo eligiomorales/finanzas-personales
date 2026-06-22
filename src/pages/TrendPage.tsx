@@ -18,6 +18,7 @@ import { Card, EmptyState } from '@/components/ui/Card'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { motionVariants } from '@/design/motion'
 import { TrendChartCarousel } from '@/components/trends/TrendChartCarousel'
+import { TREND_CAROUSEL_BODY_MIN_H } from '@/components/trends/chart-layout'
 import { CashFlowChart } from '@/components/trends/CashFlowChart'
 import { CumulativeSpendChart } from '@/components/trends/CumulativeSpendChart'
 import { CategoryDonutBreakdown } from '@/components/trends/CategoryDonutBreakdown'
@@ -78,12 +79,14 @@ export function TrendPage() {
           <div className="space-y-2">
             <SectionHeader label="Flujo de caja" />
             <Card className="py-6">
-              <CashFlowChart
-                months={months}
-                currencyConfig={currencyConfig}
-                selectedYearMonth={selectedYearMonth}
-                onSelectMonth={handleSelectMonth}
-              />
+              <div className={`flex flex-col ${TREND_CAROUSEL_BODY_MIN_H}`}>
+                <CashFlowChart
+                  months={months}
+                  currencyConfig={currencyConfig}
+                  selectedYearMonth={selectedYearMonth}
+                  onSelectMonth={handleSelectMonth}
+                />
+              </div>
             </Card>
           </div>
         ),
@@ -95,13 +98,15 @@ export function TrendPage() {
           <div className="space-y-2">
             <SectionHeader label="Ritmo de gasto" />
             <Card className="py-6">
-              {cumulativePoints.length > 0 ? (
-                <CumulativeSpendChart points={cumulativePoints} currencyConfig={currencyConfig} />
-              ) : (
-                <p className="py-12 text-center text-sm text-stone-500">
-                  Sin gastos este mes todavía
-                </p>
-              )}
+              <div className={`flex flex-col ${TREND_CAROUSEL_BODY_MIN_H}`}>
+                {cumulativePoints.length > 0 ? (
+                  <CumulativeSpendChart points={cumulativePoints} currencyConfig={currencyConfig} />
+                ) : (
+                  <p className="py-12 text-center text-sm text-stone-500">
+                    Sin gastos este mes todavía
+                  </p>
+                )}
+              </div>
             </Card>
           </div>
         ),

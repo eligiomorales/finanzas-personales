@@ -4,7 +4,7 @@
 
 **Prod:** https://finanzas-personales-ebon.vercel.app · Vercel + Supabase · migraciones `001`–`008` (aplicar `008` en prod)
 **Rama actual:** `feature/trk-3-tendencias` (PR pendiente)
-**Última fase cerrada:** TRK-3 Tendencias — rediseño tab Análisis (sesión 2026-06-22)
+**Última fase cerrada:** TRK-3 polish tab Análisis — donut + ritmo de gasto (sesión 2026-06-22)
 
 ---
 
