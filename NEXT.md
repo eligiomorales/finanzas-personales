@@ -3,7 +3,7 @@
 > Estado vivo del proyecto. **Corto a propósito** (máx. una pantalla). Cuando una fase termina, su detalle se muda a `docs/history/CHANGELOG.md`; este archivo solo dice *dónde estoy y qué sigue*.
 
 **Prod:** https://finanzas-personales-ebon.vercel.app · Vercel + Supabase · migraciones `001`–`008` (aplicar `008` en prod)
-**Rama actual:** `fix/movements-list-polish` (PR pendiente)
+**Rama actual:** `fix/ios-input-zoom` (PR #52 pendiente merge)
 **Última fase cerrada:** iOS PWA — inputs 16px en móvil para evitar zoom al enfocar (sesión 2026-06-23)
 
 ---
