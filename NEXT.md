@@ -20,7 +20,7 @@ _Nada activo — elegir siguiente sesión del top 3._
 
 _Epic Import by exception (IMP-1→IMP-5 + IMP-UI) cerrado._
 _TRK-3 Tendencias cerrado (2026-06-21 + polish 2026-06-22)._
-_Análisis simplificado: pestaña Categorías eliminada; presupuesto vs gasto en Tendencias (PR `feature/analisis-budget-trends` pendiente)._
+_Análisis simplificado: pestaña Categorías eliminada; presupuesto vs gasto en Tendencias._
 _Movimientos: búsqueda + filtros/orden icon-only; sin filtro de fecha por defecto; carga inicial 30; liquidaciones ocultas al filtrar por categoría; período del home independiente; modal de filtros organizado en secciones._
 
 _Prioridad completa:_ `backlog/product-ideas.md` → Prioridad por dolor

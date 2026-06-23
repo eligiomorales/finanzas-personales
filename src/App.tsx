@@ -13,9 +13,9 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { MovementsPage } from '@/pages/MovementsPage'
 import { MovementFormPage } from '@/pages/MovementFormPage'
 import { BalancePage } from '@/pages/BalancePage'
-import { CategoriesPage } from '@/pages/CategoriesPage'
 import { BudgetPage } from '@/pages/BudgetPage'
 import { AnalisisPage } from '@/pages/AnalisisPage'
+import { TrendPage } from '@/pages/TrendPage'
 import { ImportPage } from '@/pages/ImportPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { CategorySettingsPage } from '@/pages/CategorySettingsPage'
@@ -32,11 +32,12 @@ function AppRoutes() {
         <Route path="movimientos/editar/:id" element={<MovementFormPage />} />
         <Route path="balance" element={<BalancePage />} />
         <Route path="analisis" element={<AnalisisPage />}>
-          <Route index element={<Navigate to="categorias" replace />} />
+          <Route index element={<Navigate to="tendencias" replace />} />
           <Route path="presupuesto" element={<BudgetPage embedded />} />
-          <Route path="categorias" element={<CategoriesPage />} />
+          <Route path="tendencias" element={<TrendPage />} />
+          <Route path="categorias" element={<Navigate to="tendencias" replace />} />
         </Route>
-        <Route path="categorias" element={<Navigate to="/analisis/categorias" replace />} />
+        <Route path="categorias" element={<Navigate to="/analisis/tendencias" replace />} />
         <Route path="presupuesto" element={<Navigate to="/analisis/presupuesto" replace />} />
         <Route path="importar" element={<ImportPage />} />
         <Route path="configuracion" element={<SettingsPage />} />

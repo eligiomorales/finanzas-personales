@@ -11,14 +11,17 @@ export function BudgetProgressBar({
   percentUsed,
   status,
   color,
+  colorMode = 'status',
 }: {
   percentUsed: number
   status: BudgetProgressStatus
   color?: string
+  /** `status`: amber/red when near/over. `category`: always use category color. */
+  colorMode?: 'status' | 'category'
 }) {
   const { shouldAnimate } = useMotionPreferences()
   const targetWidth = status === 'unbudgeted' ? 0 : Math.min(percentUsed * 100, 100)
-  const useCategoryColor = status === 'ok' || status === 'unbudgeted'
+  const useCategoryColor = colorMode === 'category' || status === 'ok' || status === 'unbudgeted'
   const widthMotion = useMotionValue(targetWidth)
   const widthStyle = useTransform(widthMotion, (value) => `${value}%`)
 
