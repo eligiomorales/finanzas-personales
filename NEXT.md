@@ -4,7 +4,7 @@
 
 **Prod:** https://finanzas-personales-ebon.vercel.app · Vercel + Supabase · migraciones `001`–`008` (aplicar `008` en prod)
 **Rama actual:** `fix/movements-list-polish` (PR pendiente)
-**Última fase cerrada:** Movimientos — filtros compactos + carga inicial 30 + liquidaciones excluidas al filtrar categoría (sesión 2026-06-23)
+**Última fase cerrada:** iOS PWA — inputs 16px en móvil para evitar zoom al enfocar (sesión 2026-06-23)
 
 ---
 
@@ -22,6 +22,7 @@ _Epic Import by exception (IMP-1→IMP-5 + IMP-UI) cerrado._
 _TRK-3 Tendencias cerrado (2026-06-21 + polish 2026-06-22)._
 _Análisis simplificado: pestaña Categorías eliminada; presupuesto vs gasto en Tendencias._
 _Movimientos: búsqueda + filtros/orden icon-only; sin filtro de fecha por defecto; carga inicial 30; liquidaciones ocultas al filtrar por categoría; período del home independiente; modal de filtros organizado en secciones._
+_iOS: `Input`/`Select` y monto usan `max-md:text-base` (16px) — smoke en iPhone tras deploy._
 
 _Prioridad completa:_ `backlog/product-ideas.md` → Prioridad por dolor
 
