@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useMovementsInRange, useCategories, useSettings, useBudgets } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
-import { usePeriod } from '@/contexts/MovementFiltersContext'
+import { usePeriod } from '@/contexts/DashboardPeriodContext'
 import { calculatePeriodSummary, calculatePersonalExpenseSummary } from '@/lib/balance'
 import {
   buildCategoryExpenseComparison,
