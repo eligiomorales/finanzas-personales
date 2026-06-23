@@ -249,7 +249,7 @@ export function MovementFilterToolbar({
             <Input
               id="movements-filter-period-from"
               type="date"
-              className="py-1.5 text-xs"
+              className="py-1.5"
               value={datePeriod.from}
               onChange={(e) => patchDatePeriod({ ...datePeriod, from: e.target.value })}
             />
@@ -261,7 +261,7 @@ export function MovementFilterToolbar({
             <Input
               id="movements-filter-period-to"
               type="date"
-              className="py-1.5 text-xs"
+              className="py-1.5"
               value={datePeriod.to}
               onChange={(e) => patchDatePeriod({ ...datePeriod, to: e.target.value })}
             />
@@ -403,7 +403,7 @@ export function MovementFilterToolbar({
               aria-label="Buscar movimientos"
               placeholder="Buscar movimientos, categorías, importes..."
               value={searchDraft}
-              className="border-stone-200/80 bg-white py-2 pl-9 pr-9 text-sm"
+              className="border-stone-200/80 bg-white py-2 pl-9 pr-9"
               onChange={(e) => setSearchDraft(e.target.value)}
             />
             {searchDraft.length > 0 && (

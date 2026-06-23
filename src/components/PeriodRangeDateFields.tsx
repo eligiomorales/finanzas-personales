@@ -22,7 +22,7 @@ export function PeriodRangeDateFields({
           <Input
             id={`${idPrefix}-from`}
             type="date"
-            className="py-1.5 text-xs"
+            className="py-1.5"
             value={period.from}
             onChange={(e) => onChange({ ...period, from: e.target.value })}
           />
@@ -34,7 +34,7 @@ export function PeriodRangeDateFields({
           <Input
             id={`${idPrefix}-to`}
             type="date"
-            className="py-1.5 text-xs"
+            className="py-1.5"
             value={period.to}
             onChange={(e) => onChange({ ...period, to: e.target.value })}
           />

@@ -122,7 +122,7 @@ export function CurrencyAmountInput({
         aria-describedby={ariaDescribedBy}
         className={cn(
           'min-w-0 flex-1 bg-white outline-none tabular-nums',
-          hero ? 'px-3 py-3.5 text-2xl font-semibold' : 'px-3 py-3 text-sm',
+          hero ? 'px-3 py-3.5 text-2xl font-semibold' : 'px-3 py-3 text-sm max-md:text-base',
         )}
         value={text}
         placeholder="0"

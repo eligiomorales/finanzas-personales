@@ -76,7 +76,7 @@ export function Input({
       type={type}
       aria-invalid={invalid || props['aria-invalid']}
       className={cn(
-        'w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none',
+        'w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm max-md:text-base outline-none',
         'focus-visible:border-brand-500 focus-visible:shadow-[0_1px_2px_rgba(47,122,107,0.12)]',
         focusRing,
         invalid && 'border-red-400',
@@ -102,7 +102,7 @@ export function Select({
     <select
       aria-invalid={invalid || props['aria-invalid']}
       className={cn(
-        'w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none',
+        'w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm max-md:text-base outline-none',
         'focus-visible:border-brand-500 focus-visible:shadow-[0_1px_2px_rgba(47,122,107,0.12)]',
         focusRing,
         invalid && 'border-red-400',
