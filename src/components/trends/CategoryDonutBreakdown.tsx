@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
+import { BudgetProgressBar } from '@/components/BudgetProgressBar'
 import { formatInViewCurrency, type CurrencyConfig } from '@/lib/currency'
-import { cn } from '@/lib/utils'
+import type { CategoryBudgetProgress } from '@/types'
 
 interface CategorySlice {
   categoryId: string
@@ -13,6 +14,8 @@ interface CategoryDonutBreakdownProps {
   categories: CategorySlice[]
   total: number
   currencyConfig: CurrencyConfig
+  budgetByCategory?: Map<string, CategoryBudgetProgress>
+  showBudget?: boolean
 }
 
 const VIEW_W = 320
@@ -127,6 +130,8 @@ export function CategoryDonutBreakdown({
   categories,
   total,
   currencyConfig,
+  budgetByCategory,
+  showBudget = false,
 }: CategoryDonutBreakdownProps) {
   const slices = useMemo(() => buildArcSlices(categories, total), [categories, total])
 
@@ -168,26 +173,70 @@ export function CategoryDonutBreakdown({
         </div>
       </div>
 
-      <ul className="space-y-2.5">
-        {slices.map((slice) => (
-          <li key={slice.categoryId} className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: slice.color ?? '#78716c' }}
-              />
-              <span className="truncate text-sm font-medium text-stone-800">
-                {slice.categoryName}
-              </span>
-            </div>
-            <span className="shrink-0 text-sm font-semibold tabular-nums text-stone-800">
-              {formatInViewCurrency(slice.total, currencyConfig)}{' '}
-              <span className={cn('font-medium text-stone-500')}>
-                ({Math.round(slice.pct)}%)
-              </span>
-            </span>
-          </li>
-        ))}
+      <ul className="space-y-6">
+        {slices.map((slice) => {
+          const budgetProgress = budgetByCategory?.get(slice.categoryId)
+          const hasBudget =
+            showBudget && budgetProgress != null && budgetProgress.budgeted > 0
+
+          return (
+            <li key={slice.categoryId} className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: slice.color ?? '#78716c' }}
+                  />
+                  <span className="truncate text-sm font-semibold text-stone-800">
+                    {slice.categoryName}
+                  </span>
+                </div>
+                <span className="shrink-0 text-sm tabular-nums">
+                  <span className="font-semibold text-stone-900">
+                    {formatInViewCurrency(slice.total, currencyConfig)}
+                  </span>
+                  <span className="font-medium text-stone-500">
+                    {' · '}
+                    {slice.pct.toFixed(1)}%
+                  </span>
+                </span>
+              </div>
+
+              <div className="space-y-0.5">
+                {hasBudget && budgetProgress ? (
+                  <BudgetProgressBar
+                    percentUsed={budgetProgress.percentUsed}
+                    status={budgetProgress.status}
+                    color={slice.color}
+                    colorMode="category"
+                  />
+                ) : (
+                  <div className="h-2 overflow-hidden rounded-full bg-surface-100">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(slice.pct, 100)}%`,
+                        backgroundColor: slice.color ?? '#3b82f6',
+                      }}
+                    />
+                  </div>
+                )}
+                <p
+                  className={
+                    hasBudget && budgetProgress
+                      ? 'text-right text-[11px] tabular-nums text-stone-400'
+                      : 'invisible h-[11px] text-[11px]'
+                  }
+                  aria-hidden={!hasBudget}
+                >
+                  {hasBudget && budgetProgress
+                    ? `${formatInViewCurrency(budgetProgress.spent, currencyConfig)} / ${formatInViewCurrency(budgetProgress.budgeted, currencyConfig)}`
+                    : '\u00a0'}
+                </p>
+              </div>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

@@ -136,7 +136,7 @@ export function buildDashboardInsight(params: {
       description:
         'Los gastos superan los ingresos este mes. Revisá tus categorías para ver dónde se concentra el gasto.',
       tone: 'negative',
-      action: { label: 'Ver gastos por categoría', to: '/analisis/categorias' },
+      action: { label: 'Ver gastos por categoría', to: '/analisis/tendencias' },
     }
   }
 
@@ -146,7 +146,7 @@ export function buildDashboardInsight(params: {
       title: 'Tus gastos subieron respecto al mes anterior',
       description: `${expenseDelta.text}. Revisá la categoría que más peso tiene este mes.`,
       tone: 'warning',
-      action: { label: 'Ver categorías', to: '/analisis/categorias' },
+      action: { label: 'Ver categorías', to: '/analisis/tendencias' },
     }
   }
 
@@ -156,7 +156,7 @@ export function buildDashboardInsight(params: {
       title: 'Tu mayor gasto del mes',
       description: `${topCategory.categoryName} concentra la mayor parte de tus gastos este mes.`,
       tone: 'neutral',
-      action: { label: 'Ver categorías', to: '/analisis/categorias' },
+      action: { label: 'Ver categorías', to: '/analisis/tendencias' },
     }
   }
 

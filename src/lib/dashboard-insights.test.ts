@@ -211,5 +211,6 @@ describe('buildDashboardInsight', () => {
 
     expect(insight.title).toContain('mayor gasto')
     expect(insight.description).toContain('Supermercado')
+    expect(insight.action?.to).toBe('/analisis/tendencias')
   })
 })
