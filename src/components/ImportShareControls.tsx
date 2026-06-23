@@ -286,7 +286,7 @@ export function ImportShareControls({
                       min="0"
                       max="100"
                       value={sharePersonA}
-                      className={compact ? 'py-1.5 text-sm' : undefined}
+                      className={compact ? 'py-1.5' : undefined}
                       onChange={(e) => {
                         const a = parseFloat(e.target.value) || 0
                         onChange({
@@ -309,7 +309,7 @@ export function ImportShareControls({
                       min="0"
                       max="100"
                       value={sharePersonB}
-                      className={compact ? 'py-1.5 text-sm' : undefined}
+                      className={compact ? 'py-1.5' : undefined}
                       onChange={(e) => {
                         const b = parseFloat(e.target.value) || 0
                         onChange({

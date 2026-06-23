@@ -529,7 +529,6 @@ export function MovementFormPage() {
                               id="save-rule-keyword"
                               value={saveRuleKeyword}
                               onChange={(e) => setSaveRuleKeyword(e.target.value)}
-                              className="text-sm"
                               disabled={saveRuleSaving}
                             />
                             <div className="flex gap-2">

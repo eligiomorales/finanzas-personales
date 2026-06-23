@@ -164,7 +164,6 @@ export function ImportReviewItemCard({
                         id={`remember-rule-${item.id}`}
                         value={ruleKeyword}
                         onChange={(e) => onRuleKeywordChange(e.target.value)}
-                        className="text-sm"
                       />
                     </div>
                   )}
