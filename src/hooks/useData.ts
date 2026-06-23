@@ -158,8 +158,10 @@ export function useFilteredMovements(
   )
 
   const movementsQuery = useRemoteQuery(
-    queryKeys.movementsInRange(coupleId ?? 'local', fetchRange.dateFrom, fetchRange.dateTo),
-    () => repos.movements.listInRange(fetchRange),
+    fetchRange
+      ? queryKeys.movementsInRange(coupleId ?? 'local', fetchRange.dateFrom, fetchRange.dateTo)
+      : queryKeys.movements(coupleId ?? 'local'),
+    () => (fetchRange ? repos.movements.listInRange(fetchRange) : repos.movements.list()),
   )
 
   const remoteFiltered = useMemo(() => {

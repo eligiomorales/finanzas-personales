@@ -1,6 +1,4 @@
-import type { PeriodRange } from '@/components/PeriodFilter'
 import type { MovementDateRange } from '@/lib/repositories/types'
-import { currentMonthRange } from '@/lib/utils'
 import type {
   CurrencyCode,
   MovementFilters,
@@ -11,8 +9,8 @@ import type {
   Payer,
 } from '@/types'
 
-const STORAGE_KEY = 'finanzas-movement-filters'
-const LEGACY_PERIOD_KEY = 'finanzas-period'
+// v2: desacoplado del período del home (junio 2026)
+const STORAGE_KEY = 'finanzas-movement-filters-v2'
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 const MOVEMENT_TYPES = new Set<MovementType>(['income', 'expense', 'settlement'])
@@ -31,12 +29,6 @@ function isValidDate(value: unknown): value is string {
 
 function isOptionalString(value: unknown): value is string | undefined {
   return value === undefined || typeof value === 'string'
-}
-
-function isValidPeriod(value: unknown): value is PeriodRange {
-  if (!value || typeof value !== 'object') return false
-  const { from, to } = value as { from?: unknown; to?: unknown }
-  return isValidDate(from) && isValidDate(to) && from <= to
 }
 
 function isValidPersistedMovementFilters(value: unknown): value is PersistedMovementFilters {
@@ -87,33 +79,18 @@ export function toPersistedMovementFilters(filters: MovementFilters): PersistedM
   return persisted
 }
 
-export function withDefaultPeriod(filters: PersistedMovementFilters): PersistedMovementFilters {
-  if (filters.dateFrom && filters.dateTo) return filters
-  const month = currentMonthRange()
+export function hasMovementDateFilter(filters: MovementFilters): boolean {
+  return Boolean(filters.dateFrom || filters.dateTo)
+}
+
+/** Date span used to fetch movements before in-memory filter/sort (remote list). Null = fetch all. */
+export function movementQueryDateRange(filters: MovementFilters): MovementDateRange | null {
+  const { dateFrom, dateTo } = toPersistedMovementFilters(filters)
+  if (!dateFrom && !dateTo) return null
   return {
-    ...filters,
-    dateFrom: filters.dateFrom ?? month.from,
-    dateTo: filters.dateTo ?? month.to,
+    dateFrom: dateFrom ?? '1970-01-01',
+    dateTo: dateTo ?? '9999-12-31',
   }
-}
-
-/** Date span used to fetch movements before in-memory filter/sort (remote list). */
-export function movementQueryDateRange(filters: MovementFilters): MovementDateRange {
-  const { dateFrom, dateTo } = withDefaultPeriod(toPersistedMovementFilters(filters))
-  return { dateFrom: dateFrom!, dateTo: dateTo! }
-}
-
-function readLegacyPeriod(): PeriodRange | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = window.localStorage.getItem(LEGACY_PERIOD_KEY)
-    if (!raw) return null
-    const parsed: unknown = JSON.parse(raw)
-    if (isValidPeriod(parsed)) return parsed
-  } catch {
-    // ignore corrupt storage
-  }
-  return null
 }
 
 function readRawStoredFilters(): PersistedMovementFilters | null {
@@ -131,37 +108,11 @@ function readRawStoredFilters(): PersistedMovementFilters | null {
 
 export function readStoredMovementFilters(): PersistedMovementFilters {
   const stored = readRawStoredFilters()
-  if (stored) {
-    if (stored.dateFrom && stored.dateTo) return stored
-    const legacyPeriod = readLegacyPeriod()
-    if (legacyPeriod) {
-      return { ...stored, dateFrom: legacyPeriod.from, dateTo: legacyPeriod.to }
-    }
-    return withDefaultPeriod(stored)
-  }
-
-  const legacyPeriod = readLegacyPeriod()
-  if (legacyPeriod) {
-    return { dateFrom: legacyPeriod.from, dateTo: legacyPeriod.to }
-  }
-
-  return withDefaultPeriod({})
+  if (stored) return stored
+  return {}
 }
 
 export function writeStoredMovementFilters(filters: MovementFilters): void {
   if (typeof window === 'undefined') return
-  const persisted = withDefaultPeriod(toPersistedMovementFilters(filters))
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted))
-  window.localStorage.removeItem(LEGACY_PERIOD_KEY)
-}
-
-/** @deprecated Use readStoredMovementFilters(). Kept for migration tests. */
-export function readStoredPeriod(): PeriodRange {
-  const { dateFrom, dateTo } = readStoredMovementFilters()
-  return { from: dateFrom!, to: dateTo! }
-}
-
-/** @deprecated Use writeStoredMovementFilters(). Kept for migration tests. */
-export function writeStoredPeriod(period: PeriodRange): void {
-  writeStoredMovementFilters({ dateFrom: period.from, dateTo: period.to })
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(toPersistedMovementFilters(filters)))
 }

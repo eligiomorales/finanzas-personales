@@ -1,6 +1,6 @@
 import type { FilterChip } from '@/components/ui/FilterChips'
 import { payerFilterLabel, type CouplePersonsView } from '@/lib/couple/person-labels'
-import { activePeriodPresetId, formatPeriodRangeLabel } from '@/lib/period-presets'
+import { formatPeriodRangeLabel } from '@/lib/period-presets'
 import { isDefaultMovementSort, movementSortLabel } from '@/lib/movements-query'
 import type { Category, MovementFilters } from '@/types'
 import { movementTypeLabel } from '@/lib/utils'
@@ -15,13 +15,10 @@ export function buildMovementFilterChips(
   const chips: FilterChip[] = []
 
   if (filters.dateFrom || filters.dateTo) {
-    const period = { from: filters.dateFrom ?? '', to: filters.dateTo ?? '' }
-    if (activePeriodPresetId(period) === null) {
-      chips.push({
-        id: 'period',
-        label: formatPeriodRangeLabel(filters.dateFrom, filters.dateTo),
-      })
-    }
+    chips.push({
+      id: 'period',
+      label: formatPeriodRangeLabel(filters.dateFrom, filters.dateTo),
+    })
   }
 
   if (filters.search?.trim()) {
@@ -68,7 +65,7 @@ export function removeMovementFilterChip(
 ): MovementFilters {
   switch (chipId) {
     case 'period':
-      return filters
+      return { ...filters, dateFrom: undefined, dateTo: undefined }
     case 'search':
       return { ...filters, search: undefined }
     case 'type':

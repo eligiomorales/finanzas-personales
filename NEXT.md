@@ -3,8 +3,8 @@
 > Estado vivo del proyecto. **Corto a propósito** (máx. una pantalla). Cuando una fase termina, su detalle se muda a `docs/history/CHANGELOG.md`; este archivo solo dice *dónde estoy y qué sigue*.
 
 **Prod:** https://finanzas-personales-ebon.vercel.app · Vercel + Supabase · migraciones `001`–`008` (aplicar `008` en prod)
-**Rama actual:** `feature/analisis-budget-trends` (PR pendiente)
-**Última fase cerrada:** Análisis — presupuesto integrado en Tendencias (sesión 2026-06-23)
+**Rama actual:** `fix/movements-list-polish` (PR pendiente)
+**Última fase cerrada:** Movimientos — filtros compactos + carga inicial 30 + liquidaciones excluidas al filtrar categoría (sesión 2026-06-23)
 
 ---
 
@@ -21,6 +21,7 @@ _Nada activo — elegir siguiente sesión del top 3._
 _Epic Import by exception (IMP-1→IMP-5 + IMP-UI) cerrado._
 _TRK-3 Tendencias cerrado (2026-06-21 + polish 2026-06-22)._
 _Análisis simplificado: pestaña Categorías eliminada; presupuesto vs gasto en Tendencias._
+_Movimientos: búsqueda + filtros/orden icon-only; sin filtro de fecha por defecto; carga inicial 30; liquidaciones ocultas al filtrar por categoría; período del home independiente; modal de filtros organizado en secciones._
 
 _Prioridad completa:_ `backlog/product-ideas.md` → Prioridad por dolor
 

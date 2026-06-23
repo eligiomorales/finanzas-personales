@@ -110,14 +110,14 @@ describe('movementMatchesFilters', () => {
     expect(movementMatchesFilters(base, { search: 'uber' }, searchContext)).toBe(false)
   })
 
-  it('keeps settlements visible when filtering by category', () => {
+  it('excludes settlements when filtering by category', () => {
     expect(
       movementMatchesFilters(
         { ...base, type: 'settlement', categoryId: null },
         { categoryId: 'cat-3' },
         searchContext,
       ),
-    ).toBe(true)
+    ).toBe(false)
     expect(
       movementMatchesFilters({ ...base, categoryId: 'cat-4' }, { categoryId: 'cat-3' }, searchContext),
     ).toBe(false)

@@ -66,6 +66,8 @@ export function FilterFacet({
   onOpen,
   onClose,
   menuMinWidth,
+  ariaLabel,
+  buttonContent,
   buttonClassName,
   children,
 }: {
@@ -76,6 +78,8 @@ export function FilterFacet({
   onOpen: () => void
   onClose: () => void
   menuMinWidth?: number
+  ariaLabel?: string
+  buttonContent?: ReactNode
   buttonClassName?: string
   children: ReactNode
 }) {
@@ -128,6 +132,7 @@ export function FilterFacet({
       <button
         ref={buttonRef}
         type="button"
+        aria-label={ariaLabel}
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-controls={open ? menuId : undefined}
@@ -140,10 +145,14 @@ export function FilterFacet({
         )}
         onClick={() => (open ? onClose() : onOpen())}
       >
-        <span className="max-w-[7.5rem] truncate">{activeLabel ?? label}</span>
-        <span className="text-stone-400" aria-hidden>
-          {open ? '▴' : '▾'}
-        </span>
+        {buttonContent ?? (
+          <>
+            <span className="max-w-[7.5rem] truncate">{activeLabel ?? label}</span>
+            <span className="text-stone-400" aria-hidden>
+              {open ? '▴' : '▾'}
+            </span>
+          </>
+        )}
       </button>
       <FacetMenuPortal
         open={open}

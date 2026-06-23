@@ -3,14 +3,13 @@ import { useFilteredMovements, useCategories, useSettings } from '@/hooks/useDat
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { useMovementFilters } from '@/contexts/MovementFiltersContext'
-import { currentMonthRange } from '@/lib/utils'
 import { buildMovementFilterChips, removeMovementFilterChip } from '@/lib/movement-filter-chips'
 import { groupMovementsByDate } from '@/lib/movements-grouping'
 import { MovementFilterToolbar } from '@/components/MovementFilterToolbar'
 import { payerListLabel } from '@/lib/couple/person-labels'
 import { getDisplayAmountForView } from '@/lib/balance'
 import { formatMovementAmountLinesForView, getCurrencyConfig } from '@/lib/currency'
-import { MOVEMENTS_PAGE_SIZE } from '@/lib/movements-query'
+import { MOVEMENTS_INITIAL_VISIBLE, MOVEMENTS_PAGE_SIZE } from '@/lib/movements-query'
 import { EmptyState } from '@/components/ui/Card'
 import { MovementRow } from '@/components/ui/MovementRow'
 import { SkeletonList } from '@/components/skeletons/SkeletonList'
@@ -22,8 +21,8 @@ export function MovementsPage() {
   const settings = useSettings()
   const persons = useCouplePersons()
   const { isPersonal, mode: expenseViewMode } = useExpenseViewMode()
-  const { filters, listFilters, setFilters, setPeriod, clearFilters } = useMovementFilters()
-  const [visibleCount, setVisibleCount] = useState(MOVEMENTS_PAGE_SIZE)
+  const { filters, setFilters, clearFilters } = useMovementFilters()
+  const [visibleCount, setVisibleCount] = useState(MOVEMENTS_INITIAL_VISIBLE)
   const myRole = persons.myRole ?? 'personA'
 
   const effectiveFilters = useMemo(
@@ -71,9 +70,9 @@ export function MovementsPage() {
     [filters, categories, persons],
   )
 
-  const updateListFilters = useCallback(
+  const updateFilters = useCallback(
     (next: MovementFilters) => {
-      setVisibleCount(MOVEMENTS_PAGE_SIZE)
+      setVisibleCount(MOVEMENTS_INITIAL_VISIBLE)
       setFilters({ ...filters, ...next })
     },
     [filters, setFilters],
@@ -81,30 +80,26 @@ export function MovementsPage() {
 
   const removeFilterChip = useCallback(
     (chipId: string) => {
-      if (chipId === 'period') {
-        setVisibleCount(MOVEMENTS_PAGE_SIZE)
-        setPeriod(currentMonthRange())
-        return
-      }
-      updateListFilters(removeMovementFilterChip(listFilters, chipId))
+      setVisibleCount(MOVEMENTS_INITIAL_VISIBLE)
+      setFilters(removeMovementFilterChip(filters, chipId))
     },
-    [listFilters, setPeriod, updateListFilters],
+    [filters, setFilters],
   )
 
   const resetFilters = useCallback(() => {
-    setVisibleCount(MOVEMENTS_PAGE_SIZE)
+    setVisibleCount(MOVEMENTS_INITIAL_VISIBLE)
     clearFilters()
   }, [clearFilters])
 
   useEffect(() => {
-    setVisibleCount(MOVEMENTS_PAGE_SIZE)
+    setVisibleCount(MOVEMENTS_INITIAL_VISIBLE)
   }, [queryKey])
 
   return (
     <div className="space-y-4">
       <MovementFilterToolbar
-        filters={listFilters}
-        onChange={updateListFilters}
+        filters={filters}
+        onChange={updateFilters}
         categories={categories}
         persons={persons}
         activeChips={activeFilterChips}

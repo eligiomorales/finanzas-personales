@@ -8,7 +8,7 @@ import {
   useOnboarding,
 } from '@/components/OnboardingBanner'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
-import { usePeriod } from '@/contexts/MovementFiltersContext'
+import { usePeriod } from '@/contexts/DashboardPeriodContext'
 import {
   calculateCoupleBalanceForScope,
   calculatePeriodSummary,
