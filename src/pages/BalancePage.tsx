@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useMovementsInRange, useMovementsQuery, useSettings, useDataMutations } from '@/hooks/useData'
-import { usePeriod } from '@/contexts/MovementFiltersContext'
+import { usePeriod } from '@/contexts/DashboardPeriodContext'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { calculateCoupleBalanceForScope } from '@/lib/balance'
 import { displayLabelForRole, formLabelWithName } from '@/lib/couple/person-labels'

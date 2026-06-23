@@ -3,8 +3,8 @@
 > Estado vivo del proyecto. **Corto a propósito** (máx. una pantalla). Cuando una fase termina, su detalle se muda a `docs/history/CHANGELOG.md`; este archivo solo dice *dónde estoy y qué sigue*.
 
 **Prod:** https://finanzas-personales-ebon.vercel.app · Vercel + Supabase · migraciones `001`–`008` (aplicar `008` en prod)
-**Rama actual:** `fix/focus-new-expense` (incluye IMP-UI; mover a `feature/imp-ui-import-polish` antes de PR)
-**Última fase cerrada:** IMP-UI Pulido pantalla Import (sesión 2026-06-21)
+**Rama actual:** `fix/movements-list-polish` (PR pendiente)
+**Última fase cerrada:** Movimientos — filtros compactos + carga inicial 30 + liquidaciones excluidas al filtrar categoría (sesión 2026-06-23)
 
 ---
 
@@ -15,10 +15,13 @@ _Nada activo — elegir siguiente sesión del top 3._
 ## Siguiente (1–3, priorizado por dolor)
 
 1. Epic Planning **`PLAN-1`** (proyección fin de mes — ready, sin deps)
-2. Sueltas ready: **`TRK-1`** · **`TRK-2`** · **`DASH-2`** (elegir una por sesión)
+2. Sueltas ready: **`TRK-1`** · **`DASH-2`** (elegir una por sesión)
 3. Epic recurrentes **`REC-1`** (modelo + migración — prioridad #4)
 
 _Epic Import by exception (IMP-1→IMP-5 + IMP-UI) cerrado._
+_TRK-3 Tendencias cerrado (2026-06-21 + polish 2026-06-22)._
+_Análisis simplificado: pestaña Categorías eliminada; presupuesto vs gasto en Tendencias (PR `feature/analisis-budget-trends` pendiente)._
+_Movimientos: búsqueda + filtros/orden icon-only; sin filtro de fecha por defecto; carga inicial 30; liquidaciones ocultas al filtrar por categoría; período del home independiente; modal de filtros organizado en secciones._
 
 _Prioridad completa:_ `backlog/product-ideas.md` → Prioridad por dolor
 

@@ -4,6 +4,7 @@ import { movementMatchesSearch, type MovementSearchContext } from '@/lib/movemen
 import type { Category, Movement, MovementFilters, MovementSortDir, MovementSortField } from '@/types'
 
 export const MOVEMENTS_PAGE_SIZE = 30
+export const MOVEMENTS_INITIAL_VISIBLE = MOVEMENTS_PAGE_SIZE
 
 export const DEFAULT_MOVEMENT_SORT: { sortBy: MovementSortField; sortDir: MovementSortDir } = {
   sortBy: 'date',
@@ -100,7 +101,10 @@ export function movementMatchesFilters(
 ): boolean {
   if (filters.dateFrom && m.date < filters.dateFrom) return false
   if (filters.dateTo && m.date > filters.dateTo) return false
-  if (filters.categoryId && m.type !== 'settlement' && m.categoryId !== filters.categoryId) return false
+  if (filters.categoryId) {
+    if (m.type === 'settlement') return false
+    if (m.categoryId !== filters.categoryId) return false
+  }
   if (filters.type && m.type !== filters.type) return false
   if (filters.paidBy && m.paidBy !== filters.paidBy) return false
   if (filters.source && m.source !== filters.source) return false

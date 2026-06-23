@@ -15,7 +15,14 @@ export function useFocusTrap(active: boolean) {
     if (!container) return
 
     const focusables = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
-    focusables[0]?.focus()
+    // For dialogs, focus the container itself so the first input doesn't autofocus
+    // (especially critical for date inputs on mobile which open the native picker)
+    if (container.getAttribute('role') === 'dialog') {
+      container.setAttribute('tabindex', '-1')
+      container.focus({ preventScroll: true })
+    } else {
+      focusables[0]?.focus()
+    }
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== 'Tab' || focusables.length === 0) return

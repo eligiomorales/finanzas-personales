@@ -68,7 +68,7 @@ describe('MovementRepository.listInRange (Dexie)', () => {
       sortBy: 'amount' as const,
       sortDir: 'desc' as const,
     }
-    const fetchRange = movementQueryDateRange(filters)
+    const fetchRange = movementQueryDateRange(filters)!
     const inRange = await repos.movements.listInRange(fetchRange)
 
     const sorted = filterAllMovementsInMemory(inRange, filters)
