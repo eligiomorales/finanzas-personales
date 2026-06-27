@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { format, subMonths } from 'date-fns'
-import { buildMonthlyTrends, buildCumulativeSpendSeries } from '@/lib/monthly-trends'
+import { buildMonthlyTrends, buildCumulativeSpendSeries, buildCategoryMonthlyTrends } from '@/lib/monthly-trends'
 import type { CurrencyConfig } from '@/lib/currency'
 import type { Movement } from '@/types'
 
@@ -37,6 +37,71 @@ describe('buildMonthlyTrends', () => {
     const monthsB = buildMonthlyTrends([movement], config, { personalRole: 'personB' })
     expect(monthsA.find((m) => m.isCurrent)?.totalExpenses).toBeCloseTo(70)
     expect(monthsB.find((m) => m.isCurrent)?.totalExpenses).toBeCloseTo(30)
+  })
+})
+
+describe('buildCategoryMonthlyTrends', () => {
+  const now = new Date(2026, 5, 15) // 15 Jun 2026
+  const categories = [
+    { id: 'cat-food', name: 'Supermercado', color: '#22c55e' },
+    { id: 'cat-transport', name: 'Transporte', color: '#3b82f6' },
+  ]
+
+  it('sums expense by category and month', () => {
+    const ym = format(now, 'yyyy-MM')
+    const prevYm = format(subMonths(now, 1), 'yyyy-MM')
+    const movements = [
+      base({ id: 'a', categoryId: 'cat-food', date: `${ym}-05`, amount: 100 }),
+      base({ id: 'b', categoryId: 'cat-food', date: `${prevYm}-10`, amount: 50 }),
+      base({ id: 'c', categoryId: 'cat-transport', date: `${ym}-01`, amount: 30 }),
+    ]
+    const trends = buildCategoryMonthlyTrends(
+      { movements, currencyConfig: config, categories },
+      now,
+    )
+    expect(trends).toHaveLength(2)
+    expect(trends[0].categoryId).toBe('cat-food')
+    expect(trends[0].total).toBe(150)
+    const foodCurrent = trends[0].months.find((m) => m.yearMonth === ym)
+    const foodPrev = trends[0].months.find((m) => m.yearMonth === prevYm)
+    expect(foodCurrent?.amount).toBe(100)
+    expect(foodPrev?.amount).toBe(50)
+    expect(trends[0].months.filter((m) => m.amount === 0)).toHaveLength(4)
+  })
+
+  it('sorts categories by total spend descending', () => {
+    const ym = format(now, 'yyyy-MM')
+    const movements = [
+      base({ id: 'a', categoryId: 'cat-transport', date: `${ym}-01`, amount: 200 }),
+      base({ id: 'b', categoryId: 'cat-food', date: `${ym}-02`, amount: 50 }),
+    ]
+    const trends = buildCategoryMonthlyTrends(
+      { movements, currencyConfig: config, categories },
+      now,
+    )
+    expect(trends[0].categoryId).toBe('cat-transport')
+    expect(trends[1].categoryId).toBe('cat-food')
+  })
+
+  it('uses personal share in personal view', () => {
+    const ym = format(now, 'yyyy-MM')
+    const movement = base({
+      categoryId: 'cat-food',
+      date: `${ym}-01`,
+      amount: 100,
+      sharePersonA: 70,
+      sharePersonB: 30,
+    })
+    const trendsA = buildCategoryMonthlyTrends(
+      { movements: [movement], currencyConfig: config, categories, options: { personalRole: 'personA' } },
+      now,
+    )
+    const trendsB = buildCategoryMonthlyTrends(
+      { movements: [movement], currencyConfig: config, categories, options: { personalRole: 'personB' } },
+      now,
+    )
+    expect(trendsA[0].total).toBeCloseTo(70)
+    expect(trendsB[0].total).toBeCloseTo(30)
   })
 })
 

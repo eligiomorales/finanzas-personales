@@ -78,7 +78,8 @@ Orden estratégico acordado. El **Radar** y las secciones de epic siguen este cr
 | TRK-1 | Un insight en home | Sueltas | ✅ | M | inbox | prioridad #3 |
 | TRK-2 | Pantalla Análisis | Sueltas | ✅ | M | inbox | prioridad #3 |
 | TRK-3 | Tendencias mensuales | Sueltas | ✅ | M | inbox | post PLAN-1 o metas |
-| DASH-2 | Compensación arriba | Sueltas | ✅ | B | inbox | quick win #3 |
+| TRK-4 | Tendencia por categoría | Sueltas | ✅ | M | **done** | — |
+| DASH-2 | Compensación arriba | Sueltas | ✅ | B | **done** | — |
 | BUD-1 | Presupuesto personal | Sueltas | ⛔ uso | M | inbox | posponer hasta presupuesto compartido en uso real |
 | REC-1 | Modelo + migración | Recurrentes | ✅ | M | inbox | prioridad #4 — tras bloques 1–3 |
 | REC-2 | CRUD plantillas | Recurrentes | ⛔ REC-1 | M | inbox | tras REC-1 |
@@ -188,12 +189,19 @@ _Premisa:_ subir resumen → revisar **solo excepciones** → confirmar. Pipelin
 **No:** motor de reportes, export PDF, drill-down histórico.
 **Deps:** agregaciones por mes (parcial en dashboard).
 
-### DASH-2 · Compensación arriba · inbox · B · ✅
+### TRK-4 · Tendencia por categoría · **done** · M · ✅
+
+**Dolor:** Evolución mes a mes solo a nivel total; no se ve tendencia por categoría sin comparar donuts mes a mes.
+**MVP:** Segundo slide del carrusel en Tendencias: barras de 6 meses para una categoría elegida vía dropdown.
+**No:** multi-línea, presupuesto en slide, drill-down a movimientos.
+**Deps:** `buildMonthlyTrends` / movimientos en rango 6 meses. · **Done (2026-06-27):** `buildCategoryMonthlyTrends`, `CategoryTrendBarChart`, slide en carrusel; brief `briefs/2026-06-27-trk-4-tendencia-categoria.md`
+
+### DASH-2 · Compensación arriba · **done** · B · ✅
 
 **Dolor:** El balance entre integrantes es el diferenciador pero compite con métricas genéricas.
 **MVP:** Subir `DashboardCompensationRow` justo debajo del semáforo / saldo neto.
 **No:** rediseño completo del bento.
-**Deps:** ninguna (feature ya existe). · Quick win suelta
+**Deps:** ninguna (feature ya existe). · **Done (2026-06-27):** callout con label, badge, monto destacado y CTA; brief `briefs/2026-06-27-dash-2-compensacion-arriba.md`
 
 ### BUD-1 · Presupuesto personal · inbox · M · ⛔ uso
 

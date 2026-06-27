@@ -1,7 +1,14 @@
 import { useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { BudgetProgressBar } from '@/components/BudgetProgressBar'
+import { focusRing } from '@/components/ui/styles'
+import { getTapMotionProps } from '@/design/motion'
+import { useMotionPreferences } from '@/hooks/useMotionPreferences'
 import { formatInViewCurrency, type CurrencyConfig } from '@/lib/currency'
+import { cn } from '@/lib/utils'
 import type { CategoryBudgetProgress } from '@/types'
+
+const MotionButton = motion.button
 
 interface CategorySlice {
   categoryId: string
@@ -16,6 +23,7 @@ interface CategoryDonutBreakdownProps {
   currencyConfig: CurrencyConfig
   budgetByCategory?: Map<string, CategoryBudgetProgress>
   showBudget?: boolean
+  onCategoryClick?: (categoryId: string) => void
 }
 
 const VIEW_W = 320
@@ -132,7 +140,10 @@ export function CategoryDonutBreakdown({
   currencyConfig,
   budgetByCategory,
   showBudget = false,
+  onCategoryClick,
 }: CategoryDonutBreakdownProps) {
+  const { shouldAnimate } = useMotionPreferences()
+  const tapMotion = onCategoryClick && shouldAnimate ? getTapMotionProps(true) : {}
   const slices = useMemo(() => buildArcSlices(categories, total), [categories, total])
 
   if (total <= 0 || slices.length === 0) {
@@ -173,25 +184,25 @@ export function CategoryDonutBreakdown({
         </div>
       </div>
 
-      <ul className="space-y-6">
+      <ul className={cn(onCategoryClick ? 'space-y-3' : 'space-y-6')}>
         {slices.map((slice) => {
           const budgetProgress = budgetByCategory?.get(slice.categoryId)
           const hasBudget =
             showBudget && budgetProgress != null && budgetProgress.budgeted > 0
 
-          return (
-            <li key={slice.categoryId} className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: slice.color ?? '#78716c' }}
-                  />
-                  <span className="truncate text-sm font-semibold text-stone-800">
-                    {slice.categoryName}
-                  </span>
-                </div>
-                <span className="shrink-0 text-sm tabular-nums">
+          const headerRow = (
+            <div className="flex min-h-11 items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: slice.color ?? '#78716c' }}
+                />
+                <span className="truncate text-sm font-semibold text-stone-800">
+                  {slice.categoryName}
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-2 text-sm tabular-nums">
+                <span>
                   <span className="font-semibold text-stone-900">
                     {formatInViewCurrency(slice.total, currencyConfig)}
                   </span>
@@ -200,40 +211,75 @@ export function CategoryDonutBreakdown({
                     {slice.pct.toFixed(1)}%
                   </span>
                 </span>
-              </div>
-
-              <div className="space-y-0.5">
-                {hasBudget && budgetProgress ? (
-                  <BudgetProgressBar
-                    percentUsed={budgetProgress.percentUsed}
-                    status={budgetProgress.status}
-                    color={slice.color}
-                    colorMode="category"
-                  />
-                ) : (
-                  <div className="h-2 overflow-hidden rounded-full bg-surface-100">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${Math.min(slice.pct, 100)}%`,
-                        backgroundColor: slice.color ?? '#3b82f6',
-                      }}
-                    />
-                  </div>
+                {onCategoryClick && (
+                  <span className="text-stone-400" aria-hidden="true">
+                    →
+                  </span>
                 )}
-                <p
-                  className={
-                    hasBudget && budgetProgress
-                      ? 'text-right text-[11px] tabular-nums text-stone-400'
-                      : 'invisible h-[11px] text-[11px]'
-                  }
-                  aria-hidden={!hasBudget}
-                >
-                  {hasBudget && budgetProgress
-                    ? `${formatInViewCurrency(budgetProgress.spent, currencyConfig)} / ${formatInViewCurrency(budgetProgress.budgeted, currencyConfig)}`
-                    : '\u00a0'}
-                </p>
               </div>
+            </div>
+          )
+
+          const progressBlock = (
+            <div className="space-y-0.5">
+              {hasBudget && budgetProgress ? (
+                <BudgetProgressBar
+                  percentUsed={budgetProgress.percentUsed}
+                  status={budgetProgress.status}
+                  color={slice.color}
+                  colorMode="category"
+                />
+              ) : (
+                <div className="h-2 overflow-hidden rounded-full bg-surface-100">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(slice.pct, 100)}%`,
+                      backgroundColor: slice.color ?? '#3b82f6',
+                    }}
+                  />
+                </div>
+              )}
+              <p
+                className={
+                  hasBudget && budgetProgress
+                    ? 'text-right text-[11px] tabular-nums text-stone-400'
+                    : 'invisible h-[11px] text-[11px]'
+                }
+                aria-hidden={!hasBudget}
+              >
+                {hasBudget && budgetProgress
+                  ? `${formatInViewCurrency(budgetProgress.spent, currencyConfig)} / ${formatInViewCurrency(budgetProgress.budgeted, currencyConfig)}`
+                  : '\u00a0'}
+              </p>
+            </div>
+          )
+
+          if (onCategoryClick) {
+            return (
+              <li key={slice.categoryId}>
+                <MotionButton
+                  type="button"
+                  className={cn(
+                    'block w-full space-y-2 rounded-lg -mx-3 px-3 py-2 text-left transition-colors hover:bg-stone-50 active:bg-stone-100',
+                    focusRing,
+                  )}
+                  onClick={() => onCategoryClick(slice.categoryId)}
+                  aria-label={`Ver movimientos de ${slice.categoryName}`}
+                  whileTap={tapMotion.whileTap}
+                  transition={tapMotion.transition}
+                >
+                  {headerRow}
+                  {progressBlock}
+                </MotionButton>
+              </li>
+            )
+          }
+
+          return (
+            <li key={slice.categoryId} className="space-y-2">
+              {headerRow}
+              {progressBlock}
             </li>
           )
         })}
