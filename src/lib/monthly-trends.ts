@@ -24,6 +24,28 @@ export interface BuildMonthlyTrendsOptions {
   personalRole?: 'personA' | 'personB'
 }
 
+export interface CategoryMonthSpend {
+  yearMonth: string
+  label: string
+  amount: number
+  isCurrent: boolean
+}
+
+export interface CategoryMonthlyTrend {
+  categoryId: string
+  categoryName: string
+  color?: string
+  total: number
+  months: CategoryMonthSpend[]
+}
+
+export interface BuildCategoryMonthlyTrendsInput {
+  movements: Movement[]
+  currencyConfig: CurrencyConfig
+  categories: { id: string; name: string; color?: string }[]
+  options?: BuildMonthlyTrendsOptions
+}
+
 export interface CumulativeSpendPoint {
   day: number
   /** null after today — line stops mid-chart */
@@ -113,6 +135,58 @@ export function buildMonthlyTrends(
   }
 
   return months
+}
+
+function buildMonthSpendSkeleton(now = new Date()): CategoryMonthSpend[] {
+  const currentYearMonth = format(now, 'yyyy-MM')
+  return Array.from({ length: 6 }, (_, i) => {
+    const date = subMonths(now, 5 - i)
+    const yearMonth = format(date, 'yyyy-MM')
+    return {
+      yearMonth,
+      label: format(date, 'MMM', { locale: es }),
+      amount: 0,
+      isCurrent: yearMonth === currentYearMonth,
+    }
+  })
+}
+
+/** Expense totals per category across the last 6 calendar months. */
+export function buildCategoryMonthlyTrends(
+  { movements, currencyConfig, categories, options }: BuildCategoryMonthlyTrendsInput,
+  now = new Date(),
+): CategoryMonthlyTrend[] {
+  const personalRole = options?.personalRole
+  const monthSkeleton = buildMonthSpendSkeleton(now)
+  const byCategory = new Map<string, CategoryMonthlyTrend>()
+
+  for (const mv of movements) {
+    if (mv.type !== 'expense' || !mv.categoryId) continue
+    const amount = getTrendExpenseAmount(mv, currencyConfig, personalRole)
+    if (amount <= 0) continue
+
+    const ym = mv.date.slice(0, 7)
+    const monthIndex = monthSkeleton.findIndex((m) => m.yearMonth === ym)
+    if (monthIndex < 0) continue
+
+    let trend = byCategory.get(mv.categoryId)
+    if (!trend) {
+      const cat = categories.find((c) => c.id === mv.categoryId)
+      trend = {
+        categoryId: mv.categoryId,
+        categoryName: cat?.name ?? 'Sin categoría',
+        color: cat?.color,
+        total: 0,
+        months: monthSkeleton.map((m) => ({ ...m })),
+      }
+      byCategory.set(mv.categoryId, trend)
+    }
+
+    trend.months[monthIndex].amount += amount
+    trend.total += amount
+  }
+
+  return Array.from(byCategory.values()).sort((a, b) => b.total - a.total)
 }
 
 /** Daily cumulative spend for current month vs. avg cumulative curve of prior 3 calendar months. */

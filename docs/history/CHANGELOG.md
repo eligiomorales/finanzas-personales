@@ -4,6 +4,35 @@ Historial append-only de lo construido. El **estado actual** vive en `NEXT.md`; 
 
 ---
 
+## TRK-4 — Tendencia por categoría (2026-06-27)
+
+Segundo slide del carrusel en `/analisis/tendencias`: evolución mensual de gasto por categoría.
+
+| Area | Detalle |
+|------|---------|
+| **Lógica** | `buildCategoryMonthlyTrends` en `monthly-trends.ts` — gasto por categoría × 6 meses; respeta vista pareja/personal |
+| **UI** | `CategoryTrendBarChart` + dropdown; slide "Categoría" entre flujo de caja y ritmo de gasto |
+| **Tests** | 3 casos nuevos en `monthly-trends.test.ts` |
+| **Brief** | `briefs/2026-06-27-trk-4-tendencia-categoria.md` |
+
+Sin dependencias nuevas. `npm run ci` verde (257 tests).
+
+---
+
+## DASH-2 — Compensación arriba (2026-06-27)
+
+Callout protagonista en dashboard para el balance entre integrantes.
+
+| Area | Detalle |
+|------|---------|
+| **UI** | `DashboardCompensationRow`: label, badge Pendiente/Saldado, monto `text-2xl`, CTA a `/balance?scope=period` |
+| **Posición** | Debajo de `DashboardSummaryBento` (sin cambio de layout) |
+| **Brief** | `briefs/2026-06-27-dash-2-compensacion-arriba.md` |
+
+Sin lógica nueva ni dependencias. `npm run ci` verde (254 tests).
+
+---
+
 ## TRK-3 — Tendencias mensuales (2026-06-21 + polish 2026-06-22)
 
 Tab **Tendencias** en `/analisis/tendencias`: evolución de 6 meses y distribución por categoría.
