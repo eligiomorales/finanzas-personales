@@ -1,3 +1,4 @@
+import { dashboardHeroShellClass } from '@/components/DashboardHero'
 import { Card } from '@/components/ui/Card'
 import { SkeletonBar } from '@/components/skeletons/SkeletonCard'
 import { SkeletonList } from '@/components/skeletons/SkeletonList'
@@ -6,7 +7,7 @@ export function SkeletonDashboard() {
   return (
     <>
       <div
-        className="flex min-h-[42dvh] flex-col rounded-b-2xl bg-gradient-to-br from-brand-600 via-brand-700 to-brand-800 px-4 pb-5 pt-[max(0.75rem,env(safe-area-inset-top))]"
+        className={dashboardHeroShellClass}
         role="status"
         aria-busy="true"
         aria-label="Cargando inicio"
@@ -20,7 +21,7 @@ export function SkeletonDashboard() {
         </div>
         <div className="flex flex-1 flex-col items-center justify-center gap-3 py-6">
           <SkeletonBar className="h-3 w-32 bg-white/20" />
-          <SkeletonBar className="h-12 w-40 bg-white/25" />
+          <SkeletonBar className="h-14 w-44 bg-white/25" />
           <SkeletonBar className="h-3 w-24 bg-white/15" />
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -29,7 +30,7 @@ export function SkeletonDashboard() {
         </div>
       </div>
 
-      <div className="space-y-4 px-4 pt-4">
+      <div className="relative z-10 -mt-6 space-y-4 rounded-t-3xl bg-surface-50 px-4 pt-5">
         <Card compact className="space-y-3 p-4">
           <SkeletonBar className="h-4 w-28" />
           <SkeletonBar className="h-6 w-3/4" />
