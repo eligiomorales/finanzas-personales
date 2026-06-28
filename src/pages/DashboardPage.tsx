@@ -1,5 +1,13 @@
 import { useMemo } from 'react'
-import { useMovements, useMovementsInRange, useCategories, useSettings, useBudgets, useCoreDataLoading } from '@/hooks/useData'
+import {
+  useMovementsInRange,
+  useMovementsQuery,
+  useCategories,
+  useSettings,
+  useCoreDataLoading,
+  usePendingImports,
+  useBudgets,
+} from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDataContext } from '@/contexts/DataContext'
@@ -8,56 +16,52 @@ import {
   useOnboarding,
 } from '@/components/OnboardingBanner'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
-import { usePeriod } from '@/contexts/DashboardPeriodContext'
 import {
-  calculateCoupleBalanceForScope,
+  calculateCoupleBalance,
   calculatePeriodSummary,
   calculatePersonalExpenseSummary,
   movementVisibleInPersonalView,
 } from '@/lib/balance'
-import { buildPeriodComparison } from '@/lib/dashboard-insights'
-import { buildBudgetProgress, getBudgetMonthKey, getMonthDateRange } from '@/lib/budget'
+import { buildDashboardInsights, buildPeriodComparison } from '@/lib/dashboard-insights'
+import { buildBudgetProgress } from '@/lib/budget'
 import { getCurrencyConfig } from '@/lib/currency'
 import { formatPeriodHeaderTitle } from '@/lib/period-presets'
-import { previousPeriodForRange } from '@/lib/utils'
-import { Card, EmptyState } from '@/components/ui/Card'
-import { PageHeader } from '@/components/ui/PageHeader'
-import { PeriodFilter } from '@/components/PeriodFilter'
-import { DashboardSummaryBento } from '@/components/DashboardSummaryBento'
-import { DashboardCompensationRow } from '@/components/DashboardCompensationRow'
-import { DashboardCategoryBreakdown } from '@/components/DashboardCategoryBreakdown'
+import { currentMonthRange, previousPeriodForRange } from '@/lib/utils'
+import { DashboardHero } from '@/components/DashboardHero'
 import { DashboardMovementList } from '@/components/DashboardMovementList'
+import { InsightCard } from '@/components/InsightCard'
 import { SkeletonDashboard } from '@/components/skeletons/SkeletonDashboard'
 
 export function DashboardPage() {
   const { configured } = useAuth()
   const { mode } = useDataContext()
   const isCoreLoading = useCoreDataLoading()
-  const allMovements = useMovements() ?? []
   const categories = useCategories() ?? []
+  const budgets = useBudgets() ?? []
+  const pendingImports = usePendingImports() ?? []
   const settings = useSettings()
   const persons = useCouplePersons()
   const { isPersonal, mode: expenseViewMode } = useExpenseViewMode()
+
+  const period = currentMonthRange()
+  const previousPeriod = previousPeriodForRange(period)
+  const periodTitle = useMemo(() => formatPeriodHeaderTitle(period), [period.from, period.to])
+
+  const { movements: periodMovements, isLoading: periodMovementsLoading } = useMovementsInRange(period)
+  const { movements: previousPeriodMovements } = useMovementsInRange(previousPeriod)
+  const { movements: allMovements, isLoading: allMovementsLoading } = useMovementsQuery()
+
+  const isLoading = isCoreLoading || periodMovementsLoading || allMovementsLoading
+
   const onboarding = useOnboarding({
-    movementCount: allMovements.length,
+    movementCount: periodMovements.length,
     persons,
     configured,
     mode,
   })
+
   const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
   const myRole = persons.myRole ?? 'personA'
-  const { period, setPeriod } = usePeriod()
-  const budgetMonth = useMemo(() => getBudgetMonthKey(period.from), [period.from])
-  const budgetMonthRange = useMemo(() => getMonthDateRange(budgetMonth), [budgetMonth])
-  const budgets = useBudgets() ?? []
-  const previousPeriod = useMemo(() => previousPeriodForRange(period), [period])
-  const periodTitle = useMemo(() => formatPeriodHeaderTitle(period), [period])
-
-  const { movements: periodMovements, isLoading: periodMovementsLoading } = useMovementsInRange(period)
-  const { movements: previousPeriodMovements } = useMovementsInRange(previousPeriod)
-  const { movements: budgetMonthMovements } = useMovementsInRange(budgetMonthRange)
-
-  const isLoading = isCoreLoading || periodMovementsLoading
 
   const summary = useMemo(() => {
     if (isPersonal) {
@@ -83,24 +87,59 @@ export function DashboardPage() {
     [summary, previousSummary],
   )
 
+  const coupleBalance = useMemo(
+    () => calculateCoupleBalance(allMovements, currencyConfig),
+    [allMovements, currencyConfig],
+  )
+
   const budgetSummary = useMemo(() => {
     if (isPersonal) return null
     return buildBudgetProgress({
       budgets,
-      movements: budgetMonthMovements,
+      movements: periodMovements,
       categories,
       currencyConfig,
-      yearMonth: budgetMonth,
+      yearMonth: period.from.slice(0, 7),
     })
-  }, [isPersonal, budgets, budgetMonthMovements, categories, currencyConfig, budgetMonth])
+  }, [isPersonal, budgets, periodMovements, categories, currencyConfig, period.from])
 
-  const coupleBalance = useMemo(
-    () => calculateCoupleBalanceForScope(periodMovements, currencyConfig, 'period'),
-    [periodMovements, currencyConfig],
+  const pendingImportCount = useMemo(
+    () => pendingImports.filter((p) => p.status === 'pending').length,
+    [pendingImports],
   )
 
-  const personAName = persons.personAName
-  const personBName = persons.personBName
+  const insights = useMemo(
+    () =>
+      buildDashboardInsights({
+        movements: periodMovements,
+        coupleBalance,
+        summary,
+        previousSummary,
+        comparison,
+        budgetSummary,
+        pendingImportCount,
+        personAName: persons.personAName,
+        personBName: persons.personBName,
+        currencyConfig,
+        isPersonal,
+      }),
+    [
+      periodMovements,
+      coupleBalance,
+      summary,
+      previousSummary,
+      comparison,
+      budgetSummary,
+      pendingImportCount,
+      persons.personAName,
+      persons.personBName,
+      currencyConfig,
+      isPersonal,
+    ],
+  )
+
+  const primaryInsight = insights[0]
+  const secondaryInsights = insights.slice(1, 3)
 
   const recentMovements = useMemo(() => {
     if (!isPersonal) return periodMovements.slice(0, 5)
@@ -108,62 +147,36 @@ export function DashboardPage() {
   }, [periodMovements, isPersonal, myRole])
 
   const hasMovements = periodMovements.length > 0
-  const balanceDebtorName = coupleBalance.owedBy === 'personA' ? personAName : personBName
-  const balanceCreditorName = coupleBalance.owedBy === 'personA' ? personBName : personAName
-  const hasPendingCompensation =
-    coupleBalance.owedBy !== 'balanced' && coupleBalance.owedAmount > 0.01
+
+  if (isLoading) {
+    return <SkeletonDashboard />
+  }
 
   return (
-    <div className="space-y-4">
-      {onboarding.visible && (
-        <OnboardingBanner
-          movementCount={onboarding.movementCount}
-          needsNames={onboarding.needsNames}
-          onDismiss={onboarding.dismiss}
-        />
-      )}
+    <>
+      <DashboardHero
+        periodTitle={periodTitle}
+        totalExpenses={summary.totalExpenses}
+        totalIncome={summary.totalIncome}
+        netBalance={summary.netBalance}
+        expensesDelta={comparison.expenses}
+        currencyConfig={currencyConfig}
+        expensesLabel={isPersonal ? 'Mis gastos' : 'Gastado'}
+        showPersonalBadge={isPersonal}
+      />
 
-      <PageHeader title={periodTitle}>
-        <PeriodFilter
-          period={period}
-          onChange={setPeriod}
-          idPrefix="dashboard-period"
-          variant="full"
-          datesLabelOnly
-        />
-      </PageHeader>
-
-      {isLoading ? (
-        <SkeletonDashboard />
-      ) : hasMovements ? (
-        <>
-          <DashboardSummaryBento
-            netBalance={summary.netBalance}
-            totalIncome={summary.totalIncome}
-            totalExpenses={summary.totalExpenses}
-            comparison={comparison}
-            currencyConfig={currencyConfig}
-            expensesLabel={isPersonal ? 'Mis gastos' : 'Gastos'}
+      <div className="space-y-4 px-4 pt-4">
+        {onboarding.visible && (
+          <OnboardingBanner
+            movementCount={onboarding.movementCount}
+            needsNames={onboarding.needsNames}
+            onDismiss={onboarding.dismiss}
           />
+        )}
 
-          <DashboardCompensationRow
-            hasPendingCompensation={hasPendingCompensation}
-            debtorName={balanceDebtorName}
-            creditorName={balanceCreditorName}
-            owedAmount={coupleBalance.owedAmount}
-            currencyConfig={currencyConfig}
-          />
+        <InsightCard insight={primaryInsight} secondaryInsights={secondaryInsights} />
 
-          {summary.expensesByCategory.length > 0 && (
-            <DashboardCategoryBreakdown
-              expensesByCategory={summary.expensesByCategory}
-              totalExpenses={summary.totalExpenses}
-              currencyConfig={currencyConfig}
-              budgetProgress={budgetSummary?.categories}
-              showBudgetProgress={!isPersonal}
-            />
-          )}
-
+        {hasMovements && (
           <DashboardMovementList
             movements={recentMovements}
             categories={categories}
@@ -171,19 +184,8 @@ export function DashboardPage() {
             myRole={myRole}
             expenseViewMode={expenseViewMode}
           />
-        </>
-      ) : (
-        <Card>
-          <EmptyState
-            title="Sin movimientos en el período"
-            description="Empezá registrando un gasto o importando un resumen bancario para ver el estado financiero del período seleccionado."
-            actions={[
-              { label: 'Registrar movimiento', to: '/movimientos/nuevo' },
-              { label: 'Importar resumen', to: '/importar', variant: 'secondary' },
-            ]}
-          />
-        </Card>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   )
 }

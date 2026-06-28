@@ -1,18 +1,14 @@
 import { useState, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { useMovementsInRange, useMovementsQuery, useSettings, useDataMutations } from '@/hooks/useData'
-import { usePeriod } from '@/contexts/DashboardPeriodContext'
+import { useMovementsQuery, useSettings, useDataMutations } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
-import { calculateCoupleBalanceForScope } from '@/lib/balance'
+import { calculateCoupleBalance } from '@/lib/balance'
 import { displayLabelForRole, formLabelWithName } from '@/lib/couple/person-labels'
 import { formatInViewCurrency, getCurrencyConfig, SUPPORTED_CURRENCIES } from '@/lib/currency'
-import { currentMonthRange, todayISO } from '@/lib/utils'
+import { todayISO } from '@/lib/utils'
 import type { CurrencyCode } from '@/types'
 import { Card } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Dialog } from '@/components/ui/Dialog'
-import { BalanceScopeSelector, type BalanceScope } from '@/components/BalanceScopeSelector'
-import type { PeriodRange } from '@/components/PeriodFilter'
 import { SkeletonCard } from '@/components/skeletons/SkeletonCard'
 import {
   Button,
@@ -24,33 +20,12 @@ import {
   describedBy,
 } from '@/components/ui/Form'
 
-function resolveInitialBalanceScope(
-  urlScope: string | null,
-  sharedPeriod: PeriodRange,
-): { scope: BalanceScope; customPeriod: PeriodRange } {
-  if (urlScope === 'period') {
-    const month = currentMonthRange()
-    if (sharedPeriod.from === month.from && sharedPeriod.to === month.to) {
-      return { scope: 'current_month', customPeriod: month }
-    }
-    return { scope: 'custom', customPeriod: sharedPeriod }
-  }
-  return { scope: 'all', customPeriod: currentMonthRange() }
-}
-
 export function BalancePage() {
   const settings = useSettings()
   const persons = useCouplePersons()
   const { createSettlement } = useDataMutations()
-  const [searchParams] = useSearchParams()
-  const { period: sharedPeriod } = usePeriod()
   const currencyConfig = useMemo(() => getCurrencyConfig(settings), [settings])
-  const [scope, setScope] = useState<BalanceScope>(
-    () => resolveInitialBalanceScope(searchParams.get('scope'), sharedPeriod).scope,
-  )
-  const [customPeriod, setCustomPeriod] = useState<PeriodRange>(
-    () => resolveInitialBalanceScope(searchParams.get('scope'), sharedPeriod).customPeriod,
-  )
+  const { movements, isLoading } = useMovementsQuery()
   const [showSettlement, setShowSettlement] = useState(false)
   const [settlementAmount, setSettlementAmount] = useState(0)
   const [settlementCurrency, setSettlementCurrency] = useState<CurrencyCode>('ARS')
@@ -60,28 +35,9 @@ export function BalancePage() {
   const [settlementDate, setSettlementDate] = useState(todayISO())
   const [saving, setSaving] = useState(false)
 
-  const periodRange = useMemo((): PeriodRange | undefined => {
-    if (scope === 'all') return undefined
-    if (scope === 'current_month') return currentMonthRange()
-    return customPeriod
-  }, [scope, customPeriod])
-
-  const { movements: periodMovements, isLoading: periodLoading } = useMovementsInRange(periodRange)
-  const { movements: allMovements, isLoading: allLoading } = useMovementsQuery({
-    enabled: scope === 'all',
-  })
-
-  const balanceMovements = scope === 'all' ? allMovements : periodMovements
-  const isLoading = scope === 'all' ? allLoading : periodLoading
-
   const balance = useMemo(
-    () =>
-      calculateCoupleBalanceForScope(
-        balanceMovements,
-        currencyConfig,
-        scope === 'all' ? 'all' : 'period',
-      ),
-    [balanceMovements, scope, currencyConfig],
+    () => calculateCoupleBalance(movements, currencyConfig),
+    [movements, currencyConfig],
   )
 
   const personAName = persons.personAName
@@ -125,28 +81,9 @@ export function BalancePage() {
     }
   }
 
-  const calculationHelp =
-    scope === 'all'
-      ? [
-          'Incluye todos los gastos compartidos y liquidaciones registrados, sin filtro de fecha.',
-          'Las liquidaciones reducen la deuda pendiente acumulada.',
-        ]
-      : [
-          'Incluye gastos compartidos y liquidaciones del período seleccionado.',
-          'Pagó y debía asumir reflejan solo gastos compartidos; las liquidaciones ajustan la deuda del período.',
-          'Para ver la deuda acumulada sin filtro de fecha, usá el alcance Histórico.',
-        ]
-
   return (
     <div className="space-y-6">
       <PageHeader title="Balance" />
-
-      <BalanceScopeSelector
-        scope={scope}
-        onScopeChange={setScope}
-        customPeriod={customPeriod}
-        onCustomPeriodChange={setCustomPeriod}
-      />
 
       {isLoading ? (
         <>
@@ -248,9 +185,8 @@ export function BalancePage() {
             </span>
           </summary>
           <ul className="space-y-1 border-t border-stone-100 px-4 py-3 text-sm text-stone-600">
-            {calculationHelp.map((line) => (
-              <li key={line}>· {line}</li>
-            ))}
+            <li>· Incluye todos los gastos compartidos y liquidaciones registrados, sin filtro de fecha.</li>
+            <li>· Las liquidaciones reducen la deuda pendiente acumulada.</li>
             <li>
               · <strong>Pagó:</strong> suma de gastos compartidos que cada uno abonó directamente.
             </li>
@@ -261,10 +197,6 @@ export function BalancePage() {
             <li>
               · <strong>Diferencia:</strong> pagó menos lo que debía asumir; la deuda neta sale de
               comparar ambas personas.
-            </li>
-            <li>
-              · Las liquidaciones reducen la deuda del alcance seleccionado; en Histórico también
-              ajustan pagó y diferencia.
             </li>
             <li>· Los montos en USD se convierten con la cotización global de Ajustes.</li>
           </ul>

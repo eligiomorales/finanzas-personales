@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useFilteredMovements, useCategories, useSettings } from '@/hooks/useData'
 import { useCouplePersons } from '@/hooks/useCouplePersons'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
@@ -21,7 +22,9 @@ export function MovementsPage() {
   const settings = useSettings()
   const persons = useCouplePersons()
   const { isPersonal, mode: expenseViewMode } = useExpenseViewMode()
-  const { filters, setFilters, clearFilters } = useMovementFilters()
+  const { filters, setFilters, clearFilters, patchFilters } = useMovementFilters()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const appliedSearchParam = useRef<string | null>(null)
   const [visibleCount, setVisibleCount] = useState(MOVEMENTS_INITIAL_VISIBLE)
   const myRole = persons.myRole ?? 'personA'
 
@@ -94,6 +97,16 @@ export function MovementsPage() {
   useEffect(() => {
     setVisibleCount(MOVEMENTS_INITIAL_VISIBLE)
   }, [queryKey])
+
+  useEffect(() => {
+    const q = searchParams.get('q')
+    if (!q || appliedSearchParam.current === q) return
+    appliedSearchParam.current = q
+    patchFilters({ search: q })
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('q')
+    setSearchParams(nextParams, { replace: true })
+  }, [searchParams, patchFilters, setSearchParams])
 
   return (
     <div className="space-y-4">

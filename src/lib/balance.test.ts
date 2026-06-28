@@ -1,10 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   calculateCoupleBalance,
-  calculateCoupleBalanceForScope,
   calculatePeriodSummary,
   calculatePersonalExpenseSummary,
-  filterSharedCoupleExpenseMovements,
   getAssumedAmounts,
   getEffectiveShares,
   getPaidAmounts,
@@ -252,99 +250,6 @@ describe('calculateCoupleBalance', () => {
     expect(balance.personB.assumed).toBe(75)
     expect(balance.owedBy).toBe('personA')
     expect(balance.owedAmount).toBe(25)
-  })
-})
-
-describe('filterSharedCoupleExpenseMovements', () => {
-  it('keeps only shared expenses', () => {
-    const movements = [
-      base({ id: '1', isShared: true }),
-      base({ id: '2', isShared: false }),
-      base({ id: '3', type: 'settlement', amount: 50, categoryId: null }),
-      base({ id: '4', type: 'income', amount: 1000, categoryId: 'cat-1' }),
-    ]
-    const filtered = filterSharedCoupleExpenseMovements(movements)
-    expect(filtered).toHaveLength(1)
-    expect(filtered[0].id).toBe('1')
-  })
-
-  it('period breakdown ignores orphan settlements that would inflate Pagó', () => {
-    const movements = [
-      base({ amount: 100, paidBy: 'personA', date: '2025-05-01' }),
-      base({
-        id: '2',
-        type: 'settlement',
-        amount: 50,
-        paidBy: 'personB',
-        date: '2025-06-01',
-        sharePersonA: 0,
-        sharePersonB: 0,
-        categoryId: null,
-      }),
-    ]
-    const cumulative = calculateCoupleBalance(movements, config)
-    expect(cumulative.owedBy).toBe('balanced')
-
-    const juneMovements = movements.filter((m) => m.date >= '2025-06-01')
-    const periodBalance = calculateCoupleBalanceForScope(juneMovements, config, 'period')
-    expect(periodBalance.personA.paid).toBe(0)
-    expect(periodBalance.personB.paid).toBe(0)
-    expect(periodBalance.personA.difference).toBe(0)
-    expect(periodBalance.personB.difference).toBe(0)
-  })
-})
-
-describe('calculateCoupleBalanceForScope', () => {
-  it('matches activity difference with period debt when only shared expenses apply', () => {
-    const movements = [
-      base({ amount: 100, paidBy: 'personA', sharePersonA: 50, sharePersonB: 50, date: '2025-06-10' }),
-    ]
-    const balance = calculateCoupleBalanceForScope(movements, config, 'period')
-    expect(balance.personA.difference).toBe(50)
-    expect(balance.personB.difference).toBe(-50)
-    expect(balance.owedBy).toBe('personB')
-    expect(balance.owedAmount).toBe(50)
-  })
-
-  it('settlements in same period are ignored — they correct accumulated debt, not period activity', () => {
-    const movements = [
-      base({ amount: 100, paidBy: 'personA', date: '2025-06-01' }),
-      base({
-        id: '2',
-        type: 'settlement',
-        amount: 50,
-        paidBy: 'personB',
-        date: '2025-06-15',
-        sharePersonA: 0,
-        sharePersonB: 0,
-        categoryId: null,
-      }),
-    ]
-    const balance = calculateCoupleBalanceForScope(movements, config, 'period')
-    // settlement is excluded → same as period with only the shared expense
-    expect(balance.personA.paid).toBe(100)
-    expect(balance.personB.paid).toBe(0)
-    expect(balance.personA.difference).toBe(50)
-    expect(balance.owedBy).toBe('personB')
-    expect(balance.owedAmount).toBe(50)
-  })
-
-  it('delegates to full balance for all-time scope', () => {
-    const movements = [
-      base({ amount: 100, paidBy: 'personA' }),
-      base({
-        id: '2',
-        type: 'settlement',
-        amount: 50,
-        paidBy: 'personB',
-        sharePersonA: 0,
-        sharePersonB: 0,
-        categoryId: null,
-      }),
-    ]
-    expect(calculateCoupleBalanceForScope(movements, config, 'all')).toEqual(
-      calculateCoupleBalance(movements, config),
-    )
   })
 })
 

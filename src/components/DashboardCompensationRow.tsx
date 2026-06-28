@@ -41,7 +41,7 @@ export function DashboardCompensationRow({
 
   return (
     <Link
-      to="/balance?scope=period"
+      to="/balance"
       className={cn(
         cardSurface,
         focusRing,
@@ -51,8 +51,8 @@ export function DashboardCompensationRow({
       )}
       aria-label={
         hasPendingCompensation
-          ? `${debtorName} debe ${amountLabel} a ${creditorName}. Ver balance del período.`
-          : 'Están saldados en el período. Ver balance del período.'
+          ? `${debtorName} debe ${amountLabel} a ${creditorName}. Ver balance.`
+          : 'Están saldados. Ver balance.'
       }
     >
       <div className="flex items-center justify-between gap-2">
@@ -78,7 +78,7 @@ export function DashboardCompensationRow({
             </>
           ) : (
             <p className={cn('text-sm font-semibold leading-snug', styles.description)}>
-              Están saldados en el período
+              Están saldados
             </p>
           )}
         </div>

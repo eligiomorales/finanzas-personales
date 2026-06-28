@@ -1,8 +1,9 @@
 import { useRef } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatedRoutes } from '@/components/AnimatedRoutes'
+import { ChromeToolbarActions } from '@/components/ChromeToolbarActions'
 import { Badge } from '@/components/ui/Card'
-import { useAmountsVisibility, useAmountsVisible } from '@/contexts/AmountsVisibilityContext'
+import { useAmountsVisible } from '@/contexts/AmountsVisibilityContext'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { LayoutHeaderProvider, useLayoutHeaderContext } from '@/contexts/LayoutHeaderContext'
 import { useMotionPreferences } from '@/hooks/useMotionPreferences'
@@ -85,34 +86,6 @@ function NavIcon({ name, className }: { name: NavIconName; className?: string })
   }
 }
 
-function EyeIcon({ visible, className }: { visible: boolean; className?: string }) {
-  const props = {
-    className: cn('h-5 w-5', className),
-    viewBox: '0 0 24 24',
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 1.75,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    'aria-hidden': true,
-  }
-
-  if (visible) {
-    return (
-      <svg {...props}>
-        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-        <circle cx={12} cy={12} r={3} />
-      </svg>
-    )
-  }
-
-  return (
-    <svg {...props}>
-      <path d="M10.7 10.7a3 3 0 0 0 4.2 4.2M9.9 5.5A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a18.5 18.5 0 0 1-4.1 5.2M6.1 6.1C3.5 7.8 2 12 2 12a18.5 18.5 0 0 0 5.2 5.2M3 3l18 18" />
-    </svg>
-  )
-}
-
 const navItems: { to: string; label: string; icon: NavIconName }[] = [
   { to: '/', label: 'Inicio', icon: 'home' },
   { to: '/movimientos', label: 'Movimientos', icon: 'movements' },
@@ -138,9 +111,9 @@ function AppChrome() {
   // during the user gesture opens the keyboard before navigation.
   // Upgrade path: remove if Safari ever honours autoFocus natively.
   const focusProxyRef = useRef<HTMLInputElement>(null)
-  const { visible: amountsVisible, toggle: toggleAmountsVisibility } = useAmountsVisibility()
   const { active: header } = useLayoutHeaderContext()
   const isFormPage = location.pathname.includes('/nuevo') || location.pathname.includes('/editar')
+  const isHome = location.pathname === '/'
   const hideFab =
     isFormPage ||
     location.pathname.includes('/analisis/presupuesto') ||
@@ -153,6 +126,7 @@ function AppChrome() {
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col bg-surface-50 md:max-w-2xl lg:max-w-4xl">
+      {!isHome && (
       <header className="sticky top-0 z-10 bg-surface-50 px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -189,40 +163,7 @@ function AppChrome() {
               </div>
             )}
           </div>
-          {!isFormPage && (
-            <div className="flex shrink-0 items-center gap-1">
-              <button
-                type="button"
-                onClick={toggleAmountsVisibility}
-                className={cn(
-                  'flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
-                  focusRing,
-                  amountsVisible
-                    ? 'text-stone-500 hover:bg-surface-100 hover:text-stone-700'
-                    : 'bg-brand-50 text-brand-600',
-                )}
-                aria-label={amountsVisible ? 'Ocultar montos' : 'Mostrar montos'}
-                aria-pressed={!amountsVisible}
-              >
-                <EyeIcon visible={amountsVisible} />
-              </button>
-              <NavLink
-                to="/configuracion"
-                className={({ isActive }) =>
-                  cn(
-                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
-                    focusRing,
-                    isActive
-                      ? 'bg-brand-50 text-brand-600'
-                      : 'text-stone-500 hover:bg-surface-100 hover:text-stone-700',
-                  )
-                }
-                aria-label="Ajustes"
-              >
-                <NavIcon name="settings" />
-              </NavLink>
-            </div>
-          )}
+          {!isFormPage && <ChromeToolbarActions showPersonalBadge={showPersonalBadge} />}
         </div>
         {header.toolbar && (
           <div className="mt-2 flex items-center justify-end gap-2 overflow-x-auto pb-0.5">
@@ -230,8 +171,14 @@ function AppChrome() {
           </div>
         )}
       </header>
+      )}
 
-      <main className="flex-1 overflow-y-auto px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] pt-2">
+      <main
+        className={cn(
+          'flex-1 overflow-y-auto pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))]',
+          isHome ? 'px-0 pt-0' : 'px-4 pt-2',
+        )}
+      >
         <RoutedContent />
       </main>
 

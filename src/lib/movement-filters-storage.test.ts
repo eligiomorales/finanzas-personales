@@ -6,15 +6,7 @@ import {
   toPersistedMovementFilters,
   writeStoredMovementFilters,
 } from '@/lib/movement-filters-storage'
-import {
-  readStoredDashboardPeriod,
-  writeStoredDashboardPeriod,
-} from '@/lib/dashboard-period-storage'
-
 const MOVEMENT_FILTERS_KEY = 'finanzas-movement-filters-v2'
-// Legacy key used by migration tests (dashboard-period-storage reads from it)
-const LEGACY_MOVEMENT_FILTERS_KEY = 'finanzas-movement-filters'
-const DASHBOARD_PERIOD_KEY = 'finanzas-dashboard-period'
 const LEGACY_PERIOD_KEY = 'finanzas-period'
 
 function createStorageMock() {
@@ -133,52 +125,5 @@ describe('movement filters storage', () => {
     expect(
       movementQueryDateRange({ dateFrom: '2026-05-01', dateTo: '2026-05-31', sortBy: 'amount', sortDir: 'desc' }),
     ).toEqual({ dateFrom: '2026-05-01', dateTo: '2026-05-31' })
-  })
-})
-
-describe('dashboard period storage', () => {
-  beforeEach(() => {
-    const storage = createStorageMock()
-    vi.stubGlobal('window', { localStorage: storage })
-  })
-
-  it('returns current month when storage is empty', () => {
-    const period = readStoredDashboardPeriod()
-    expect(period.from).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-    expect(period.to).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-    expect(period.from <= period.to).toBe(true)
-  })
-
-  it('persists dashboard period separately from movement filters', () => {
-    writeStoredDashboardPeriod({ from: '2026-05-01', to: '2026-05-31' })
-    writeStoredMovementFilters({ type: 'expense' })
-    expect(readStoredDashboardPeriod()).toEqual({ from: '2026-05-01', to: '2026-05-31' })
-    expect(readStoredMovementFilters()).toEqual({ type: 'expense' })
-  })
-
-  it('migrates legacy period key', () => {
-    window.localStorage.setItem(
-      LEGACY_PERIOD_KEY,
-      JSON.stringify({ from: '2026-05-01', to: '2026-05-31' }),
-    )
-    expect(readStoredDashboardPeriod()).toEqual({ from: '2026-05-01', to: '2026-05-31' })
-  })
-
-  it('migrates dates from legacy movement filters when dashboard period is empty', () => {
-    window.localStorage.setItem(
-      LEGACY_MOVEMENT_FILTERS_KEY,
-      JSON.stringify({ dateFrom: '2026-04-01', dateTo: '2026-04-30', type: 'expense' }),
-    )
-    expect(readStoredDashboardPeriod()).toEqual({ from: '2026-04-01', to: '2026-04-30' })
-  })
-
-  it('removes legacy period key when writing dashboard period', () => {
-    window.localStorage.setItem(
-      LEGACY_PERIOD_KEY,
-      JSON.stringify({ from: '2026-04-01', to: '2026-04-30' }),
-    )
-    writeStoredDashboardPeriod({ from: '2026-05-01', to: '2026-05-31' })
-    expect(window.localStorage.getItem(LEGACY_PERIOD_KEY)).toBeNull()
-    expect(window.localStorage.getItem(DASHBOARD_PERIOD_KEY)).not.toBeNull()
   })
 })

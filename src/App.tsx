@@ -4,7 +4,6 @@ import { DataProvider } from '@/contexts/DataContext'
 import { AmountsVisibilityProvider } from '@/contexts/AmountsVisibilityContext'
 import { ExpenseViewProvider } from '@/contexts/ExpenseViewContext'
 import { MovementFiltersProvider } from '@/contexts/MovementFiltersContext'
-import { DashboardPeriodProvider } from '@/contexts/DashboardPeriodContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { MotionProvider } from '@/components/MotionProvider'
 import { Layout } from '@/components/Layout'
@@ -54,11 +53,9 @@ function AuthenticatedApp() {
     return (
       <AmountsVisibilityProvider>
         <ExpenseViewProvider>
-          <DashboardPeriodProvider>
-            <MovementFiltersProvider>
-              <AppRoutes />
-            </MovementFiltersProvider>
-          </DashboardPeriodProvider>
+          <MovementFiltersProvider>
+            <AppRoutes />
+          </MovementFiltersProvider>
         </ExpenseViewProvider>
       </AmountsVisibilityProvider>
     )
@@ -79,13 +76,11 @@ function AuthenticatedApp() {
   return (
     <AmountsVisibilityProvider>
       <ExpenseViewProvider>
-        <DashboardPeriodProvider>
-          <MovementFiltersProvider>
-            <DataProvider>
-              <AppRoutes />
-            </DataProvider>
-          </MovementFiltersProvider>
-        </DashboardPeriodProvider>
+        <MovementFiltersProvider>
+          <DataProvider>
+            <AppRoutes />
+          </DataProvider>
+        </MovementFiltersProvider>
       </ExpenseViewProvider>
     </AmountsVisibilityProvider>
   )

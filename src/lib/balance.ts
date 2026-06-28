@@ -78,30 +78,9 @@ export function getAssumedAmounts(
   }
 }
 
-/** Shared expenses included in period balance breakdown (excludes settlements and personal). */
-export function filterSharedCoupleExpenseMovements(movements: Movement[]): Movement[] {
-  return movements.filter((m) => m.type === 'expense' && m.isShared)
-}
-
 export type CoupleBalance = ReturnType<typeof calculateCoupleBalance>
 
-/**
- * Balance for a scope:
- * - 'all': full history including settlements (pass all movements).
- * - 'period': only shared expenses of the filtered window; settlements are ignored because
- *   they represent corrections to the accumulated debt, not to a specific period's activity.
- */
-export function calculateCoupleBalanceForScope(
-  movements: Movement[],
-  config: CurrencyConfig,
-  scope: 'all' | 'period',
-): CoupleBalance {
-  if (scope === 'all') {
-    return calculateCoupleBalance(movements, config)
-  }
-  return calculateCoupleBalance(filterSharedCoupleExpenseMovements(movements), config)
-}
-
+/** Couple balance over all movements (shared expenses + liquidations). */
 export function calculateCoupleBalance(movements: Movement[], config: CurrencyConfig) {
   let paidA = 0
   let paidB = 0
