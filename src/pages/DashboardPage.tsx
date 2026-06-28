@@ -22,7 +22,7 @@ import {
   calculatePersonalExpenseSummary,
   movementVisibleInPersonalView,
 } from '@/lib/balance'
-import { buildDashboardInsights, buildPeriodComparison } from '@/lib/dashboard-insights'
+import { buildDashboardInsight, buildPeriodComparison } from '@/lib/dashboard-insights'
 import { buildBudgetProgress } from '@/lib/budget'
 import { getCurrencyConfig } from '@/lib/currency'
 import { formatPeriodHeaderTitle } from '@/lib/period-presets'
@@ -108,9 +108,9 @@ export function DashboardPage() {
     [pendingImports],
   )
 
-  const insights = useMemo(
+  const primaryInsight = useMemo(
     () =>
-      buildDashboardInsights({
+      buildDashboardInsight({
         movements: periodMovements,
         coupleBalance,
         summary,
@@ -137,9 +137,6 @@ export function DashboardPage() {
       isPersonal,
     ],
   )
-
-  const primaryInsight = insights[0]
-  const secondaryInsights = insights.slice(1, 3)
 
   const recentMovements = useMemo(() => {
     if (!isPersonal) return periodMovements.slice(0, 5)
@@ -174,7 +171,7 @@ export function DashboardPage() {
           />
         )}
 
-        <InsightCard insight={primaryInsight} secondaryInsights={secondaryInsights} />
+        <InsightCard insight={primaryInsight} />
 
         {hasMovements && (
           <DashboardMovementList
