@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatedRoutes } from '@/components/AnimatedRoutes'
 import { ChromeToolbarActions } from '@/components/ChromeToolbarActions'
@@ -124,8 +124,17 @@ function AppChrome() {
     !location.pathname.startsWith('/balance') &&
     !location.pathname.startsWith('/importar')
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('home-immersive', isHome)
+    return () => document.documentElement.classList.remove('home-immersive')
+  }, [isHome])
+
   return (
-    <div className="mx-auto flex min-h-dvh max-w-lg flex-col bg-surface-50 md:max-w-2xl lg:max-w-4xl">
+    <div
+      className={cn(
+        'mx-auto flex min-h-dvh max-w-lg flex-col bg-surface-50 md:max-w-2xl lg:max-w-4xl',
+      )}
+    >
       {!isHome && (
       <header className="sticky top-0 z-10 bg-surface-50 px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between gap-2">
@@ -176,7 +185,7 @@ function AppChrome() {
       <main
         className={cn(
           'flex-1 overflow-y-auto pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))]',
-          isHome ? 'px-0 pt-0' : 'px-4 pt-2',
+          isHome ? 'overflow-x-clip px-0 pt-0' : 'px-4 pt-2',
         )}
       >
         <RoutedContent />

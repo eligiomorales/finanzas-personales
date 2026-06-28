@@ -165,7 +165,7 @@ export function DashboardPage() {
         showPersonalBadge={isPersonal}
       />
 
-      <div className="space-y-4 px-4 pt-4">
+      <div className="relative z-10 -mt-6 space-y-4 rounded-t-3xl bg-surface-50 px-4 pt-5">
         {onboarding.visible && (
           <OnboardingBanner
             movementCount={onboarding.movementCount}
