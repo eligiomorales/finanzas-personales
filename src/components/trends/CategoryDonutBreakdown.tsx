@@ -29,7 +29,7 @@ interface CategoryDonutBreakdownProps {
 const VIEW_W = 320
 const VIEW_H = 200
 const DONUT_D = 200
-const STROKE = 40
+const STROKE = 15
 const SEGMENT_GAP = 1
 /** 0 = puntas rectas (corte radial); subir para redondear esquinas en las puntas */
 export const TIP_ROUND = 4

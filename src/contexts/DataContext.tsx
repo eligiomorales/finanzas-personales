@@ -6,7 +6,7 @@ import { createSupabaseRepositories } from '@/lib/repositories/supabase-reposito
 import type { DataMode, Repositories } from '@/lib/repositories/types'
 import { createQueryClient } from '@/lib/query/client'
 import { queryKeys } from '@/lib/query/keys'
-import { currentMonthRange } from '@/lib/utils'
+import { currentMonthRange, previousMonthRange } from '@/lib/utils'
 
 interface DataContextValue {
   mode: DataMode
@@ -37,8 +37,14 @@ function RemoteDataSync({ coupleId, repos }: { coupleId: string; repos: Reposito
       )
     }
 
+    const invalidateMovementQueries = () => {
+      // Prefix invalidates all movementsInRange keys + legacy full-list key.
+      scheduleInvalidate(['movements', coupleId])
+      scheduleInvalidate(['movement', coupleId])
+    }
+
     const unsubs = [
-      repos.movements.subscribe(() => scheduleInvalidate(queryKeys.movements(coupleId))),
+      repos.movements.subscribe(invalidateMovementQueries),
       repos.categories.subscribe(() => scheduleInvalidate(queryKeys.categories(coupleId))),
       repos.settings.subscribe(() => scheduleInvalidate(queryKeys.settings(coupleId))),
       repos.imports.subscribe(() => {
@@ -60,6 +66,7 @@ function RemoteDataSync({ coupleId, repos }: { coupleId: string; repos: Reposito
 
   useEffect(() => {
     const { from, to } = currentMonthRange()
+    const { from: prevFrom, to: prevTo } = previousMonthRange()
     void Promise.all([
       queryClient.prefetchQuery({
         queryKey: queryKeys.settings(coupleId),
@@ -72,6 +79,10 @@ function RemoteDataSync({ coupleId, repos }: { coupleId: string; repos: Reposito
       queryClient.prefetchQuery({
         queryKey: queryKeys.movementsInRange(coupleId, from, to),
         queryFn: () => repos.movements.listInRange({ dateFrom: from, dateTo: to }),
+      }),
+      queryClient.prefetchQuery({
+        queryKey: queryKeys.movementsInRange(coupleId, prevFrom, prevTo),
+        queryFn: () => repos.movements.listInRange({ dateFrom: prevFrom, dateTo: prevTo }),
       }),
       queryClient.prefetchQuery({
         queryKey: queryKeys.budgets(coupleId),
