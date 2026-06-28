@@ -43,6 +43,12 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Home immersive: status bar + overscroll match hero top (Layout toggles .home-immersive) */
+html.home-immersive,
+html.home-immersive body {
+  background-color: var(--color-brand-600);
+}
+
 /* Mobile PWA (iOS Safari, Android Chrome): font-size < 16px triggers focus zoom.
    Input/Select use text-sm on desktop, max-md:text-base (16px) on mobile.
    ponytail: !important fallback below catches className overrides; excludes hero amount (text-2xl+). */
