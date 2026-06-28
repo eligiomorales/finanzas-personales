@@ -95,24 +95,13 @@ function InsightCardItem({ insight }: { insight: DashboardInsight }) {
   )
 }
 
-export function InsightCard({
-  insight,
-  secondaryInsights = [],
-}: {
-  insight: DashboardInsight
-  secondaryInsights?: DashboardInsight[]
-}) {
+export function InsightCard({ insight }: { insight: DashboardInsight }) {
   return (
     <div className="space-y-2">
       <p className={cn('text-[11px] font-semibold uppercase tracking-wide', textMuted)}>
         Cómo viene el mes
       </p>
-      <div className="space-y-2">
-        <InsightCardItem insight={insight} />
-        {secondaryInsights.map((secondary, index) => (
-          <InsightCardItem key={`${secondary.title}-${index}`} insight={secondary} />
-        ))}
-      </div>
+      <InsightCardItem insight={insight} />
     </div>
   )
 }
