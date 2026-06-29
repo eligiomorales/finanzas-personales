@@ -44,7 +44,7 @@ import { Card } from '@/components/ui/Card'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { SkeletonCard } from '@/components/skeletons/SkeletonCard'
-import { SPLIT_PRESETS } from '@/components/ImportShareControls'
+import { SPLIT_PRESETS, formSplitPreset } from '@/components/ImportShareControls'
 import { cn } from '@/lib/utils'
 import type { CurrencyCode, MovementFormData, MovementType, Payer } from '@/types'
 
@@ -112,6 +112,8 @@ export function MovementFormPage() {
     const m = editMovement
     const paidBy = m.paidBy === 'both' ? 'personA' : m.paidBy
     const incomeShares = personalSharesFromPayer(paidBy)
+    const sharePersonA = m.type === 'income' ? incomeShares.sharePersonA : m.sharePersonA
+    const sharePersonB = m.type === 'income' ? incomeShares.sharePersonB : m.sharePersonB
     setForm({
       type: m.type,
       amount: m.amount,
@@ -120,10 +122,17 @@ export function MovementFormPage() {
       description: m.description,
       categoryId: m.categoryId,
       paidBy,
-      sharePersonA: m.type === 'income' ? incomeShares.sharePersonA : m.sharePersonA,
-      sharePersonB: m.type === 'income' ? incomeShares.sharePersonB : m.sharePersonB,
+      sharePersonA,
+      sharePersonB,
       isShared: m.type === 'income' ? false : m.isShared,
     })
+    setSplitPreset(
+      formSplitPreset(
+        sharePersonA,
+        sharePersonB,
+        FORM_SPLIT_PRESETS.map((p) => p.value),
+      ),
+    )
   }, [id, editMovement])
 
   useEffect(() => {

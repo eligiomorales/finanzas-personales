@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatedRoutes } from '@/components/AnimatedRoutes'
 import { ChromeToolbarActions } from '@/components/ChromeToolbarActions'
-import { Badge } from '@/components/ui/Card'
 import { useAmountsVisible } from '@/contexts/AmountsVisibilityContext'
 import { useExpenseViewMode } from '@/contexts/ExpenseViewContext'
 import { LayoutHeaderProvider, useLayoutHeaderContext } from '@/contexts/LayoutHeaderContext'
@@ -157,9 +156,6 @@ function AppChrome() {
                     >
                       {header.title}
                     </h1>
-                    {showPersonalBadge && (
-                      <Badge variant="info">Personal</Badge>
-                    )}
                   </div>
                 )}
                 {header.subtitle && (

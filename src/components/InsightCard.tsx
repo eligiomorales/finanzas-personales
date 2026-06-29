@@ -44,18 +44,35 @@ const toneStyles = {
 
 function InsightCardItem({ insight }: { insight: DashboardInsight }) {
   const styles = toneStyles[insight.tone]
+  const isAmountTitle = insight.titleVariant === 'amount'
+  const badgeLabel = insight.badgeLabel ?? styles.label
   const body = (
     <>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <h2 className={cn('text-sm font-semibold leading-snug', styles.title)}>{insight.title}</h2>
-          <p className={cn('mt-0.5 line-clamp-2 text-xs leading-snug', styles.description)}>
+          <h2
+            className={cn(
+              isAmountTitle
+                ? 'text-xl font-bold tabular-nums tracking-tight'
+                : 'text-sm font-semibold leading-snug',
+              styles.title,
+            )}
+          >
+            {insight.title}
+          </h2>
+          <p
+            className={cn(
+              'mt-0.5 line-clamp-2 leading-snug',
+              isAmountTitle ? 'text-sm font-medium' : 'text-xs',
+              styles.description,
+            )}
+          >
             {insight.description}
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', styles.badge)}>
-            {styles.label}
+            {badgeLabel}
           </span>
           {insight.action && (
             <span className={cn('text-sm', styles.chevron)} aria-hidden>
@@ -88,7 +105,7 @@ function InsightCardItem({ insight }: { insight: DashboardInsight }) {
         styles.border,
         styles.bg,
       )}
-      aria-label={`${insight.title}. ${insight.action.label}`}
+      aria-label={`${insight.description}. ${insight.title}. ${insight.action.label}`}
     >
       {body}
     </Link>

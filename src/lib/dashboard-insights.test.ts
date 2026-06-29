@@ -384,8 +384,12 @@ describe('buildDashboardInsight', () => {
       }),
     )
 
-    expect(insight.title).toContain('saldo pendiente')
+    expect(insight.titleVariant).toBe('amount')
+    expect(insight.title).toMatch(/50/)
+    expect(insight.description).toBe('Juan debe a Ana')
+    expect(insight.badgeLabel).toBe('Pendiente')
     expect(insight.action?.to).toBe('/balance')
+    expect(insight.action?.label).toBe('Ver balance')
   })
 
   it('does not warn when historical balance is settled even if current month has activity', () => {
@@ -450,7 +454,8 @@ describe('buildDashboardInsight', () => {
     )
 
     expect(calculateCoupleBalance(allMovements, config).owedBy).toBe('balanced')
-    expect(insight.title).not.toContain('saldo pendiente')
+    expect(insight.titleVariant).not.toBe('amount')
+    expect(insight.badgeLabel).not.toBe('Pendiente')
   })
 
   it('shows category decrease vs previous month', () => {
