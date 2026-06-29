@@ -12,6 +12,16 @@
 
 _Nada activo — elegir siguiente sesión del top 3._
 
+## Recién cerrado (2026-06-29)
+
+**Bug reparto en detalle de movimiento:** al editar un gasto compartido con split no estándar (ej. 0/100), el chip «50/50» quedaba seleccionado aunque los % en DB eran correctos. Fix: hidratar `splitPreset` desde shares al cargar edición (`formSplitPreset` + test).
+
+**Bug badge «Personal» duplicado:** en vista personal el header mostraba dos chips «Personal» (junto al título y en la toolbar). Fix: quitar el del título; queda solo en `ChromeToolbarActions`.
+
+**Insight balance (opción A):** copy simplificado — monto grande, «X debe a Y», badge «Pendiente» (`titleVariant: 'amount'` + `badgeLabel` en `InsightCard`).
+
+**Home movimientos recientes:** mismo layout `grouped-card` que Movimientos (avatar + categoría + descripción + montos), sin pills de pagador/compartido; cards separadas en lugar de lista compacta.
+
 ## Siguiente (1–3, priorizado por dolor)
 
 1. Epic recurrentes **`REC-1`** (modelo + migración — prioridad #4)

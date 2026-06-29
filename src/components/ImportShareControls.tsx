@@ -57,6 +57,16 @@ export function detectSplitPreset(sharePersonA: number, sharePersonB: number): s
   return 'custom'
 }
 
+/** Maps stored shares to a preset chip; falls back to custom when not in allowed list. */
+export function formSplitPreset(
+  sharePersonA: number,
+  sharePersonB: number,
+  allowedValues: readonly string[],
+): string {
+  const detected = detectSplitPreset(sharePersonA, sharePersonB)
+  return allowedValues.includes(detected) ? detected : 'custom'
+}
+
 export function applyImportSharedToggle(
   values: ImportShareValues,
   nextShared: boolean,

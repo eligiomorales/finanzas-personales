@@ -10,6 +10,10 @@ export interface DashboardInsight {
   title: string
   description: string
   tone: InsightTone
+  /** Overrides the default tone badge (e.g. «Pendiente» for couple balance). */
+  badgeLabel?: string
+  /** Renders title as prominent currency amount (tabular-nums). */
+  titleVariant?: 'amount'
   action?: {
     label: string
     to: string
@@ -228,16 +232,18 @@ function checkBudgetOverrun(ctx: InsightContext): InsightRuleResult | null {
 }
 
 function checkCoupleBalance(ctx: InsightContext): InsightRuleResult | null {
-  const { coupleBalance, personAName, personBName } = ctx
+  const { coupleBalance, personAName, personBName, currencyConfig } = ctx
   if (coupleBalance.owedBy === 'balanced' || coupleBalance.owedAmount <= 0.01) return null
   const debtor = coupleBalance.owedBy === 'personA' ? personAName : personBName
   const creditor = coupleBalance.owedBy === 'personA' ? personBName : personAName
   return {
     priority: 60,
-    title: 'Hay un saldo pendiente entre ustedes',
-    description: `${debtor} debe compensar a ${creditor} por gastos compartidos acumulados.`,
+    title: formatInViewCurrency(coupleBalance.owedAmount, currencyConfig),
+    description: `${debtor} debe a ${creditor}`,
     tone: 'warning',
-    action: { label: 'Revisar balance', to: '/balance' },
+    badgeLabel: 'Pendiente',
+    titleVariant: 'amount',
+    action: { label: 'Ver balance', to: '/balance' },
   }
 }
 
