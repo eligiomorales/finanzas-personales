@@ -64,7 +64,7 @@ export function CumulativeSpendChart({ points, currencyConfig }: CumulativeSpend
   const areaPath = `${currentLine} L ${xForDay(last.day)},${plotBottom} L ${xForDay(currentPoints[0].day)},${plotBottom} Z`
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <svg
         viewBox={`0 0 ${w} ${CHART_H}`}
         className="min-h-0 w-full flex-1"

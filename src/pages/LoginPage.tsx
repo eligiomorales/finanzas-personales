@@ -42,7 +42,7 @@ export function LoginPage() {
     <PageShell>
       <Card className="w-full max-w-md space-y-6 p-6">
         <div>
-          <img src="/duo-wordmark.svg" alt="duo" className="mb-3 h-9 w-auto" />
+          <img src="/duo-wordmark.svg" alt="duo" className="mb-3 h-8 w-auto" />
           <p className="text-sm text-stone-600">
             {mode === 'login' ? 'Iniciá sesión para sincronizar datos' : 'Creá tu cuenta para empezar'}
           </p>

@@ -28,14 +28,14 @@ export function TrendChartCarousel({ slides }: TrendChartCarouselProps) {
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="flex snap-x snap-mandatory overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         aria-roledescription="carrusel"
         aria-label="Gráficos de tendencias"
       >
         {slides.map((slide, i) => (
           <div
             key={slide.id}
-            className="w-full shrink-0 snap-center"
+            className="w-full shrink-0 snap-center overflow-hidden"
             aria-hidden={i !== active}
           >
             {slide.content}

@@ -138,7 +138,7 @@ function AppChrome() {
       <header className="sticky top-0 z-10 bg-surface-50 px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <img src="/duo-wordmark.svg" alt="duo" className="h-10 w-auto shrink-0" />
+            <img src="/duo-wordmark.svg" alt="duo" className="h-8 w-auto shrink-0" />
             {(header.leading || header.title || header.subtitle) && (
               <div className="flex min-w-0 items-center gap-1.5">
                 {header.leading}

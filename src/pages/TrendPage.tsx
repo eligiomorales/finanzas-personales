@@ -24,7 +24,8 @@ import { ChoiceChip } from '@/components/ui/ChoiceChip'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { motionVariants } from '@/design/motion'
 import { TrendChartCarousel } from '@/components/trends/TrendChartCarousel'
-import { TREND_CAROUSEL_BODY_MIN_H } from '@/components/trends/chart-layout'
+import { TrendCarouselSlide } from '@/components/trends/TrendCarouselSlide'
+import { TREND_MONTH_SUMMARY_H } from '@/components/trends/chart-layout'
 import { CashFlowChart } from '@/components/trends/CashFlowChart'
 import { CumulativeSpendChart } from '@/components/trends/CumulativeSpendChart'
 import { CategoryDonutBreakdown } from '@/components/trends/CategoryDonutBreakdown'
@@ -196,119 +197,107 @@ export function TrendPage() {
         id: 'cashflow',
         label: 'Flujo de caja',
         content: (
-          <div className="space-y-2">
-            <SectionHeader label="Flujo de caja" />
-            <Card className="py-6">
-              <div className={`flex flex-col ${TREND_CAROUSEL_BODY_MIN_H}`}>
-                <CashFlowChart
-                  months={months}
-                  currencyConfig={currencyConfig}
-                  selectedYearMonth={selectedYearMonth}
-                  onSelectMonth={handleSelectMonth}
-                />
-              </div>
-            </Card>
-          </div>
+          <TrendCarouselSlide label="Flujo de caja">
+            <CashFlowChart
+              months={months}
+              currencyConfig={currencyConfig}
+              selectedYearMonth={selectedYearMonth}
+              onSelectMonth={handleSelectMonth}
+            />
+          </TrendCarouselSlide>
         ),
       },
       {
         id: 'category',
         label: 'Categoría',
         content: (
-          <div className="space-y-2">
-            <SectionHeader label="Tendencia por categoría" />
-            {categoryTrends.length > 0 ? (
-              <div
-                className="flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                role="radiogroup"
-                aria-label="Categoría"
-              >
-                {categoryTrends.map((trend) => (
-                  <ChoiceChip
-                    key={trend.categoryId}
-                    size="sm"
-                    shape="pill"
-                    role="radio"
-                    selected={trend.categoryId === activeCategoryTrend?.categoryId}
-                    onClick={() => setSelectedCategoryId(trend.categoryId)}
-                    className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
-                  >
-                    <span
-                      className="size-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: trend.color ?? '#78716c' }}
-                      aria-hidden
-                    />
-                    {trend.categoryName}
-                  </ChoiceChip>
-                ))}
-              </div>
-            ) : null}
-            <Card className="py-6">
-              <div className={`flex flex-col ${TREND_CAROUSEL_BODY_MIN_H}`}>
-                {categoryTrends.length === 0 ? (
-                  <p className="py-12 text-center text-sm text-stone-500">
-                    Sin gastos categorizados en los últimos 6 meses
-                  </p>
-                ) : activeCategoryTrend ? (
-                  <>
-                    <CategoryTrendBarChart
-                      months={activeCategoryTrend.months}
-                      categoryName={activeCategoryTrend.categoryName}
-                      color={activeCategoryTrend.color}
-                      selectedYearMonth={selectedYearMonth}
-                      onSelectMonth={handleSelectMonth}
-                      expenseTotalsByMonth={expenseTotalsByMonth}
-                    />
-                    {selectedMonthLabel ? (
-                      <div className="mt-3 border-t border-stone-100 pt-3">
-                        <p className="mb-2 text-[11px] font-semibold capitalize text-stone-500">
-                          {selectedMonthLabel}
+          <TrendCarouselSlide
+            label="Tendencia por categoría"
+            filter={
+              categoryTrends.length > 0 ? (
+                <div
+                  className="flex w-full gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  role="radiogroup"
+                  aria-label="Categoría"
+                >
+                  {categoryTrends.map((trend) => (
+                    <ChoiceChip
+                      key={trend.categoryId}
+                      size="sm"
+                      shape="pill"
+                      role="radio"
+                      selected={trend.categoryId === activeCategoryTrend?.categoryId}
+                      onClick={() => setSelectedCategoryId(trend.categoryId)}
+                      className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+                    >
+                      <span
+                        className="size-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: trend.color ?? '#78716c' }}
+                        aria-hidden
+                      />
+                      {trend.categoryName}
+                    </ChoiceChip>
+                  ))}
+                </div>
+              ) : null
+            }
+          >
+            {categoryTrends.length === 0 ? (
+              <p className="py-12 text-center text-sm text-stone-500">
+                Sin gastos categorizados en los últimos 6 meses
+              </p>
+            ) : activeCategoryTrend ? (
+              <>
+                <CategoryTrendBarChart
+                  months={activeCategoryTrend.months}
+                  categoryName={activeCategoryTrend.categoryName}
+                  color={activeCategoryTrend.color}
+                  selectedYearMonth={selectedYearMonth}
+                  onSelectMonth={handleSelectMonth}
+                  expenseTotalsByMonth={expenseTotalsByMonth}
+                />
+                <div
+                  className={cn(
+                    'mt-3 shrink-0 border-t border-stone-100 pt-3',
+                    TREND_MONTH_SUMMARY_H,
+                  )}
+                >
+                  {selectedMonthLabel && (
+                    <div className="text-right">
+                      <p className="text-xs font-semibold tabular-nums text-stone-800">
+                        {selectedCategoryMonthAmount > 0
+                          ? formatInViewCurrency(selectedCategoryMonthAmount, currencyConfig)
+                          : '–'}
+                      </p>
+                      {categoryShareForSelectedMonth != null ? (
+                        <p className="text-[10px] tabular-nums text-stone-500">
+                          {categoryShareForSelectedMonth >= 10
+                            ? `${Math.round(categoryShareForSelectedMonth)}%`
+                            : `${categoryShareForSelectedMonth.toFixed(1)}%`}{' '}
+                          del gasto total
                         </p>
-                        <div className="flex items-baseline justify-between gap-3">
-                          <p className="text-[10px] text-stone-400">Gasto</p>
-                          <div className="text-right">
-                            <p className="text-xs font-semibold tabular-nums text-stone-800">
-                              {selectedCategoryMonthAmount > 0
-                                ? formatInViewCurrency(selectedCategoryMonthAmount, currencyConfig)
-                                : '–'}
-                            </p>
-                            {categoryShareForSelectedMonth != null ? (
-                              <p className="text-[10px] tabular-nums text-stone-500">
-                                {categoryShareForSelectedMonth >= 10
-                                  ? `${Math.round(categoryShareForSelectedMonth)}%`
-                                  : `${categoryShareForSelectedMonth.toFixed(1)}%`}{' '}
-                                del gasto total
-                              </p>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
-                    ) : null}
-                  </>
-                ) : null}
-              </div>
-            </Card>
-          </div>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : null}
+          </TrendCarouselSlide>
         ),
       },
       {
         id: 'pace',
         label: 'Ritmo de gasto',
         content: (
-          <div className="space-y-2">
-            <SectionHeader label="Ritmo de gasto" />
-            <Card className="py-6">
-              <div className={`flex flex-col ${TREND_CAROUSEL_BODY_MIN_H}`}>
-                {cumulativePoints.length > 0 ? (
-                  <CumulativeSpendChart points={cumulativePoints} currencyConfig={currencyConfig} />
-                ) : (
-                  <p className="py-12 text-center text-sm text-stone-500">
-                    Sin gastos este mes todavía
-                  </p>
-                )}
-              </div>
-            </Card>
-          </div>
+          <TrendCarouselSlide label="Ritmo de gasto">
+            {cumulativePoints.length > 0 ? (
+              <CumulativeSpendChart points={cumulativePoints} currencyConfig={currencyConfig} />
+            ) : (
+              <p className="py-12 text-center text-sm text-stone-500">
+                Sin gastos este mes todavía
+              </p>
+            )}
+          </TrendCarouselSlide>
         ),
       },
     ],
