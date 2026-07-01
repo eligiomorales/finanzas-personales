@@ -5,10 +5,11 @@ import { cn } from '@/lib/utils'
 import { toMotionSeconds, motionDurations, motionEasings } from '@/design/motion'
 import { useMotionPreferences } from '@/hooks/useMotionPreferences'
 import type { MonthlyTrend } from '@/lib/monthly-trends'
-import { TREND_CHART_H } from '@/components/trends/chart-layout'
+import { TREND_CHART_H, TREND_BAR_SLOT_INSET, TREND_MONTH_SUMMARY_H } from '@/components/trends/chart-layout'
 
 const CHART_H = TREND_CHART_H
 const PAD = { l: 8, r: 8, t: 16, b: 28 }
+const BAR_GAP = 1.5
 
 interface CashFlowChartProps {
   months: MonthlyTrend[]
@@ -30,7 +31,7 @@ export function CashFlowChart({
     const plotW = w - PAD.l - PAD.r
     const plotH = CHART_H - PAD.t - PAD.b
     const maxY = Math.max(...months.map((m) => m.totalIncome + m.totalExpenses), 1)
-    const barW = plotW / months.length - 4
+    const barW = plotW / months.length - TREND_BAR_SLOT_INSET
     const x = (i: number) =>
       PAD.l + i * (plotW / months.length) + (plotW / months.length - barW) / 2
     const y = (v: number) => PAD.t + plotH - (v / maxY) * plotH
@@ -61,7 +62,7 @@ export function CashFlowChart({
     : { duration: 0 }
 
   return (
-    <div>
+    <div className="overflow-hidden">
       <svg
         viewBox={`0 0 ${w} ${CHART_H}`}
         className="w-full min-h-[220px]"
@@ -105,7 +106,7 @@ export function CashFlowChart({
           const incH = (month.totalIncome / maxY) * plotH
           const bx = x(i)
           const expY = plotBottom - expH
-          const incY = expY - incH
+          const incY = expY - incH - BAR_GAP
 
           return (
             <g key={month.yearMonth} opacity={isDimmed ? 0.45 : 1}>
@@ -159,60 +160,61 @@ export function CashFlowChart({
         )}
       </svg>
 
-      {/* Resumen inline — nunca se corta, ocupa flujo normal debajo del gráfico */}
-      <AnimatePresence initial={false}>
-        {selectedMonth ? (
-          <motion.div
-            key={selectedMonth.yearMonth}
-            initial={shouldAnimate ? { opacity: 0, y: -4 } : false}
-            animate={{ opacity: 1, y: 0 }}
-            exit={shouldAnimate ? { opacity: 0, y: -4 } : undefined}
-            transition={transition}
-            className="mt-3 border-t border-stone-100 pt-3"
-          >
-            <p className="mb-2 text-[11px] font-semibold capitalize text-stone-500">
-              {selectedMonth.label}
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <p className="text-[10px] text-stone-400">Ingresos</p>
-                <p className="text-xs font-semibold tabular-nums text-emerald-700">
-                  {selectedMonth.totalIncome > 0
-                    ? formatInViewCurrency(selectedMonth.totalIncome, currencyConfig)
-                    : '–'}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] text-stone-400">Gastos</p>
-                <p className="text-xs font-semibold tabular-nums text-stone-800">
-                  {selectedMonth.totalExpenses > 0
-                    ? formatInViewCurrency(selectedMonth.totalExpenses, currencyConfig)
-                    : '–'}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] text-stone-400">Ahorro</p>
-                <p
-                  className={cn(
-                    'text-xs font-semibold tabular-nums',
-                    selectedMonth.totalIncome === 0
-                      ? 'text-stone-400'
+      {/* Resumen — espacio siempre reservado, contenido se anima */}
+      <div className={cn('mt-3 shrink-0 border-t border-stone-100 pt-3', TREND_MONTH_SUMMARY_H)}>
+        <AnimatePresence initial={false}>
+          {selectedMonth && (
+            <motion.div
+              key={selectedMonth.yearMonth}
+              initial={shouldAnimate ? { opacity: 0, y: -4 } : false}
+              animate={{ opacity: 1, y: 0 }}
+              exit={shouldAnimate ? { opacity: 0, y: -4 } : undefined}
+              transition={transition}
+            >
+              <p className="mb-2 text-[11px] font-semibold capitalize text-stone-500">
+                {selectedMonth.label}
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <p className="text-[10px] text-stone-400">Ingresos</p>
+                  <p className="text-xs font-semibold tabular-nums text-emerald-700">
+                    {selectedMonth.totalIncome > 0
+                      ? formatInViewCurrency(selectedMonth.totalIncome, currencyConfig)
+                      : '–'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-stone-400">Gastos</p>
+                  <p className="text-xs font-semibold tabular-nums text-stone-800">
+                    {selectedMonth.totalExpenses > 0
+                      ? formatInViewCurrency(selectedMonth.totalExpenses, currencyConfig)
+                      : '–'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-stone-400">Ahorro</p>
+                  <p
+                    className={cn(
+                      'text-xs font-semibold tabular-nums',
+                      selectedMonth.totalIncome === 0
+                        ? 'text-stone-400'
+                        : selectedMonth.netBalance >= 0
+                          ? 'text-emerald-700'
+                          : 'text-red-600',
+                    )}
+                  >
+                    {selectedMonth.totalIncome === 0
+                      ? '–'
                       : selectedMonth.netBalance >= 0
-                        ? 'text-emerald-700'
-                        : 'text-red-600',
-                  )}
-                >
-                  {selectedMonth.totalIncome === 0
-                    ? '–'
-                    : selectedMonth.netBalance >= 0
-                      ? formatInViewCurrency(selectedMonth.netBalance, currencyConfig)
-                      : `−${formatInViewCurrency(Math.abs(selectedMonth.netBalance), currencyConfig)}`}
-                </p>
+                        ? formatInViewCurrency(selectedMonth.netBalance, currencyConfig)
+                        : `−${formatInViewCurrency(Math.abs(selectedMonth.netBalance), currencyConfig)}`}
+                  </p>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }

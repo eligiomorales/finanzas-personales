@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import type { CategoryMonthSpend } from '@/lib/monthly-trends'
-import { TREND_CHART_H } from '@/components/trends/chart-layout'
+import { TREND_CHART_H, TREND_BAR_SLOT_INSET } from '@/components/trends/chart-layout'
 
 const CHART_H = TREND_CHART_H
 const PAD = { l: 8, r: 8, t: 16, b: 28 }
@@ -71,7 +71,7 @@ export function CategoryTrendBarChart({
     const plotW = w - PAD.l - PAD.r
     const plotH = CHART_H - PAD.t - PAD.b
     const maxY = Math.max(...months.map((m) => m.amount), 1)
-    const barW = plotW / months.length - 4
+    const barW = plotW / months.length - TREND_BAR_SLOT_INSET
     const x = (i: number) =>
       PAD.l + i * (plotW / months.length) + (plotW / months.length - barW) / 2
     const yShare = (pct: number) => PAD.t + plotH - (pct / 100) * plotH
@@ -106,7 +106,7 @@ export function CategoryTrendBarChart({
   }
 
   return (
-    <div>
+    <div className="overflow-hidden">
       <svg
         viewBox={`0 0 ${w} ${CHART_H}`}
         className="w-full min-h-[220px]"

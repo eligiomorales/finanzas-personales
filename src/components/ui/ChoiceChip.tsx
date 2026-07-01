@@ -42,7 +42,7 @@ export function ChoiceChip({
         shape === 'pill' ? 'rounded-full' : 'rounded-lg',
         align === 'start' && 'text-left',
         focusRing,
-        size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-sm',
+        size === 'sm' ? 'px-3 py-2 text-xs' : 'px-3 py-2 text-sm',
         selected
           ? 'border-brand-500 bg-brand-50 text-brand-700'
           : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300 hover:bg-surface-50',
